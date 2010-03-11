@@ -104,7 +104,7 @@ mpeg3_release());
 "Karl Bielefeldt\n"
 "Kevin Brosius\n"
 "Jean-Luc Coulon\n"
-"Jean-Michel POURE\n"
+"Jean-Michel Poure\n"
 "Jerome Cornet\n"
 "Pierre Marc Dumuid\n"
 "Alex Ferrer\n"
@@ -116,6 +116,14 @@ mpeg3_release());
 "Eric Seigne\n"
 "Joe Stewart\n"
 "Dan Streetman\n"
+);
+	draw_text(x, y, credits);
+	
+	int x_indented;
+	x_indented = x + get_text_width(MEDIUMFONT, "Pierre Marc Dumuid") + 25;
+
+	char credits_cont1[BCTEXTLEN];
+	sprintf(credits_cont1,
 #ifdef X_HAVE_UTF8_STRING
 "Gustavo Iñiguez\n"
 #else
@@ -126,23 +134,15 @@ mpeg3_release());
 "Andraz Tori\n"
 "Jonas Wulff\n"
 "David Arendt\n"
-
-);
-	draw_text(x, y, credits);
-
-	int x_indented;
-	x_indented = x + get_text_width(MEDIUMFONT, "Pierre Marc Dumuid") + 20;
-
-	char credits_cont1[BCTEXTLEN];
-	sprintf(credits_cont1,
-
 #ifdef X_HAVE_UTF8_STRING
 "Einar Rünkaru\n"
 #else
 "Einar R\374nkaru\n"
 #endif
 "Monty Montgomery\n"
-
+"Paolo Rampino\n"
+"Petter Reinholdtsen\n"
+"Nicola Ferralis\n"
 );
 	draw_text(x_indented, y, credits_cont1);
 

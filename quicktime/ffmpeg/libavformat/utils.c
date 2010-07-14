@@ -1880,8 +1880,8 @@ static void av_estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset
             start_time[i]= st->start_time;
         }else if(st->first_dts != AV_NOPTS_VALUE){
             start_time[i]= st->first_dts;
-        }else
-            av_log(st->codec, AV_LOG_WARNING, "start time is not set in av_estimate_timings_from_pts\n");
+        }//else
+        // av_log(st->codec, AV_LOG_WARNING, "start time is not set in av_estimate_timings_from_pts\n");
 
         if (st->parser) {
             av_parser_close(st->parser);

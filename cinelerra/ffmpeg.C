@@ -11,6 +11,7 @@ extern "C" {
 #include "quicktime.h"
 #include "ffmpeg.h"
 #include "guicast.h"
+#include "byteorder.h"
 
 
 FFMPEG::FFMPEG(Asset *asset) {
@@ -73,11 +74,11 @@ PixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
 			  return PIX_FMT_YUYV422;
 		case BC_RGB888:
 			return PIX_FMT_RGB24;
-		case BC_BGR8888:  // NOTE: order flipped
-			return PIX_FMT_RGB32;
+		case BC_BGR8888: // flipped?
+			return PIX_FMT_BGRA;
 		case BC_BGR888:
 			return PIX_FMT_BGR24;
-		case BC_YUV420P: 
+		case BC_YUV420P:
 			return PIX_FMT_YUV420P;
 		case BC_YUV422P:
 			return PIX_FMT_YUV422P;
@@ -87,6 +88,20 @@ PixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
 			return PIX_FMT_YUV411P;
 		case BC_RGB565:
 			return PIX_FMT_RGB565;
+		case BC_RGBA8888: // flipped?
+			return PIX_FMT_RGBA;
+		case BC_RGB8:
+			return PIX_FMT_RGB8;
+		case BC_BGR565:
+			if(get_byte_order()) return PIX_FMT_BGR565LE;
+			else return PIX_FMT_BGR565BE;
+		case BC_ARGB8888:
+			return PIX_FMT_ARGB;
+		case BC_ABGR8888:
+			return PIX_FMT_ABGR;
+		case BC_RGB161616:
+			if(get_byte_order()) return PIX_FMT_RGB48LE;
+			else return PIX_FMT_RGB48BE;
 		};
 
 	return PIX_FMT_NB;
@@ -235,126 +250,85 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
 	init_picture_from_frame(&picture_out, frame_out);
 	int cmodel_out = frame_out->get_color_model();
 	PixelFormat pix_fmt_out = color_model_to_pix_fmt(cmodel_out);
+        int result = 0;
 
-#ifdef HAVE_SWSCALER
-	// We need a context for swscale
-	struct SwsContext *convert_ctx;
-#endif
-	int result;
-#ifndef HAVE_SWSCALER
-	// do conversion within libavcodec if possible
 	if (pix_fmt_out != PIX_FMT_NB) {
-		result = img_convert(&picture_out,
-				     pix_fmt_out,
-				     picture_in,
-				     pix_fmt_in,
-				     width_in,
-				     height_in);
-		if (result) {
-			printf("FFMPEG::convert_cmodel img_convert() failed\n");
-		}
-		return result;
-	}
+#ifndef HAVE_SWSCALER
+          // do conversion within libavcodec if possible
+          result = img_convert(&picture_out,
+                               pix_fmt_out,
+                               picture_in,
+                               pix_fmt_in,
+                               width_in,
+                               height_in);
+          if (result) {
+            printf("FFMPEG::convert_cmodel img_convert() failed\n");
+          }
 #else
-	convert_ctx = sws_getContext(width_in, height_in,pix_fmt_in,
-				     frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
-				     SWS_BICUBIC, NULL, NULL, NULL);
 
-	if(convert_ctx == NULL){
-	  printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
-	  return 1;
-	}
+          struct SwsContext *convert_ctx;
+          convert_ctx = sws_getContext(width_in, height_in,pix_fmt_in,
+                                       frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
+                                       SWS_BICUBIC, NULL, NULL, NULL);
 
-	result = sws_scale(convert_ctx, 
-			   picture_in->data, picture_in->linesize,
-			   width_in, height_in,
-			   picture_out.data, picture_out.linesize);
+          if(convert_ctx == NULL){
+            printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
+            return 1;
+          }
 
-	
-		sws_freeContext(convert_ctx);
-
-		if(result){
-			printf("FFMPEG::convert_cmodel sws_scale() failed\n");
-		}
+          sws_scale(convert_ctx, 
+                    picture_in->data, picture_in->linesize,
+                    0, height_in,
+                    picture_out.data, picture_out.linesize);
 #endif
-	
-	// make an intermediate temp frame only if necessary
-	int cmodel_in = pix_fmt_to_color_model(pix_fmt_in);
-	if (cmodel_in == BC_TRANSPARENCY) {
-		if (pix_fmt_in == PIX_FMT_RGB32) {
-			// avoid infinite recursion if things are broken
-			printf("FFMPEG::convert_cmodel pix_fmt_in broken!\n");
-			return 1;
-		}
+          return result;
+        }
 
-		// NOTE: choose RGBA8888 as a hopefully non-lossy colormodel
-		VFrame *temp_frame = new VFrame(0, width_in, height_in, 
-						BC_RGBA8888);
-		if (convert_cmodel(picture_in, pix_fmt_in,
-				  width_in, height_in, temp_frame)) {
-			delete temp_frame;
-			return 1;  // recursed call will print error message
-		}
-		
-		int result = convert_cmodel(temp_frame, frame_out);
-		delete temp_frame;
-		return result;
-	}
+        /* we get here if there's no direct path from the FFMPEG
+           pix_fmt_in to Cineleraa's/Quicktimes frame_out colormodel.
+           So-- an intermediate conversion is called for */
 
-	
-	// NOTE: no scaling possible in img_convert() so none possible here
-	if (frame_out->get_w() != width_in ||
-	    frame_out->get_h() != height_in) {
-		printf("scaling from %dx%d to %dx%d not allowed\n",
-		       width_in, height_in, 
-		       frame_out->get_w(), frame_out->get_h());
-		return 1;
-	}
+        if (cmodel_out == BC_RGBA8888) {
+          // avoid infinite recursion if things are broken
+          printf("FFMPEG::convert_cmodel pix_fmt_in broken!\n");
+          return 1;
+        }
 
+        // choose RGBA8888 as a hopefully non-lossy colormodel
+        VFrame *temp_frame = new VFrame(0, frame_out->get_w(), frame_out->get_h(),
+                                        BC_RGBA8888);
+        if (convert_cmodel(picture_in, pix_fmt_in,
+                           width_in, height_in, temp_frame)) {
+          delete temp_frame;
+          return 1;  // recursed call will print error message
+        }
 
 	// if we reach here we know that cmodel_transfer() will work
-	uint8_t *yuv_in[3] = {0,0,0};
-	uint8_t *row_pointers_in[height_in];
-	if (cmodel_is_planar(cmodel_in)) {
-		yuv_in[0] = picture_in->data[0];
-		yuv_in[1] = picture_in->data[1];
-		yuv_in[2] = picture_in->data[2];
-	}
-	else {
-		// set row pointers for picture_in 
-		uint8_t *data = picture_in->data[0];
-		int bytes_per_line = 
-			cmodel_calculate_pixelsize(cmodel_in) * height_in;
-		for (int i = 0; i < height_in; i++) {
-			row_pointers_in[i] = data + i * bytes_per_line;
-		}
-	}
-
 	cmodel_transfer
-		(// Packed data out 
-		 frame_out->get_rows(), 
+		(// Packed data out
+		 frame_out->get_rows(),
 		 // Packed data in
-		 row_pointers_in,
+		 temp_frame->get_rows(),
 
 		 // Planar data out
 		 frame_out->get_y(), frame_out->get_u(), frame_out->get_v(),
 		 // Planar data in
-		 yuv_in[0], yuv_in[1], yuv_in[2],
+		 NULL,NULL,NULL,
 
 		 // Dimensions in
-		 0, 0, width_in, height_in,  // NOTE: dimensions are same
+		 0, 0, temp_frame->get_w(), temp_frame->get_h(),
 		 // Dimensions out
-		 0, 0, width_in, height_in,
+		 0, 0, temp_frame->get_w(), temp_frame->get_h(),
 
 		 // Color model in, color model out
-		 cmodel_in, cmodel_out,
+		 BC_RGBA8888, cmodel_out,
 
 		 // Background color
 		 0,
-		 
+
 		 // Rowspans in, out (of luma for YUV)
-		 width_in, width_in
-		 
+		 temp_frame->get_w(), temp_frame->get_w()
+
 		 );
 
 	return 0;

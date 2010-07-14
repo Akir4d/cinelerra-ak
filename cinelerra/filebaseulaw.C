@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "assets.h"
 #include "byteorder.h"
 #include "file.h"

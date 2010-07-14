@@ -33,6 +33,10 @@
 #include "strategies.inc"
 #include "vframe.inc"
 
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+}
 #include <sys/types.h>
 
 // Number of samples saved before the current read position
@@ -111,15 +115,16 @@ public:
 // Manages an audio history buffer
 	void update_pcm_history(int64_t len);
 // contiguous float
-	void append_history(float **new_data, int len);
-// Interleaved short
-	void append_history(short *new_data, int len);
-	void pad_history(int len);
-	void read_history(double *dst,
-		int64_t start_sample, 
-		int channel,
-		int64_t len);
-	void allocate_history(int len);
+        void append_history(float **new_data, int offset, int len);
+// Interleaved 
+        void append_history(const void *new_data, enum SampleFormat format, int offset, int samples);
+
+        void pad_history(int len);
+        void read_history(double *dst,
+                int64_t start_sample, 
+                int channel,
+                int64_t len);
+        void allocate_history(int len);
 
 protected:
 // Return 1 if the render_strategy is present on the list.

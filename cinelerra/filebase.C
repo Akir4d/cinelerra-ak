@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "assets.h"
 #include "byteorder.h"
@@ -119,40 +120,120 @@ void FileBase::update_pcm_history(int64_t len)
 	}
 }
 
-void FileBase::append_history(float **new_data, int len)
+void FileBase::append_history(float **new_data, int offset, int len)
 {
-	allocate_history(len);
+        allocate_history(len);
 
-	for(int i = 0; i < history_channels; i++)
-	{
-		double *output = pcm_history[i] + history_size;
-		float *input = new_data[i];
-		for(int j = 0; j < len; j++)
-			*output++ = *input++;
-	}
+        for(int i = 0; i < history_channels; i++)
+        {
+                double *output = pcm_history[i] + history_size;
+                float *input = new_data[i]+offset;
+                for(int j = 0; j < len; j++)
+                        *output++ = *input++;
+        }
 
-	history_size += len;
-	decode_end += len;
+        history_size += len;
+        decode_end += len;
 }
 
 
-void FileBase::append_history(short *new_data, int len)
+void FileBase::append_history(const void *in, enum SampleFormat format, int offset, int len)
 {
-	allocate_history(len);
+  switch (format) {
+  default:
+  case SAMPLE_FMT_NONE:
+    /* uhhhh..... */
+    pad_history(len);
+    break;
 
-	for(int i = 0; i < history_channels; i++)
-	{
-		double *output = pcm_history[i] + history_size;
-		short *input = new_data + i;
-		for(int j = 0; j < len; j++)
-		{
-			*output++ = (double)*input / 32768;
-			input += history_channels;
-		}
-	}
+  case SAMPLE_FMT_U8:
+    {
+      /* unsigned 8 bits */
+      allocate_history(len);
+      uint8_t *new_data =  (uint8_t *)in;
 
-	history_size += len;
-	decode_end += len;
+      for(int i = 0; i < history_channels; i++){
+        double *output = pcm_history[i] + history_size;
+        uint8_t *input = new_data + i + offset*history_channels;
+        for(int j = 0; j < len; j++){
+          *output++ = (double)(*input-128) / 128;
+          input += history_channels;
+        }
+      }
+      break;
+    }
+
+  case SAMPLE_FMT_S16:
+    {
+      /* signed 16 bits */
+      allocate_history(len);
+      int16_t *new_data =  (int16_t *)in;
+
+      for(int i = 0; i < history_channels; i++){
+        double *output = pcm_history[i] + history_size;
+        int16_t *input = new_data + i + offset*history_channels;
+        for(int j = 0; j < len; j++){
+          *output++ = (double)*input / 32768;
+          input += history_channels;
+        }
+      }
+      break;
+    }
+
+  case SAMPLE_FMT_S32:
+    {
+      /* signed 32 bits */
+      allocate_history(len);
+      int32_t *new_data =  (int32_t *)in;
+
+      for(int i = 0; i < history_channels; i++){
+        double *output = pcm_history[i] + history_size;
+        int32_t *input = new_data + i + offset*history_channels;
+        for(int j = 0; j < len; j++){
+          *output++ = (double)*input / 1073741824.;
+          input += history_channels;
+        }
+      }
+      break;
+    }
+
+  case SAMPLE_FMT_FLT:
+    {
+      /* float */
+      allocate_history(len);
+      float *new_data =  (float *)in;
+
+      for(int i = 0; i < history_channels; i++){
+        double *output = pcm_history[i] + history_size;
+        float *input = new_data + i + offset*history_channels;
+        for(int j = 0; j < len; j++){
+          *output++ = *input;
+          input += history_channels;
+        }
+      }
+      break;
+    }
+
+  case SAMPLE_FMT_DBL:
+    {
+      /* double */
+      allocate_history(len);
+      double *new_data =  (double *)in;
+
+      for(int i = 0; i < history_channels; i++){
+        double *output = pcm_history[i] + history_size;
+        double *input = new_data + i + offset*history_channels;
+        for(int j = 0; j < len; j++){
+          *output++ = *input;
+          input += history_channels;
+        }
+      }
+      break;
+    }
+  }
+
+  history_size += len;
+  decode_end += len;
 }
 
 void FileBase::pad_history(int len)

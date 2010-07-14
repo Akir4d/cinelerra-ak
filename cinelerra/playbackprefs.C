@@ -153,9 +153,9 @@ SET_TRACE
 SET_TRACE
  	add_subwindow(new BC_Title(x, y, _("Scaling equation:")));
 	y += 20;
-	add_subwindow(nearest_neighbor = new PlaybackNearest(pwindow, 
+	add_subwindow(cubic_cubic = new PlaybackBicubicBicubic(pwindow, 
 		this, 
-		pwindow->thread->edl->session->interpolation_type == NEAREST_NEIGHBOR, 
+		pwindow->thread->edl->session->interpolation_type == CUBIC_CUBIC, 
 		10, 
 		y));
 	y += 20;
@@ -168,6 +168,12 @@ SET_TRACE
 	add_subwindow(linear_linear = new PlaybackBilinearBilinear(pwindow, 
 		this, 
 		pwindow->thread->edl->session->interpolation_type == LINEAR_LINEAR, 
+		10, 
+		y));
+	y += 20;
+	add_subwindow(nearest_neighbor = new PlaybackNearest(pwindow, 
+		this, 
+		pwindow->thread->edl->session->interpolation_type == NEAREST_NEIGHBOR, 
 		10, 
 		y));
 
@@ -251,7 +257,7 @@ void PlaybackPrefs::update(int interpolation)
 {
 	pwindow->thread->edl->session->interpolation_type = interpolation;
 	nearest_neighbor->update(interpolation == NEAREST_NEIGHBOR);
-//	cubic_cubic->update(interpolation == CUBIC_CUBIC);
+        cubic_cubic->update(interpolation == CUBIC_CUBIC);
 	cubic_linear->update(interpolation == CUBIC_LINEAR);
 	linear_linear->update(interpolation == LINEAR_LINEAR);
 }

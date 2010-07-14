@@ -319,7 +319,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 #define SEEK_THRESHOLD 32
 #define SEEK_BACK_START 16
-#define SEEK_BACK_LIMIT 4096
+#define SEEK_BACK_LIMIT 1024
 
   int64_t target =
     file->current_frame / asset->frame_rate *

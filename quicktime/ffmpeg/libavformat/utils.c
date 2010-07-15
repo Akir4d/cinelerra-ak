@@ -1493,6 +1493,7 @@ int64_t av_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts, i
         ts_min = read_timestamp(s, stream_index, &pos_min, INT64_MAX);
         if (ts_min == AV_NOPTS_VALUE)
             return -1;
+        pos_min = s->data_offset;
     }
 
     if(ts_max == AV_NOPTS_VALUE){

@@ -317,17 +317,20 @@ int FileFFMPEG::read_frame(VFrame *frame)
   int64_t stream_start = av_rescale_q(avcontext->start_time, AV_TIME_BASE_Q,
                                       stream->time_base);
 
-#define SEEK_THRESHOLD 32
-#define SEEK_BACK_START 16
-#define SEEK_BACK_LIMIT 1024
+#define SEEK_THRESHOLD 16
+#define SEEK_BACK_START 24
+#define SEEK_BACK_LIMIT 600
 
   int64_t target =
     file->current_frame / asset->frame_rate *
     stream->time_base.den/stream->time_base.num + stream_start;
   int64_t target_min = target -
-    (1.*stream->time_base.den/stream->time_base.num/asset->frame_rate)/2;
+    (1.*stream->time_base.den/stream->time_base.num/asset->frame_rate)/2 +
+    .5 + EPSILON;
+  int64_t target_abort = target +
+    (1.*stream->time_base.den/stream->time_base.num/asset->frame_rate);
 
-  int seek_back = SEEK_BACK_START;
+  int seek_back = 0; // yes, zero not SEEK_BACK_START
   int pre_sync;
   int got_keyframe = 0;
   int got_it = 0;
@@ -345,7 +348,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
     //  file->current_frame, current_frame,
     //  1.*file->current_frame/asset->frame_rate,
     //  1.*(target_min-stream_start)*
-    //      stream->time_base.num/stream->time_base.den);
+    //  stream->time_base.num/stream->time_base.den);
 
     unsynced = 0;
 
@@ -372,14 +375,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
           stream->time_base.den/stream->time_base.num/asset->frame_rate;
 
         if(seekto <= stream_start+EPSILON){
-
-          /* a number of files with truncated first GOPs will not be
-             able to seek back to exactly the beginning correctly, but
-             will be able to play from beginning.  Seeking to zero
-             appears to be a special case that resets and plays from
-             the first similarly as if the file was just opened, so it
-             handles more files. This is common in AVCHD. */
-
           //fprintf(stderr,"ZERO ");
           seekto = 0;
           seek_back = SEEK_BACK_LIMIT;
@@ -390,9 +385,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
         //fprintf(stderr,"adjusted=%.03f ",1.*(seekto-stream_start)*
         //      stream->time_base.num/stream->time_base.den);
 
-        avcodec_flush_buffers(decoder_context);
-
-        /* BACKWARD flag makes AVCHD behave better */
         if(av_seek_frame(avcontext,
                          video_index,
                          seekto,
@@ -433,6 +425,9 @@ int FileFFMPEG::read_frame(VFrame *frame)
             got_keyframe = 1;
             //fprintf(stderr,"KEYFRAME ");
           }
+
+          // starting past where we want to be?
+          if(!pre_sync && packet.pts != AV_NOPTS_VALUE && packet.pts > target_abort) break;
 
           if(got_keyframe){
 
@@ -516,7 +511,11 @@ int FileFFMPEG::read_frame(VFrame *frame)
         }
       }
 
-      seek_back<<=1;
+      if(seek_back==0){
+        seek_back = SEEK_BACK_START;
+      }else{
+        seek_back<<=1;
+      }
       pre_sync = 0;
     }
 

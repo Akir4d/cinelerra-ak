@@ -262,10 +262,24 @@ int FileFFMPEG::close_file()
   ffmpeg_lock->lock("FileFFMPEG::close_file");
 
   if(ffmpeg_file_context){
-    AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[video_index];
-    AVCodecContext *decoder_context = stream->codec;
-    if(decoder_context)
-      avcodec_close(decoder_context);
+    if(video_index >= 0){
+      AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[video_index];
+      if(stream){
+        AVCodecContext *decoder_context = stream->codec;
+        if(decoder_context)
+          avcodec_close(decoder_context);
+      }
+    }
+
+    if(audio_index >= 0){
+      AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[audio_index];
+      if(stream){
+        AVCodecContext *decoder_context = stream->codec;
+        if(decoder_context)
+          avcodec_close(decoder_context);
+      }
+    }
+
     av_close_input_file((AVFormatContext*)ffmpeg_file_context);
   }
   if(ffmpeg_frame) av_free(ffmpeg_frame);

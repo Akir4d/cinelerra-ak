@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "bcsignals.h"
 #include "condition.h"
@@ -27,6 +28,7 @@
 #include "mutex.h"
 #include "vframe.h"
 #include "videodevice.inc"
+#include "ffmpeg.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -561,27 +563,7 @@ int FileThread::read_frame(VFrame *frame)
 	if(got_it)
 	{
 // Copy image
-		cmodel_transfer(frame->get_rows(), 
-			local_frame->frame->get_rows(),
-			frame->get_y(),
-			frame->get_u(),
-			frame->get_v(),
-			local_frame->frame->get_y(),
-			local_frame->frame->get_u(),
-			local_frame->frame->get_v(),
-			0, 
-			0, 
-			local_frame->frame->get_w(), 
-			local_frame->frame->get_h(),
-			0, 
-			0, 
-			frame->get_w(), 
-			frame->get_h(),
-			local_frame->frame->get_color_model(), 
-			frame->get_color_model(),
-			0,
-			local_frame->frame->get_w(),
-			frame->get_w());
+                FFMPEG::convert_cmodel(local_frame->frame,frame);
 // Can't copy stacks because the stack is needed by the plugin requestor.
 		frame->copy_params(local_frame->frame);
 

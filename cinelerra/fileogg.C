@@ -37,6 +37,7 @@
 #include "cmodel_permutation.h"
 #include "interlacemodes.h"
 #include "mainerror.h"
+#include "ffmpeg.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1535,28 +1536,7 @@ int FileOGG::read_frame(VFrame *frame)
 						BC_YUV420P,
 						- yuv.y_stride);
 		// copy into temp frame...
-		
-		cmodel_transfer(frame->get_rows(),
-			temp_frame->get_rows(),
-			frame->get_y(),
-			frame->get_u(),
-			frame->get_v(),
-			temp_frame->get_y(),
-			temp_frame->get_u(),
-			temp_frame->get_v(),
-			0,
-			0,
-			yuv.y_width,
-			yuv.y_height,
-			0,
-			0,
-			yuv.y_width,  // temp_frame can be larger than frame if width not dividable by 16
-			yuv.y_height,	
-			BC_YUV420P,
-			frame->get_color_model(),
-			0,
-			-temp_frame->get_w(),
-			frame->get_w());
+                FFMPEG::convert_cmodel(temp_frame,frame);
 		delete temp_frame;
 	}
 
@@ -1999,27 +1979,7 @@ int FileOGG::write_frames_theora(VFrame ***frames, int len, int e_o_s)
 		} else
 		{
 
-			cmodel_transfer(temp_frame->get_rows(),
-				frame->get_rows(),
-				temp_frame->get_y(),
-				temp_frame->get_u(),
-				temp_frame->get_v(),
-				frame->get_y(),
-				frame->get_u(),
-				frame->get_v(),
-				0,
-				0,
-				frame->get_w(),
-				frame->get_h(),
-				0,
-				0,
-				frame->get_w(),  // temp_frame can be larger than frame if width not dividable by 16
-				frame->get_h(),	
-				frame->get_color_model(),
-				BC_YUV420P,
-				0,
-				frame->get_w(),
-				temp_frame->get_w());
+                        FFMPEG::convert_cmodel(frame,temp_frame);
 
 		}
 	}						

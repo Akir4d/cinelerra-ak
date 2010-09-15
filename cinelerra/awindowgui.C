@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "assetedit.h"
 #include "assetpopup.h"
@@ -51,8 +52,7 @@
 #include "vframe.h"
 #include "vwindowgui.h"
 #include "vwindow.h"
-
-
+#include "ffmpeg.h"
 
 
 AssetPicon::AssetPicon(MWindow *mwindow, 
@@ -203,28 +203,7 @@ void AssetPicon::create_objects()
 						pixmap_w, 
 						pixmap_h, 
 						BC_RGB888);
-					cmodel_transfer(icon_vframe->get_rows(), /* Leave NULL if non existent */
-						gui->temp_picon->get_rows(),
-						0, /* Leave NULL if non existent */
-						0,
-						0,
-						0, /* Leave NULL if non existent */
-						0,
-						0,
-						0,        /* Dimensions to capture from input frame */
-						0, 
-						gui->temp_picon->get_w(), 
-						gui->temp_picon->get_h(),
-						0,       /* Dimensions to project on output frame */
-						0, 
-						pixmap_w, 
-						pixmap_h,
-						BC_RGB888, 
-						BC_RGB888,
-						0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
-						0,       /* For planar use the luma rowspan */
-						0);     /* For planar use the luma rowspan */
-
+                                        FFMPEG::convert_cmodel(gui->temp_picon,icon_vframe);
 
 					mwindow->video_cache->check_in(asset);
 				}

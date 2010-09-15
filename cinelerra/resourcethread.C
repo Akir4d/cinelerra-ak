@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "bcsignals.h"
 #include "bctimer.h"
@@ -38,6 +39,7 @@
 #include "trackcanvas.h"
 #include "vframe.h"
 #include "wavecache.h"
+#include "ffmpeg.h"
 
 
 ResourceThreadItem::ResourceThreadItem(ResourcePixmap *pixmap, 
@@ -362,27 +364,9 @@ void ResourceThread::do_video(VResourceThreadItem *item)
 
 		source->read_frame(temp_picon);
 		picon_frame = new VFrame(0, item->picon_w, item->picon_h, BC_RGB888);
-		cmodel_transfer(picon_frame->get_rows(),
-			temp_picon->get_rows(),
-			0,
-			0,
-			0,
-			0,
-			0,
-			0,
-			0,
-			0, 
-			temp_picon->get_w(),
-			temp_picon->get_h(),
-			0,
-			0,
-			picon_frame->get_w(), 
-			picon_frame->get_h(),
-			BC_RGB888,
-			BC_RGB888,
-			0,
-			temp_picon->get_bytes_per_line(),
-			picon_frame->get_bytes_per_line());
+
+                FFMPEG::convert_cmodel(temp_picon, picon_frame);
+ 
 		temp_picon2->copy_from(picon_frame);
 		mwindow->frame_cache->put_frame(picon_frame, 
 			item->position,

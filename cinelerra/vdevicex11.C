@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "assets.h"
 #include "bccapture.h"
 #include "bcsignals.h"
@@ -36,7 +37,6 @@
 #include "vframe.h"
 #include "videodevice.h"
 #include "videowindow.h"
-#include "videowindowgui.h"
 
 #include <string.h>
 #include <unistd.h>

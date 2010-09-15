@@ -24,7 +24,7 @@
 #undef _FILE_OFFSET_BITS
 #undef _LARGEFILE_SOURCE
 #undef _LARGEFILE64_SOURCE
-
+#define __STDC_CONSTANT_MACROS 1
 
 #include "assets.h"
 #include "bcsignals.h"
@@ -39,6 +39,7 @@
 #include "vdevicev4l.h"
 #include "vframe.h"
 #include "videodevice.h"
+#include "ffmpeg.h"
 
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -501,27 +502,7 @@ int VDeviceV4L::frame_to_vframe(VFrame *frame, unsigned char *input)
 			inheight, 
 			colormodel, 
 			-1);
-		cmodel_transfer(frame->get_rows(), 
-			in_frame->get_rows(),
-			frame->get_y(),
-			frame->get_u(),
-			frame->get_v(),
-			in_frame->get_y(),
-			in_frame->get_u(),
-			in_frame->get_v(),
-			0, 
-			0, 
-			inwidth, 
-			inheight,
-			0, 
-			0, 
-			frame->get_w(), 
-			frame->get_h(),
-			colormodel, 
-			frame->get_color_model(),
-			0,
-			inwidth,
-			inheight);
+                FFMPEG::convert_cmodel(in_frame,frame);
 	}
 	return 0;
 }

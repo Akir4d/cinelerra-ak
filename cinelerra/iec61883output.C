@@ -23,6 +23,7 @@
 
 
 
+#define __STDC_CONSTANT_MACROS 1
 #include "audiodevice.h"
 #include "condition.h"
 #include "iec61883output.h"
@@ -31,6 +32,7 @@
 #include "bctimer.h"
 #include "vframe.h"
 #include "videodevice.h"
+#include "ffmpeg.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -382,28 +384,7 @@ void IEC61883Output::write_frame(VFrame *input)
 			temp_frame->allocate_compressed_data(data_size);
 			temp_frame->set_compressed_size(data_size);
 
-
-			cmodel_transfer(temp_frame2->get_rows(), /* Leave NULL if non existent */
-				input->get_rows(),
-				temp_frame2->get_y(), /* Leave NULL if non existent */
-				temp_frame2->get_u(),
-				temp_frame2->get_v(),
-				input->get_y(), /* Leave NULL if non existent */
-				input->get_u(),
-				input->get_v(),
-				0,        /* Dimensions to capture from input frame */
-				0, 
-				MIN(temp_frame2->get_w(), input->get_w()),
-				MIN(temp_frame2->get_h(), input->get_h()),
-				0,       /* Dimensions to project on output frame */
-				0, 
-				MIN(temp_frame2->get_w(), input->get_w()),
-				MIN(temp_frame2->get_h(), input->get_h()),
-				input->get_color_model(), 
-				BC_YUV422,
-				0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
-				input->get_bytes_per_line(),       /* For planar use the luma rowspan */
-				temp_frame2->get_bytes_per_line());     /* For planar use the luma rowspan */
+                        FFMPEG::convert_cmodel(input,temp_frame2);
 
 			dv_write_video(encoder,
 				temp_frame->get_data(),

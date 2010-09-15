@@ -970,16 +970,19 @@ static inline void transfer_UYVA8888_to_YUVA16161616(uint16_t *(*output), unsign
 					break; \
 				case BC_YUV420P: \
 					TRANSFER_YUV420P_OUT_HEAD \
-					transfer_YUVA8888_to_YUV420P_YUV422P(output_y, \
-						output_u, \
-						output_v, \
-						(input), \
-						j); \
+					transfer_YUVA8888_to_YUV420P(output_y, \
+                                                                     output_u, \
+                                                                     output_v, \
+                                                                     (input), \
+                                                                     i, \
+                                                                     j, \
+                                                                     in_h, \
+                                                                     in_w); \
 					TRANSFER_FRAME_TAIL \
 					break; \
 				case BC_YUV422P: \
 					TRANSFER_YUV422P_OUT_HEAD \
-					transfer_YUVA8888_to_YUV420P_YUV422P(output_y, \
+					transfer_YUVA8888_to_YUV422P(output_y, \
 						output_u, \
 						output_v, \
 						(input), \

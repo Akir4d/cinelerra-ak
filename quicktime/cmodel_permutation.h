@@ -774,9 +774,9 @@ static inline void transfer_RGBA8888_to_VYU888(unsigned char *(*output), unsigne
 	int y, u, v, a, r, g, b;
 	
 	a = input[3];
-	r = ((input[0] * a) >> 8) + 1;
-	g = ((input[1] * a) >> 8) + 1;
-	b = ((input[2] * a) >> 8) + 1;
+	r = ((input[0] * a + 255) >> 8);
+	g = ((input[1] * a + 255) >> 8);
+	b = ((input[2] * a + 255) >> 8);
 
 	RGB_TO_YUV(y, u, v, input[0], input[1], input[2]);
 
@@ -1884,7 +1884,45 @@ static inline void transfer_YUVA8888_to_YUV101010(unsigned char *(*output), unsi
 }
 
 
-static inline void transfer_YUVA8888_to_YUV420P_YUV422P(unsigned char *output_y, 
+static inline void transfer_YUVA8888_to_YUV420P(unsigned char *output_y, 
+                                                unsigned char *output_u, 
+                                                unsigned char *output_v, 
+                                                unsigned char *input,
+                                                int output_row,
+                                                int output_column,
+                                                int input_height,
+                                                int input_width)
+{
+	int opacity = input[3];
+	int adj = 0x80 * (0xff - opacity) + 255;
+        int o2 = output_column / 2;
+
+	output_y[output_column] =     ((input[0] * opacity + 255) >> 8);
+
+        if(((output_row|output_column)&1)==0){
+
+          if(input_height&1){
+            if(input_width&1){
+              output_u[o2] = ((input[1] * opacity + adj) >> 8);
+              output_v[o2] = ((input[2] * opacity + adj) >> 8);
+            }else{
+              output_u[o2] = (( ((input[1]+input[5])>>1) * opacity + adj) >> 8);
+              output_v[o2] = (( ((input[2]+input[6])>>1) * opacity + adj) >> 8);
+            }
+          }else{
+            unsigned char *n_put = input + input_width*4;
+            if(input_width&1){
+              output_u[o2] = (( ((input[1]+n_put[1])>>1) * opacity + adj) >> 8);
+              output_v[o2] = (( ((input[2]+n_put[2])>>1) * opacity + adj) >> 8);
+            }else{
+              output_u[o2] = (( ((input[1]+input[5]+n_put[1]+n_put[5])>>2) * opacity + adj) >> 8);
+              output_v[o2] = (( ((input[2]+input[6]+n_put[2]+n_put[6])>>2) * opacity + adj) >> 8);
+            }
+          }
+        }
+}
+
+static inline void transfer_YUVA8888_to_YUV422P(unsigned char *output_y, 
 	unsigned char *output_u, 
 	unsigned char *output_v, 
 	unsigned char *input,
@@ -1893,9 +1931,9 @@ static inline void transfer_YUVA8888_to_YUV420P_YUV422P(unsigned char *output_y,
 	int opacity = input[3];
 	int transparency = 0xff - opacity;
 
-	output_y[output_column] =     ((input[0] * opacity) >> 8) + 1;
-	output_u[output_column / 2] = ((input[1] * opacity + 0x80 * transparency) >> 8) + 1;
-	output_v[output_column / 2] = ((input[2] * opacity + 0x80 * transparency) >> 8) + 1;
+	output_y[output_column] =     ((input[0] * opacity + 255) >> 8);
+	output_u[output_column / 2] = ((input[1] * opacity + 0x80 * transparency + 255) >> 8);
+	output_v[output_column / 2] = ((input[2] * opacity + 0x80 * transparency + 255) >> 8);
 }
 
 static inline void transfer_YUVA8888_to_YUV444P(unsigned char *output_y, 
@@ -1907,9 +1945,9 @@ static inline void transfer_YUVA8888_to_YUV444P(unsigned char *output_y,
 	int opacity = input[3];
 	int transparency = 0xff - opacity;
 
-	output_y[output_column] =     ((input[0] * opacity) >> 8) + 1;
-	output_u[output_column] = ((input[1] * opacity + 0x80 * transparency) >> 8) + 1;
-	output_v[output_column] = ((input[2] * opacity + 0x80 * transparency) >> 8) + 1;
+	output_y[output_column] =     ((input[0] * opacity + 255) >> 8);
+	output_u[output_column] = ((input[1] * opacity + 0x80 * transparency + 255) >> 8);
+	output_v[output_column] = ((input[2] * opacity + 0x80 * transparency + 255) >> 8);
 }
 
 static inline void transfer_YUVA8888_to_YUV422(unsigned char *(*output), 
@@ -1921,14 +1959,14 @@ static inline void transfer_YUVA8888_to_YUV422(unsigned char *(*output),
 // Store U and V for even pixels only
 	if(!(j & 1))
 	{
-		(*output)[0] = ((input[0] * opacity) >> 8) + 1;
-		(*output)[1] = ((input[1] * opacity + 0x80 * transparency) >> 8) + 1;
-		(*output)[3] = ((input[2] * opacity + 0x80 * transparency) >> 8) + 1;
+		(*output)[0] = ((input[0] * opacity + 255) >> 8);
+		(*output)[1] = ((input[1] * opacity + 0x80 * transparency + 255) >> 8);
+		(*output)[3] = ((input[2] * opacity + 0x80 * transparency + 255) >> 8);
 	}
 	else
 // Store Y and advance output for odd pixels only
 	{
-		(*output)[2] = ((input[0] * opacity) >> 8) + 1;
+		(*output)[2] = ((input[0] * opacity + 255) >> 8);
 		(*output) += 4;
 	}
 }

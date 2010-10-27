@@ -280,6 +280,8 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
                     picture_in->data, picture_in->linesize,
                     0, height_in,
                     picture_out.data, picture_out.linesize);
+
+          sws_freeContext(convert_ctx);
 #endif
           return result;
         }
@@ -331,6 +333,7 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
 
 		 );
 
+        delete temp_frame;
 	return 0;
 }
 

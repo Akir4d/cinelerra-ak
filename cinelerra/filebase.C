@@ -96,14 +96,14 @@ void FileBase::update_pcm_history(int64_t len)
 	}
 	else
 // Shift history forward to make room for new samples
-	if(file->current_sample > history_start + HISTORY_MAX)
-	{
-		int diff = file->current_sample - (history_start + HISTORY_MAX);
-		for(int i = 0; i < asset->channels; i++)
-		{
-			double *temp = pcm_history[i];
-			memcpy(temp, temp + diff, (history_size - diff) * sizeof(double));
-		}
+        if(file->current_sample > history_start + HISTORY_MAX)
+        {
+                int diff = file->current_sample - (history_start + HISTORY_MAX);
+                for(int i = 0; i < asset->channels; i++)
+                {
+                        double *temp = pcm_history[i];
+                        memmove(temp, temp + diff, (history_size - diff) * sizeof(double));
+                }
 
 		history_start += diff;
 		history_size -= diff;

@@ -141,8 +141,7 @@ int FFMPEG::init_picture_from_frame(AVPicture *picture, VFrame *frame) {
 				  frame->get_w(), frame->get_h());
 
 	if (size < 0) {
-		printf("FFMPEG::init_picture failed\n");
-		return 1;
+		return -1;
 	}
 
 	if (cmodel_is_planar(frame->get_color_model())) {
@@ -168,42 +167,43 @@ int FFMPEG::convert_cmodel(VFrame *frame_in,  VFrame *frame_out) {
 #endif
 	// do conversion within libavcodec if possible
 	if (pix_fmt_in != PIX_FMT_NB && pix_fmt_out != PIX_FMT_NB) {
-		// set up a temporary pictures from frame_in and frame_out
-		AVPicture picture_in, picture_out;
-		init_picture_from_frame(&picture_in, frame_in);
-		init_picture_from_frame(&picture_out, frame_out);
-		int result;
+          // set up a temporary pictures from frame_in and frame_out
+          AVPicture picture_in, picture_out;
+          if(init_picture_from_frame(&picture_in, frame_in)>=0 &&
+             init_picture_from_frame(&picture_out, frame_out)>=0){
+
+            int result=0;
 #ifndef HAVE_SWSCALER
-		result = img_convert(&picture_out,
-				     pix_fmt_out,
-				     &picture_in,
-				     pix_fmt_in,
-				     frame_in->get_w(),
-				     frame_out->get_h());
-		if (result) {
-			printf("FFMPEG::convert_cmodel img_convert() failed\n");
-		}
+            result = img_convert(&picture_out,
+                                 pix_fmt_out,
+                                 &picture_in,
+                                 pix_fmt_in,
+                                 frame_in->get_w(),
+                                 frame_out->get_h());
+            if (result) {
+              printf("FFMPEG::convert_cmodel img_convert() failed\n");
+            }
 #else
-		convert_ctx = sws_getContext(frame_in->get_w(), frame_in->get_h(),pix_fmt_in,
-				frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
-				SWS_BICUBIC, NULL, NULL, NULL);
+            convert_ctx = sws_getContext(frame_in->get_w(), frame_in->get_h(),pix_fmt_in,
+                                         frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
+                                         SWS_BICUBIC, NULL, NULL, NULL);
 
-		if(convert_ctx == NULL){
-			printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
-			return 1;
-		}
+            if(convert_ctx == NULL){
+              printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
+              return 1;
+            }
 
-                frame_out->clear_frame();
-                sws_scale(convert_ctx,
-                          picture_in.data, picture_in.linesize,
-                          0, frame_in->get_h(),
-                          picture_out.data, picture_out.linesize);
+            frame_out->clear_frame();
+            sws_scale(convert_ctx,
+                      picture_in.data, picture_in.linesize,
+                      0, frame_in->get_h(),
+                      picture_out.data, picture_out.linesize);
 
-		sws_freeContext(convert_ctx);
+            sws_freeContext(convert_ctx);
 #endif
-		return result;
-	}
-
+            return result;
+          }
+        }
 
 	// failing the fast method, use the failsafe cmodel_transfer()
 	return convert_cmodel_transfer(frame_in, frame_out);
@@ -248,44 +248,47 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
 
 	// set up a temporary picture_out from frame_out
 	AVPicture picture_out;
-	init_picture_from_frame(&picture_out, frame_out);
 	int cmodel_out = frame_out->get_color_model();
 	PixelFormat pix_fmt_out = color_model_to_pix_fmt(cmodel_out);
         int result = 0;
 
-	if (pix_fmt_out != PIX_FMT_NB) {
+        if(init_picture_from_frame(&picture_out, frame_out)>=0){
+
+
+          if (pix_fmt_out != PIX_FMT_NB) {
 #ifndef HAVE_SWSCALER
-          // do conversion within libavcodec if possible
-          result = img_convert(&picture_out,
-                               pix_fmt_out,
-                               picture_in,
-                               pix_fmt_in,
-                               width_in,
-                               height_in);
-          if (result) {
-            printf("FFMPEG::convert_cmodel img_convert() failed\n");
-          }
+            // do conversion within libavcodec if possible
+            result = img_convert(&picture_out,
+                                 pix_fmt_out,
+                                 picture_in,
+                                 pix_fmt_in,
+                                 width_in,
+                                 height_in);
+            if (result) {
+              printf("FFMPEG::convert_cmodel img_convert() failed\n");
+            }
 #else
 
-          struct SwsContext *convert_ctx;
-          convert_ctx = sws_getContext(width_in, height_in,pix_fmt_in,
-                                       frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
-                                       SWS_BICUBIC, NULL, NULL, NULL);
+            struct SwsContext *convert_ctx;
+            convert_ctx = sws_getContext(width_in, height_in,pix_fmt_in,
+                                         frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
+                                         SWS_BICUBIC, NULL, NULL, NULL);
 
-          if(convert_ctx == NULL){
-            printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
-            return 1;
-          }
+            if(convert_ctx == NULL){
+              printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
+              return 1;
+            }
 
-          frame_out->clear_frame();
-          sws_scale(convert_ctx, 
-                    picture_in->data, picture_in->linesize,
-                    0, height_in,
-                    picture_out.data, picture_out.linesize);
+            frame_out->clear_frame();
+            sws_scale(convert_ctx, 
+                      picture_in->data, picture_in->linesize,
+                      0, height_in,
+                      picture_out.data, picture_out.linesize);
+            sws_freeContext(convert_ctx);
 
-          sws_freeContext(convert_ctx);
 #endif
-          return result;
+            return result;
+          }
         }
 
         /* we get here if there's no direct path from the FFMPEG

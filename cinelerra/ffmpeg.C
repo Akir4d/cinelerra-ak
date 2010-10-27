@@ -193,10 +193,11 @@ int FFMPEG::convert_cmodel(VFrame *frame_in,  VFrame *frame_out) {
 			return 1;
 		}
 
-		sws_scale(convert_ctx,
-			  picture_in.data, picture_in.linesize,
-			  0, frame_in->get_h(),
-			  picture_out.data, picture_out.linesize);
+                frame_out->clear_frame();
+                sws_scale(convert_ctx,
+                          picture_in.data, picture_in.linesize,
+                          0, frame_in->get_h(),
+                          picture_out.data, picture_out.linesize);
 
 		sws_freeContext(convert_ctx);
 #endif
@@ -276,6 +277,7 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
             return 1;
           }
 
+          frame_out->clear_frame();
           sws_scale(convert_ctx, 
                     picture_in->data, picture_in->linesize,
                     0, height_in,

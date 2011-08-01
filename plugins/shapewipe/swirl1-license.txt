@@ -1,0 +1,5 @@
+Author:
+Jean-Baptiste Mardelle
+
+License:
+GPL

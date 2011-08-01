@@ -1,0 +1,15 @@
+Fleur-de-lis-of-Florence
+
+Author:
+
+Adolf Winterer
+
+
+Description:
+Luma wipe shape made of the Fleur de-lis of Florence
+
+
+License:
+Public Domain
+This work has been derived from the vector graphics at http://upload.wikimedia.org/wikipedia/commons/e/e0/Fleur_de_lis_of_Florence.svg which has been placed in the public domain by the author.
+

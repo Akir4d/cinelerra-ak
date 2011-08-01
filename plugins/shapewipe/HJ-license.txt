@@ -1,0 +1,10 @@
+Author:
+Juan Hernandez
+
+Files:
+ * HJ-helix2.png
+ * HJ-helix4.png
+ * HJ-xtype.png
+
+License:
+GPL

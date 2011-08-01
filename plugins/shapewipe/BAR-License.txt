@@ -1,0 +1,4 @@
+Author
+Kilgore Trout
+License
+GPL

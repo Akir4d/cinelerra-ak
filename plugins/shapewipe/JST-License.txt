@@ -1,0 +1,27 @@
+Autor:
+Jean Sebastien Tarot 
+
+List of images:
+
+ * JST-cicle-vertical-invert.png
+ * JST-circle-vertical.png
+ * JST-demi-cercle.png
+ * JST-demi-circle-horizontal-haut.png
+ * JST-demi-circle-non-opposite.png
+ * JST-demi-circle-opposite.png
+ * JST-demi-circle-opposite-invert.png
+ * JST-demi-circle-together.png
+ * JST-demi-circle-verticale.png
+ * JST-join.png
+ * JST-multiple-circle.png
+ * JST-profondeur.png
+ * JST-quadri-circle.png
+ * JST-quadrillage.png
+ * JST-quadrillage1.png
+ * JST-spiral.png
+ * JST-tile-circle.png
+ * JST-triangle.png
+
+
+License: 
+Unknow

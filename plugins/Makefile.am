@@ -1,5 +1,6 @@
 THEMES= \
 	suv \
+	unflattheme \
 	bluedottheme \
 	defaulttheme
 

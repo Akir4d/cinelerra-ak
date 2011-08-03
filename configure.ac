@@ -755,6 +755,8 @@ AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 	plugins/spectrogram/Makefile \
 	plugins/suv/Makefile \
 	plugins/suv/data/Makefile \
+	plugins/unflattheme/Makefile \
+	plugins/unflattheme/data/Makefile \
 	plugins/bluedottheme/Makefile \
 	plugins/bluedottheme/data/Makefile \
 	plugins/defaulttheme/Makefile \

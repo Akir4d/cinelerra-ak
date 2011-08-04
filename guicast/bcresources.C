@@ -72,11 +72,11 @@ const char* BC_Resources::small_fontset = "-*-helvetica-medium-r-normal-*-10-*";
 const char* BC_Resources::medium_fontset = "-*-helvetica-bold-r-normal-*-14-*";
 const char* BC_Resources::large_fontset = "-*-helvetica-bold-r-normal-*-18-*";
 
-const char* BC_Resources::small_font_xft = N_("-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*");
+const char* BC_Resources::small_font_xft = N_("Sans-8");
 const char* BC_Resources::small_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::medium_font_xft = N_("-*-luxi sans-*-r-*-*-16-*-*-*-*-*-*-*");
+const char* BC_Resources::medium_font_xft = N_("Sans-10");
 const char* BC_Resources::medium_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::large_font_xft = N_("-*-luxi sans-bold-r-*-*-20-*-*-*-*-*-*-*");
+const char* BC_Resources::large_font_xft = N_("Sans-16");
 const char* BC_Resources::large_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
 
 suffix_to_type_t BC_Resources::suffix_to_type[] = 

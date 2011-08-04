@@ -225,6 +225,7 @@ void BC_WindowBase::draw_text(int x,
 								y2,
 								j,
 								i);
+								
 						}
 						else
 #endif
@@ -288,7 +289,6 @@ void BC_WindowBase::draw_xft_text(int x,
 	color.blue = (top_level->current_color & 0xff);
 	color.blue |= color.blue << 8;
 	color.alpha = 0xffff;
-
 	XftColorAllocValue(top_level->display,
 		top_level->vis,
 		top_level->cmap,
@@ -314,12 +314,13 @@ void BC_WindowBase::draw_xft_text(int x,
 		top_level->get_xft_struct(top_level->current_font),
 		x2 + k, 
 		y2 + k,
-		(const XftChar8 *)&text[j],
+		(const FcChar8 *)&text[j],
 		i - j);
-	XftColorFree(top_level->display,
-	    top_level->vis,
-	    top_level->cmap,
-	    &xft_color);
+	//XftColorFree(top_level->display,
+	  //  top_level->vis,
+	    //top_level->cmap,
+	    //&xft_color);
+	    
 #endif
 }
 

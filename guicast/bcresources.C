@@ -68,9 +68,9 @@ char* BC_Resources::medium_font2 = N_("-*-helvetica-bold-r-normal-*-14-*");
 char* BC_Resources::large_font = N_("-*-helvetica-bold-r-normal-*-18-*");
 char* BC_Resources::large_font2 = N_("-*-helvetica-bold-r-normal-*-20-*");
 
-char* BC_Resources::small_fontset = "6x12,*";
-char* BC_Resources::medium_fontset = "7x14,*";
-char* BC_Resources::large_fontset = "8x16,*";
+char* BC_Resources::small_fontset = "-*-helvetica-medium-r-normal-*-10-*";
+char* BC_Resources::medium_fontset = "-*-helvetica-bold-r-normal-*-14-*";
+char* BC_Resources::large_fontset = "-*-helvetica-bold-r-normal-*-18-*";
 
 char* BC_Resources::small_font_xft = N_("-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*");
 char* BC_Resources::small_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
@@ -526,7 +526,7 @@ BC_Resources::BC_Resources()
 
 	audiovideo_color = RED;
 
-	use_fontset = 0;
+	use_fontset = 1;
 
 // Xft has priority over font set
 #ifdef HAVE_XFT

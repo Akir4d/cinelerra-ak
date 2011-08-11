@@ -109,6 +109,7 @@ public:
 	void set_ibeam_letter(int number, int redraw = 1);
 // Used for custom formatting text boxes
 	int get_last_keypress();
+	//char *get_last_keypress();
 // Table of separators to skip.  Used by time textboxes
 // The separator format is "0000:0000".  Things not alnum are considered
 // separators.  The alnums are replaced by user text.
@@ -156,7 +157,8 @@ private:
 	int highlighted;
 	int high_color, back_color;
 	int background_color;
-	char text[BCTEXTLEN], text_row[BCTEXTLEN], temp_string[2];
+	char text[BCTEXTLEN], text_row[BCTEXTLEN]; 
+	char* temp_string;
 	int active;
 	int enabled;
 	int precision;
@@ -166,6 +168,7 @@ private:
 	Timer *skip_cursor;
 // Used for custom formatting text boxes
 	int last_keypress;
+	//char *last_keypress;
 	char *separators;
 };
 

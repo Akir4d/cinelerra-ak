@@ -669,7 +669,11 @@ int BC_WindowBase::dispatch_event()
 	XEvent *event = 0;
     Window tempwin;
   	KeySym keysym;
+#ifdef X_HAVE_UTF8_STRING
+	char keys_return[6];
+#else
   	char keys_return[2];
+#endif
 	int result;
 	XClientMessageEvent *ptr;
 	int temp;
@@ -877,19 +881,82 @@ int BC_WindowBase::dispatch_event()
 			break;
 
 		case KeyPress:
-			get_key_masks(event);
-  			keys_return[0] = 0;
-  			XLookupString((XKeyEvent*)event, keys_return, 1, &keysym, 0);
+			get_key_masks(event); 			
+#ifdef X_HAVE_UTF8_STRING
+			//keys_return[0] = 0;
+			for (int a = 0; a < 6; a++) keys_return[a] = 0;
+			// this is routine re-adapted from xev.c - xutils
+			im = XOpenIM (display, NULL, NULL, NULL);
+			XIMStyles *xim_styles;
+   	        	XIMStyle xim_style;
+   	        	if (im == NULL) 
+   	        	{
+       			printf ("XOpenIM failed\n");
+    			}
+    			
+			if (im) 
+			{
+				char *imvalret;
+        			imvalret = XGetIMValues (im, XNQueryInputStyle, &xim_styles, NULL);
+        			if (imvalret != NULL || xim_styles == NULL) 
+        			{
+            				printf ("input method doesn't support any styles\n");
+        			}
 
+    	       			if (xim_styles) 
+    	       			{
+            	               		xim_style = 0;            	               
+            		       		for (int z = 0;  z < xim_styles->count_styles;  z++) 
+            		       		{
+                	       			if (xim_styles->supported_styles[z] == (XIMPreeditNothing | XIMStatusNothing)) 
+                	       			{
+                    					xim_style = xim_styles->supported_styles[z];
+                    	 				break;
+                    	 			}
+            				}
+
+            				if (xim_style == 0) 
+            				{
+                				printf ("input method doesn't support the style we support\n");
+            				}
+            				XFree (xim_styles);
+        			}
+    			} 
+			if (im && xim_style) 
+			{
+        			ic = XCreateIC (im, 
+                        	XNInputStyle, xim_style, 
+                       		XNClientWindow, win, 
+                       		XNFocusWindow, win, 
+				NULL);
+				if (ic == NULL) 
+				{
+            				printf ("XCreateIC failed\n");
+        			}
+			}
+			if (ic)
+			{
+  			Xutf8LookupString(ic, (XKeyEvent*)event, keys_return, 6, &keysym, 0);
+  			} else 
+  			{
+  			XLookupString((XKeyEvent*)event, keys_return, 6, &keysym, 0);
+  			}
+#else
+			XLookupString((XKeyEvent*)event, keys_return, 6, &keysym, 0);
+#endif
 // printf("BC_WindowBase::dispatch_event 2 %llx\n", 
 // event->xkey.state);
 // block out control keys
 			if(keysym > 0xffe0 && keysym < 0xffff) break;
 
-
-			if(test_keypress) printf("BC_WindowBase::dispatch_event %x\n", keysym);
-
-
+			if(test_keypress) printf("BC_WindowBase::dispatch_event %x\n", (unsigned char)keysym);
+#ifdef X_HAVE_UTF8_STRING
+			//It's Ascii or UTF8?
+ 			if ( (keys_return[0] & 0xff) >= 0x7f ) {
+ 				key_pressed_utf8 = keys_return;
+ 				key_pressed = keysym & 0xff;
+ 	 			} else {
+#endif
   			switch(keysym)
 			{
 // block out extra keys
@@ -944,10 +1011,18 @@ int BC_WindowBase::dispatch_event()
 				case XK_KP_Insert:      key_pressed = KPINS;     break;
 				case XK_KP_Decimal:
 				case XK_KP_Delete:      key_pressed = KPDEL;     break;
- 	    		default:           
-					//key_pressed = keys_return[0]; 
+ 	    		default:        
+#ifdef X_HAVE_UTF8_STRING
+
+ 	 					keys_return[1] = 0;
+ 	 					key_pressed_utf8 = keys_return;	
+ 	 					key_pressed = keysym & 0xff;	
+#else					
 					key_pressed = keysym & 0xff;
+#endif
+					//printf("keysym: %x keys_return0: %x\n", keysym, keys_return[0]);
 					break;
+			}
 			}
 
 //printf("BC_WindowBase::dispatch_event %d %d %x\n", shift_down(), alt_down(), key_pressed);
@@ -3173,7 +3248,12 @@ int BC_WindowBase::ctrl_down()
 {
 	return top_level->ctrl_mask;
 }
-
+#ifdef X_HAVE_UTF8_STRING
+char* BC_WindowBase::get_keypress_utf8()
+{
+	return top_level->key_pressed_utf8;
+}
+#endif
 
 int BC_WindowBase::get_keypress()
 {

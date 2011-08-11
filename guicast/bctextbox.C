@@ -797,7 +797,12 @@ int BC_TextBox::keypress_event()
 // Single character
 				if(!ctrl_down())
 				{
+#ifdef X_HAVE_UTF8_STRING
+					int s = utf8seek(ibeam_letter,1);
+					ibeam_letter -= (1 + s);
+#else
 					ibeam_letter--;
+#endif
 				}
 				else
 // Word
@@ -849,7 +854,13 @@ int BC_TextBox::keypress_event()
 // Single character
 				if(!ctrl_down())
 				{
+#ifdef X_HAVE_UTF8_STRING
+					int s = utf8seek(ibeam_letter,0);
+					ibeam_letter += (1 + s);
+#else
 					ibeam_letter++;
+#endif
+					
 				}
 				else
 // Word
@@ -1161,8 +1172,14 @@ int BC_TextBox::keypress_event()
 			{
 				if(ibeam_letter > 0)
 				{
+#ifdef X_HAVE_UTF8_STRING					
+				        int s = utf8seek(ibeam_letter, 1);
+					delete_selection(ibeam_letter - (1 + s), ibeam_letter, text_len);
+					ibeam_letter -= (1 + s);
+#else
 					delete_selection(ibeam_letter - 1, ibeam_letter, text_len);
 					ibeam_letter--;
+#endif
 				}
 			}
 			else
@@ -1182,7 +1199,12 @@ int BC_TextBox::keypress_event()
 			{
 				if(ibeam_letter < text_len)
 				{
+#ifdef X_HAVE_UTF8_STRING
+					int s = utf8seek(ibeam_letter, 1);
+					delete_selection(ibeam_letter, ibeam_letter + (1 + s), text_len);
+#else
 					delete_selection(ibeam_letter, ibeam_letter + 1, text_len);
+#endif
 				}
 			}
 			else
@@ -1249,16 +1271,85 @@ int BC_TextBox::keypress_event()
 }
 
 
-
+#ifdef X_HAVE_UTF8_STRING
 int BC_TextBox::uses_text()
 {
 	return 1;
 }
-
+int BC_TextBox::utf8seek(int &seekpoint, int reverse)
+{     
+      int utf8pos = 0;
+      int i = seekpoint;
+      unsigned char z;
+        if(reverse & 1)
+        {
+        if((unsigned char)text[i-1] >= 0x80)
+        	  {
+		for (int x = 1; x < 6; x++)
+			{ 
+			z = (unsigned char)text[i-x];
+			
+			if ((z >= 0xfc)) 
+			{ 
+			utf8pos = 5;
+			break;
+	 		} else if ((z >= 0xf8)) 
+	 		{ 
+	 		utf8pos = 4;
+	 		break;
+	 		} else if ((z >= 0xf0)) 
+	 		{ 
+	 		utf8pos = 3;
+	 		break;
+	 		} else if ((z >= 0xe0)) 
+	 		{ 
+	 		utf8pos = 2;
+	 		break;
+	 		} else if ((z >= 0xc0)) 
+	 		{ 
+	 		utf8pos = 1;
+	 		break;
+	 		}
+                	}
+        	   }
+         } else {
+		if((unsigned char)text[i] >= 0x80)
+        	  {
+        	  for (int x = 0; x < 5; x++)
+			{ 
+			z = (unsigned char)text[i+x];
+			if (!(z & 0x20)) 
+			{ 
+			utf8pos = 1;
+			break;
+	 		} else if (!(z & 0x10)) 
+	 		{ 
+	 		utf8pos = 2;
+	 		break;
+	 		} else if (!(z & 0x08)) 
+	 		{ 
+	 		utf8pos = 3;
+	 		break;
+	 		} else if (!(z & 0x04)) 
+	 		{ 
+	 		utf8pos = 4;
+	 		break;
+	 		} else if (!(z & 0x02)) 
+	 		{ 
+	 		utf8pos = 5;
+	 		break;
+	 		}
+                	}
+        	   }
+                
+          }
+          return utf8pos;
+        
+} 
+#endif
 void BC_TextBox::delete_selection(int letter1, int letter2, int text_len)
 {
 	int i, j;
-	
 	for(i = letter1, j = letter2; j < text_len; i++, j++)
 	{
 		text[i] = text[j];

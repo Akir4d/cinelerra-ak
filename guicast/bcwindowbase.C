@@ -2275,9 +2275,13 @@ int BC_WindowBase::get_single_text_width(int font, char *text, int length)
 	if(get_resources()->use_xft && get_xft_struct(font))
 	{
 		XGlyphInfo extents;
+#ifdef X_HAVE_UTF8_STRING
+		XftTextExtentsUtf8(top_level->display,
+#else
 		XftTextExtents8(top_level->display,
+#endif
 			get_xft_struct(font),
-			(FcChar8*)text, 
+			(const XftChar8 *)text, 
 			length,
 			&extents);
 		return extents.xOff;
@@ -2340,9 +2344,13 @@ int BC_WindowBase::get_text_ascent(int font)
 	if(get_resources()->use_xft && get_xft_struct(font))
 	{
 		XGlyphInfo extents;
+#ifdef X_HAVE_UTF8_STRING
+		XftTextExtentsUtf8(top_level->display,
+#else
 		XftTextExtents8(top_level->display,
+#endif
 			get_xft_struct(font),
-			(FcChar8*)"O", 
+			(const XftChar8 *)"O", 
 			1,
 			&extents);
 		return extents.y + 2;
@@ -2377,9 +2385,13 @@ int BC_WindowBase::get_text_descent(int font)
 	if(get_resources()->use_xft && get_xft_struct(font))
 	{
 		XGlyphInfo extents;
+#ifdef X_HAVE_UTF8_STRING
+		XftTextExtentsUtf8(top_level->display,
+#else
 		XftTextExtents8(top_level->display,
+#endif
 			get_xft_struct(font),
-			(FcChar8*)"j", 
+			(const XftChar8 *)"j", 
 			1,
 			&extents);
 		return extents.height - extents.y;

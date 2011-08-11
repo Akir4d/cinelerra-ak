@@ -173,7 +173,13 @@ public:
 	friend class BC_Tumbler;
 	friend class BC_Window;
 	friend class BC_WindowEvents;
+#ifdef X_HAVE_UTF8_STRING
+XIM im;		/* Used to communicate with the input method (IM) server */
+XIC ic;		/* Used for retaining the state, properties, and semantics of communication with                                                  the input method (IM) server */
 
+//#define CC_IM			(this->X11_IM)
+//#define CC_IC			(this->X11_IC)
+#endif
 // Main loop
 	int run_window();
 // Terminal event dispatchers
@@ -276,7 +282,10 @@ public:
 	int get_buttonpress();
 	int get_has_focus();
 	int get_dragging();
-	int get_keypress();
+#ifdef X_HAVE_UTF8_STRING
+	char* get_keypress_utf8();
+#endif
+        int get_keypress();
 // Get cursor position of last event
 	int get_cursor_x();
 	int get_cursor_y();
@@ -720,6 +729,10 @@ private:
 // Which button is down.  1, 2, 3, 4, 5
 	int button_pressed;
 // Last key pressed
+	
+#ifdef X_HAVE_UTF8_STRING
+	char* key_pressed_utf8;
+#endif
 	int key_pressed;
 // During a selection drag involving toggles, set the same value for each toggle
 	int toggle_value;

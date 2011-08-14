@@ -72,11 +72,11 @@ char* BC_Resources::small_fontset = "-*-helvetica-medium-r-normal-*-10-*";
 char* BC_Resources::medium_fontset = "-*-helvetica-bold-r-normal-*-14-*";
 char* BC_Resources::large_fontset = "-*-helvetica-bold-r-normal-*-18-*";
 
-char* BC_Resources::small_font_xft = N_("-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*");
+char* BC_Resources::small_font_xft = N_("Sans-8");
 char* BC_Resources::small_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-char* BC_Resources::medium_font_xft = N_("-*-luxi sans-*-r-*-*-16-*-*-*-*-*-*-*");
+char* BC_Resources::medium_font_xft = N_("Sans-10");
 char* BC_Resources::medium_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-char* BC_Resources::large_font_xft = N_("-*-luxi sans-bold-r-*-*-20-*-*-*-*-*-*-*");
+char* BC_Resources::large_font_xft = N_("Sans-16");
 char* BC_Resources::large_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
 
 suffix_to_type_t BC_Resources::suffix_to_type[] = 

@@ -146,12 +146,13 @@ BC_WindowBase::~BC_WindowBase()
 	{
 		XFreeGC(display, gc);
 #ifdef HAVE_XFT
-		if(largefont_xft) 
-			XftFontClose (display, (XftFont*)largefont_xft);
-		if(mediumfont_xft) 
-			XftFontClose (display, (XftFont*)mediumfont_xft);
-		if(smallfont_xft) 
-			XftFontClose (display, (XftFont*)smallfont_xft);
+		//XftDrawDestroy((XftDraw*)(display));
+		//if(largefont_xft) 
+		//	XftFontClose (display, (XftFont*)largefont_xft);
+		//if(mediumfont_xft) 
+		//	XftFontClose (display, (XftFont*)mediumfont_xft);
+		//if(smallfont_xft) 
+		//	XftFontClose (display, (XftFont*)smallfont_xft);
 #endif
 		flush();
 // Can't close display if another thread is waiting for events.
@@ -159,9 +160,11 @@ BC_WindowBase::~BC_WindowBase()
 #ifdef HAVE_GL
 		if(!gl_win_context || !get_resources()->get_synchronous())
 #endif
-			XCloseDisplay(display);
+			
 		clipboard->stop_clipboard();
 		delete clipboard;
+		XCloseDisplay(display);
+		
 	}
 	else
 	{
@@ -246,9 +249,9 @@ int BC_WindowBase::initialize()
 #ifdef HAVE_LIBXXF86VM
     vm_switched = 0;
 #endif
-	largefont_xft = 0;
-	mediumfont_xft = 0;
-	smallfont_xft = 0;
+	//largefont_xft = 0;
+	//mediumfont_xft = 0;
+	//smallfont_xft = 0;
 // Need these right away since put_event is called before run_window sometimes.
 	event_lock = new Mutex("BC_WindowBase::event_lock");
 	event_condition = new Condition(0, "BC_WindowBase::event_condition");
@@ -1931,39 +1934,42 @@ int BC_WindowBase::init_fonts()
 void BC_WindowBase::init_xft()
 {
 #ifdef HAVE_XFT
-	if(!(largefont_xft = XftFontOpenXlfd(display,
-		screen,
-		resources.large_font_xft)))
-		if(!(largefont_xft = XftFontOpenXlfd(display,
-			screen,
-			resources.large_font_xft2)))
+// Rewrite to be fonts chooser ready //akirad
+		if(resources.large_font_xft[0] == '-')
+		{
 			largefont_xft = XftFontOpenXlfd(display,
-		    	screen,
-		    	"fixed");
+							screen,
+							resources.large_font_xft);
+		} else 
+		{ 
+			largefont_xft = XftFontOpenName(display,
+							screen,
+							resources.large_font_xft);
+		}
 
-
-	if(!(mediumfont_xft = XftFontOpenXlfd(display,
-		  screen,
-		  resources.medium_font_xft)))
-		if(!(mediumfont_xft = XftFontOpenXlfd(display,
-			  screen,
-			  resources.medium_font_xft2)))
+		if(resources.medium_font_xft[0] == '-')
+		{
 			mediumfont_xft = XftFontOpenXlfd(display,
-		    	screen,
-		    	"fixed");
+							screen,
+							resources.medium_font_xft);
+		} else 
+		{
+			mediumfont_xft = XftFontOpenName(display,
+							screen,
+							resources.medium_font_xft);
+		}
 
-
-	if(!(smallfont_xft = XftFontOpenXlfd(display,
-	      screen,
-	      resources.small_font_xft)))
-		if(!(smallfont_xft = XftFontOpenXlfd(display,
-	    	  screen,
-	    	  resources.small_font_xft2)))
-			  smallfont_xft = XftFontOpenXlfd(display,
-		    	  screen,
-		    	  "fixed");
-
-
+		if(resources.small_font_xft[0] == '-')
+		{
+			smallfont_xft = XftFontOpenXlfd(display,
+							screen,
+							resources.small_font_xft);
+		} else 
+		{ 
+			smallfont_xft = XftFontOpenName(display,
+							screen,
+							resources.small_font_xft);
+               }
 // Extension failed to locate fonts
 	if(!largefont_xft || !mediumfont_xft || !smallfont_xft)
 	{

@@ -654,10 +654,6 @@ void MWindow::init_theme()
 {
 	theme = 0;
 
-// Replace blond theme with SUV since it doesn't work
-	if(!strcasecmp(preferences->theme, "Blond"))
-		strcpy(preferences->theme, DEFAULT_THEME);
-
 	for(int i = 0; i < plugindb->total; i++)
 	{
 		if(plugindb->values[i]->theme &&
@@ -671,11 +667,30 @@ void MWindow::init_theme()
 			plugin.close_plugin();
 		}
 	}
-
+	
+        if(!theme)
+        {
+        //try again to repleace theme with DEFAULT_THEME! //akirad
+        strcpy(preferences->theme, DEFAULT_THEME);
+        for(int i = 0; i < plugindb->total; i++)
+	{
+		if(plugindb->values[i]->theme &&
+			!strcasecmp(preferences->theme, plugindb->values[i]->title))
+		{
+			PluginServer plugin = *plugindb->values[i];
+			plugin.open_plugin(0, preferences, 0, 0, -1);
+			theme = plugin.new_theme();
+			theme->mwindow = this;
+			strcpy(theme->path, plugin.path);
+			plugin.close_plugin();
+		}
+	}
+	}
 	if(!theme)
 	{
-		fprintf(stderr, _("MWindow::init_theme: theme %s not found.\n"), preferences->theme);
+	        fprintf(stderr, _("MWindow::init_theme: theme %s not found.\n"), preferences->theme);
 		exit(1);
+		
 	}
 
 // Load images which may have been forgotten

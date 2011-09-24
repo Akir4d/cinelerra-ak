@@ -19,14 +19,16 @@
  */
 
 /**
- * @file postprocess_internal.h
+ * @file
  * internal api header.
  */
 
-#ifndef FFMPEG_POSTPROCESS_INTERNAL_H
-#define FFMPEG_POSTPROCESS_INTERNAL_H
+#ifndef POSTPROC_POSTPROCESS_INTERNAL_H
+#define POSTPROC_POSTPROCESS_INTERNAL_H
 
+#include <string.h>
 #include "libavutil/avutil.h"
+#include "libavutil/log.h"
 #include "postprocess.h"
 
 #define V_DEBLOCK       0x01
@@ -142,8 +144,8 @@ typedef struct PPContext{
     DECLARE_ALIGNED(8, uint64_t, pQPb);
     DECLARE_ALIGNED(8, uint64_t, pQPb2);
 
-    DECLARE_ALIGNED(8, uint64_t, mmxDcOffset[64]);
-    DECLARE_ALIGNED(8, uint64_t, mmxDcThreshold[64]);
+    DECLARE_ALIGNED(8, uint64_t, mmxDcOffset)[64];
+    DECLARE_ALIGNED(8, uint64_t, mmxDcThreshold)[64];
 
     QP_STORE_T *stdQPTable;       ///< used to fix MPEG2 style qscale
     QP_STORE_T *nonBQPTable;
@@ -174,4 +176,4 @@ static inline void linecpy(void *dest, const void *src, int lines, int stride) {
     }
 }
 
-#endif /* FFMPEG_POSTPROCESS_INTERNAL_H */
+#endif /* POSTPROC_POSTPROCESS_INTERNAL_H */

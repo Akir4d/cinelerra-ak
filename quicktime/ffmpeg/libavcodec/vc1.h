@@ -20,12 +20,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_VC1_H
-#define FFMPEG_VC1_H
+#ifndef AVCODEC_VC1_H
+#define AVCODEC_VC1_H
 
 #include "avcodec.h"
 #include "mpegvideo.h"
 #include "intrax8.h"
+#include "vc1dsp.h"
 
 /** Markers used in VC-1 AP frame data */
 //@{
@@ -104,12 +105,25 @@ enum MVModes {
 };
 //@}
 
+/** MBMODE for interlaced frame P-picture */
+//@{
+enum MBModesIntfr {
+    MV_PMODE_INTFR_1MV,
+    MV_PMODE_INTFR_2MV_FIELD,
+    MV_PMODE_INTFR_2MV,
+    MV_PMODE_INTFR_4MV_FIELD,
+    MV_PMODE_INTFR_4MV,
+    MV_PMODE_INTFR_INTRA,
+};
+//@}
+
 /** @name MV types for B frames */
 //@{
 enum BMVTypes {
     BMV_TYPE_BACKWARD,
     BMV_TYPE_FORWARD,
-    BMV_TYPE_INTERPOLATED
+    BMV_TYPE_INTERPOLATED,
+    BMV_TYPE_DIRECT
 };
 //@}
 
@@ -155,12 +169,14 @@ enum COTypes {
 typedef struct VC1Context{
     MpegEncContext s;
     IntraX8Context x8;
+    VC1DSPContext vc1dsp;
 
     int bits;
 
     /** Simple/Main Profile sequence header */
     //@{
-    int res_sm;           ///< reserved, 2b
+    int res_sprite;       ///< reserved, sprite mode
+    int res_y411;         ///< reserved, old interlaced mode
     int res_x8;           ///< reserved
     int multires;         ///< frame-level RESPIC syntax element present
     int res_fasttx;       ///< reserved, always 1
@@ -180,6 +196,7 @@ typedef struct VC1Context{
     int interlace;        ///< Progressive/interlaced (RPTFTM syntax element)
     int tfcntrflag;       ///< TFCNTR present
     int panscanflag;      ///< NUMPANSCANWIN, TOPLEFT{X,Y}, BOTRIGHT{X,Y} present
+    int refdist_flag;     ///< REFDIST syntax element present in II, IP, PI or PP field picture headers
     int extended_dmv;     ///< Additional extended dmv range at P/B frame-level
     int color_prim;       ///< 8bits, chroma coordinates of the color primaries
     int transfer_char;    ///< 8bits, Opto-electronic transfer characteristics
@@ -213,6 +230,8 @@ typedef struct VC1Context{
     int k_y;              ///< Number of bits for MVs (depends on MV range)
     int range_x, range_y; ///< MV range
     uint8_t pq, altpq;    ///< Current/alternate frame quantizer scale
+    uint8_t zz_8x8[4][64];///< Zigzag table for TT_8x8, permuted for IDCT
+    int left_blk_sh, top_blk_sh; ///< Either 3 or 0, positions of l/t in blk[]
     const uint8_t* zz_8x4;///< Zigzag scan table for TT_8x4 coding mode
     const uint8_t* zz_4x8;///< Zigzag scan table for TT_4x8 coding mode
     /** pquant parameters */
@@ -231,7 +250,7 @@ typedef struct VC1Context{
     //@}
     int ttfrm;            ///< Transform type info present at frame level
     uint8_t ttmbf;        ///< Transform type flag
-    uint8_t ttblk4x4;     ///< Value of ttblk which indicates a 4x4 transform
+    int *ttblk_base, *ttblk; ///< Transform type at the block level
     int codingset;        ///< index of current table set from 11.8 to use for luma block decoding
     int codingset2;       ///< index of current table set from 11.8 to use for chroma block decoding
     int pqindex;          ///< raw pqindex used in coding set selection
@@ -254,16 +273,18 @@ typedef struct VC1Context{
      * -# 2 -> [-512, 511.f] x [-128, 127.f]
      * -# 3 -> [-1024, 1023.f] x [-256, 255.f]
      */
-    uint8_t mvrange;
+    uint8_t mvrange;              ///< Extended MV range flag
     uint8_t pquantizer;           ///< Uniform (over sequence) quantizer in use
     VLC *cbpcy_vlc;               ///< CBPCY VLC table
-    int tt_index;                 ///< Index for Transform Type tables
+    int tt_index;                 ///< Index for Transform Type tables (to decode TTMB)
     uint8_t* mv_type_mb_plane;    ///< bitplane for mv_type == (4MV)
     uint8_t* direct_mb_plane;     ///< bitplane for "direct" MBs
+    uint8_t* forward_mb_plane;    ///< bitplane for "forward" MBs
     int mv_type_is_raw;           ///< mv type mb plane is not coded
     int dmb_is_raw;               ///< direct mb plane is raw
+    int fmb_is_raw;               ///< forward mb plane is raw
     int skip_is_raw;              ///< skip mb plane is not coded
-    uint8_t luty[256], lutuv[256]; // lookup tables used for intensity compensation
+    uint8_t luty[256], lutuv[256];///< lookup tables used for intensity compensation
     int use_ic;                   ///< use intensity compensation in B-frames
     int rnd;                      ///< rounding control
 
@@ -301,9 +322,118 @@ typedef struct VC1Context{
     uint8_t range_mapuv;
     //@}
 
+    /** Frame decoding info for interlaced picture */
+    uint8_t dmvrange;   ///< Extended differential MV range flag
+    int fourmvswitch;
+    int intcomp;
+    uint8_t lumscale2;  ///< for interlaced field P picture
+    uint8_t lumshift2;
+    uint8_t luty2[256], lutuv2[256]; // lookup tables used for intensity compensation
+    VLC* mbmode_vlc;
+    VLC* imv_vlc;
+    VLC* twomvbp_vlc;
+    VLC* fourmvbp_vlc;
+    uint8_t twomvbp;
+    uint8_t fourmvbp;
+    uint8_t* fieldtx_plane;
+    int fieldtx_is_raw;
+    int8_t zzi_8x8[64];
+    uint8_t *blk_mv_type_base, *blk_mv_type;    ///< 0: frame MV, 1: field MV (interlaced frame)
+    uint8_t *mv_f_base, *mv_f[2];               ///< 0: MV obtained from same field, 1: opposite field
+    uint8_t *mv_f_last_base, *mv_f_last[2];
+    uint8_t *mv_f_next_base, *mv_f_next[2];
+    int field_mode;     ///< 1 for interlaced field pictures
+    int fptype;
+    int second_field;
+    int refdist;        ///< distance of the current picture from reference
+    int numref;         ///< number of past field pictures used as reference
+                        // 0 corresponds to 1 and 1 corresponds to 2 references
+    int reffield;       ///< if numref = 0 (1 reference) then reffield decides which
+                        // field to use among the two fields from previous frame
+    int intcompfield;   ///< which of the two fields to be intensity compensated
+                        // 0: both fields, 1: bottom field, 2: top field
+    int cur_field_type;     ///< 0: top, 1: bottom
+    int ref_field_type[2];  ///< forward and backward reference field type (top or bottom)
+    int blocks_off, mb_off;
+    int qs_last;        ///< if qpel has been used in the previous (tr.) picture
+    int bmvtype;
+    int frfd, brfd;     ///< reference frame distance (forward or backward)
+    int pic_header_flag;
+
+    /** Frame decoding info for sprite modes */
+    //@{
+    int new_sprite;
+    int two_sprites;
+    AVFrame sprite_output_frame;
+    int output_width, output_height, sprite_width, sprite_height;
+    uint8_t* sr_rows[2][2];      ///< Sprite resizer line cache
+    //@}
+
     int p_frame_skipped;
     int bi_type;
     int x8_type;
+
+    DCTELEM (*block)[6][64];
+    int n_allocated_blks, cur_blk_idx, left_blk_idx, topleft_blk_idx, top_blk_idx;
+    uint32_t *cbp_base, *cbp;
+    uint8_t *is_intra_base, *is_intra;
+    int16_t (*luma_mv_base)[2], (*luma_mv)[2];
+    uint8_t bfraction_lut_index;///< Index for BFRACTION value (see Table 40, reproduced into ff_vc1_bfraction_lut[])
+    uint8_t broken_link;        ///< Broken link flag (BROKEN_LINK syntax element)
+    uint8_t closed_entry;       ///< Closed entry point flag (CLOSED_ENTRY syntax element)
+
+    int parse_only;             ///< Context is used within parser
+
+    int warn_interlaced;
 } VC1Context;
 
-#endif /* FFMPEG_VC1_H */
+/** Find VC-1 marker in buffer
+ * @return position where next marker starts or end of buffer if no marker found
+ */
+static av_always_inline const uint8_t* find_next_marker(const uint8_t *src, const uint8_t *end)
+{
+    uint32_t mrk = 0xFFFFFFFF;
+
+    if(end-src < 4) return end;
+    while(src < end){
+        mrk = (mrk << 8) | *src++;
+        if(IS_MARKER(mrk))
+            return src-4;
+    }
+    return end;
+}
+
+static av_always_inline int vc1_unescape_buffer(const uint8_t *src, int size, uint8_t *dst)
+{
+    int dsize = 0, i;
+
+    if(size < 4){
+        for(dsize = 0; dsize < size; dsize++) *dst++ = *src++;
+        return size;
+    }
+    for(i = 0; i < size; i++, src++) {
+        if(src[0] == 3 && i >= 2 && !src[-1] && !src[-2] && i < size-1 && src[1] < 4) {
+            dst[dsize++] = src[1];
+            src++;
+            i++;
+        } else
+            dst[dsize++] = *src;
+    }
+    return dsize;
+}
+
+/**
+ * Decode Simple/Main Profiles sequence header
+ * @see Figure 7-8, p16-17
+ * @param avctx Codec context
+ * @param gb GetBit context initialized from Codec context extra_data
+ * @return Status
+ */
+int vc1_decode_sequence_header(AVCodecContext *avctx, VC1Context *v, GetBitContext *gb);
+
+int vc1_decode_entry_point(AVCodecContext *avctx, VC1Context *v, GetBitContext *gb);
+
+int vc1_parse_frame_header    (VC1Context *v, GetBitContext *gb);
+int vc1_parse_frame_header_adv(VC1Context *v, GetBitContext *gb);
+
+#endif /* AVCODEC_VC1_H */

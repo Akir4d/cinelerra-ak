@@ -23,7 +23,7 @@
 
 #include "avcodec.h"
 
-#ifdef CONFIG_ZLIB
+#if CONFIG_ZLIB
 #include <zlib.h>
 #endif
 #include "libavutil/lzo.h"
@@ -35,19 +35,19 @@ typedef struct {
     unsigned char* decomp_buf;
 } CamStudioContext;
 
-static void copy_frame_default(AVFrame *f, const uint8_t *src,
+static void copy_frame_default(AVFrame *f, const uint8_t *src, int src_stride,
                                int linelen, int height) {
     int i;
     uint8_t *dst = f->data[0];
     dst += (height - 1) * f->linesize[0];
     for (i = height; i; i--) {
         memcpy(dst, src, linelen);
-        src += linelen;
+        src += src_stride;
         dst -= f->linesize[0];
     }
 }
 
-static void add_frame_default(AVFrame *f, const uint8_t *src,
+static void add_frame_default(AVFrame *f, const uint8_t *src, int src_stride,
                               int linelen, int height) {
     int i, j;
     uint8_t *dst = f->data[0];
@@ -55,15 +55,16 @@ static void add_frame_default(AVFrame *f, const uint8_t *src,
     for (i = height; i; i--) {
         for (j = linelen; j; j--)
             *dst++ += *src++;
+        src += src_stride - linelen;
         dst -= f->linesize[0] + linelen;
     }
 }
 
-#ifndef WORDS_BIGENDIAN
-#define copy_frame_16 copy_frame_default
-#define copy_frame_32 copy_frame_default
-#define add_frame_16 add_frame_default
-#define add_frame_32 add_frame_default
+#if !HAVE_BIGENDIAN
+#define copy_frame_16(f, s, l, h) copy_frame_default(f, s, l, l, h)
+#define copy_frame_32(f, s, l, h) copy_frame_default(f, s, l, l, h)
+#define add_frame_16(f, s, l, h) add_frame_default(f, s, l, l, h)
+#define add_frame_32(f, s, l, h) add_frame_default(f, s, l, l, h)
 #else
 static void copy_frame_16(AVFrame *f, const uint8_t *src,
                           int linelen, int height) {
@@ -135,7 +136,9 @@ static void add_frame_32(AVFrame *f, const uint8_t *src,
 #endif
 
 static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
-                        const uint8_t *buf, int buf_size) {
+                        AVPacket *avpkt) {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     CamStudioContext *c = avctx->priv_data;
     AVFrame *picture = data;
 
@@ -158,12 +161,12 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     switch ((buf[0] >> 1) & 7) {
         case 0: { // lzo compression
             int outlen = c->decomp_size, inlen = buf_size - 2;
-            if (lzo1x_decode(c->decomp_buf, &outlen, &buf[2], &inlen))
+            if (av_lzo1x_decode(c->decomp_buf, &outlen, &buf[2], &inlen))
                 av_log(avctx, AV_LOG_ERROR, "error during lzo decompression\n");
             break;
         }
         case 1: { // zlib compression
-#ifdef CONFIG_ZLIB
+#if CONFIG_ZLIB
             unsigned long dlen = c->decomp_size;
             if (uncompress(c->decomp_buf, &dlen, &buf[2], buf_size - 2) != Z_OK)
                 av_log(avctx, AV_LOG_ERROR, "error during zlib decompression\n");
@@ -180,7 +183,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
 
     // flip upside down, add difference frame
     if (buf[0] & 1) { // keyframe
-        c->pic.pict_type = FF_I_TYPE;
+        c->pic.pict_type = AV_PICTURE_TYPE_I;
         c->pic.key_frame = 1;
         switch (c->bpp) {
           case 16:
@@ -190,10 +193,11 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
               copy_frame_32(&c->pic, c->decomp_buf, c->linelen, c->height);
               break;
           default:
-              copy_frame_default(&c->pic, c->decomp_buf, c->linelen, c->height);
+              copy_frame_default(&c->pic, c->decomp_buf, FFALIGN(c->linelen, 4),
+                                 c->linelen, c->height);
         }
     } else {
-        c->pic.pict_type = FF_P_TYPE;
+        c->pic.pict_type = AV_PICTURE_TYPE_P;
         c->pic.key_frame = 0;
         switch (c->bpp) {
           case 16:
@@ -203,7 +207,8 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
               add_frame_32(&c->pic, c->decomp_buf, c->linelen, c->height);
               break;
           default:
-              add_frame_default(&c->pic, c->decomp_buf, c->linelen, c->height);
+              add_frame_default(&c->pic, c->decomp_buf, FFALIGN(c->linelen, 4),
+                                c->linelen, c->height);
         }
     }
 
@@ -214,25 +219,27 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
 
 static av_cold int decode_init(AVCodecContext *avctx) {
     CamStudioContext *c = avctx->priv_data;
-    if (avcodec_check_dimensions(avctx, avctx->height, avctx->width) < 0) {
-        return 1;
-    }
-    switch (avctx->bits_per_sample) {
+    int stride;
+    switch (avctx->bits_per_coded_sample) {
         case 16: avctx->pix_fmt = PIX_FMT_RGB555; break;
         case 24: avctx->pix_fmt = PIX_FMT_BGR24; break;
         case 32: avctx->pix_fmt = PIX_FMT_RGB32; break;
         default:
             av_log(avctx, AV_LOG_ERROR,
                    "CamStudio codec error: invalid depth %i bpp\n",
-                   avctx->bits_per_sample);
-             return 1;
+                   avctx->bits_per_coded_sample);
+            return 1;
     }
-    c->bpp = avctx->bits_per_sample;
+    c->bpp = avctx->bits_per_coded_sample;
+    avcodec_get_frame_defaults(&c->pic);
     c->pic.data[0] = NULL;
-    c->linelen = avctx->width * avctx->bits_per_sample / 8;
+    c->linelen = avctx->width * avctx->bits_per_coded_sample / 8;
     c->height = avctx->height;
-    c->decomp_size = c->height * c->linelen;
-    c->decomp_buf = av_malloc(c->decomp_size + LZO_OUTPUT_PADDING);
+    stride = c->linelen;
+    if (avctx->bits_per_coded_sample == 24)
+        stride = FFALIGN(stride, 4);
+    c->decomp_size = c->height * stride;
+    c->decomp_buf = av_malloc(c->decomp_size + AV_LZO_OUTPUT_PADDING);
     if (!c->decomp_buf) {
         av_log(avctx, AV_LOG_ERROR, "Can't allocate decompression buffer.\n");
         return 1;
@@ -248,16 +255,15 @@ static av_cold int decode_end(AVCodecContext *avctx) {
     return 0;
 }
 
-AVCodec cscd_decoder = {
-    "camstudio",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_CSCD,
-    sizeof(CamStudioContext),
-    decode_init,
-    NULL,
-    decode_end,
-    decode_frame,
-    CODEC_CAP_DR1,
-    .long_name = "CamStudio",
+AVCodec ff_cscd_decoder = {
+    .name           = "camstudio",
+    .type           = AVMEDIA_TYPE_VIDEO,
+    .id             = CODEC_ID_CSCD,
+    .priv_data_size = sizeof(CamStudioContext),
+    .init           = decode_init,
+    .close          = decode_end,
+    .decode         = decode_frame,
+    .capabilities   = CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("CamStudio"),
 };
 

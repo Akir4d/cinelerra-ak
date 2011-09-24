@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 The FFmpeg Project.
+ * Copyright (c) 2002 The FFmpeg Project
  *
  * This file is part of FFmpeg.
  *
@@ -43,12 +43,12 @@ static void wmv2_add_block(Wmv2Context *w, DCTELEM *block1, uint8_t *dst, int st
     case 1:
         ff_simple_idct84_add(dst           , stride, block1);
         ff_simple_idct84_add(dst + 4*stride, stride, w->abt_block2[n]);
-        memset(w->abt_block2[n], 0, 64*sizeof(DCTELEM));
+        s->dsp.clear_block(w->abt_block2[n]);
         break;
     case 2:
         ff_simple_idct48_add(dst           , stride, block1);
         ff_simple_idct48_add(dst + 4       , stride, w->abt_block2[n]);
-        memset(w->abt_block2[n], 0, 64*sizeof(DCTELEM));
+        s->dsp.clear_block(w->abt_block2[n]);
         break;
     default:
         av_log(s->avctx, AV_LOG_ERROR, "internal error in WMV2 abt\n");
@@ -102,7 +102,7 @@ void ff_mspel_motion(MpegEncContext *s,
     if(s->flags&CODEC_FLAG_EMU_EDGE){
         if(src_x<1 || src_y<1 || src_x + 17  >= s->h_edge_pos
                               || src_y + h+1 >= v_edge_pos){
-            ff_emulated_edge_mc(s->edge_emu_buffer, ptr - 1 - s->linesize, s->linesize, 19, 19,
+            s->dsp.emulated_edge_mc(s->edge_emu_buffer, ptr - 1 - s->linesize, s->linesize, 19, 19,
                              src_x-1, src_y-1, s->h_edge_pos, s->v_edge_pos);
             ptr= s->edge_emu_buffer + 1 + s->linesize;
             emu=1;
@@ -143,7 +143,7 @@ void ff_mspel_motion(MpegEncContext *s,
     offset = (src_y * uvlinesize) + src_x;
     ptr = ref_picture[1] + offset;
     if(emu){
-        ff_emulated_edge_mc(s->edge_emu_buffer, ptr, s->uvlinesize, 9, 9,
+        s->dsp.emulated_edge_mc(s->edge_emu_buffer, ptr, s->uvlinesize, 9, 9,
                          src_x, src_y, s->h_edge_pos>>1, s->v_edge_pos>>1);
         ptr= s->edge_emu_buffer;
     }
@@ -151,7 +151,7 @@ void ff_mspel_motion(MpegEncContext *s,
 
     ptr = ref_picture[2] + offset;
     if(emu){
-        ff_emulated_edge_mc(s->edge_emu_buffer, ptr, s->uvlinesize, 9, 9,
+        s->dsp.emulated_edge_mc(s->edge_emu_buffer, ptr, s->uvlinesize, 9, 9,
                          src_x, src_y, s->h_edge_pos>>1, s->v_edge_pos>>1);
         ptr= s->edge_emu_buffer;
     }

@@ -85,19 +85,19 @@ static int avisynth_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     continue;
 
                   st = av_new_stream(s, id);
-                  st->codec->codec_type = CODEC_TYPE_AUDIO;
+                  st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
 
                   st->codec->block_align = wvfmt.nBlockAlign;
                   st->codec->channels = wvfmt.nChannels;
                   st->codec->sample_rate = wvfmt.nSamplesPerSec;
                   st->codec->bit_rate = wvfmt.nAvgBytesPerSec * 8;
-                  st->codec->bits_per_sample = wvfmt.wBitsPerSample;
+                  st->codec->bits_per_coded_sample = wvfmt.wBitsPerSample;
 
                   stream->chunck_samples = wvfmt.nSamplesPerSec * (uint64_t)info.dwScale / (uint64_t)info.dwRate;
                   stream->chunck_size = stream->chunck_samples * wvfmt.nChannels * wvfmt.wBitsPerSample / 8;
 
                   st->codec->codec_tag = wvfmt.wFormatTag;
-                  st->codec->codec_id = wav_codec_get_id(wvfmt.wFormatTag, st->codec->bits_per_sample);
+                  st->codec->codec_id = ff_wav_codec_get_id(wvfmt.wFormatTag, st->codec->bits_per_coded_sample);
                 }
               else if (stream->info.fccType == streamtypeVIDEO)
                 {
@@ -111,17 +111,25 @@ static int avisynth_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     continue;
 
                   st = av_new_stream(s, id);
-                  st->codec->codec_type = CODEC_TYPE_VIDEO;
+                  st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
                   st->r_frame_rate.num = stream->info.dwRate;
                   st->r_frame_rate.den = stream->info.dwScale;
 
                   st->codec->width = imgfmt.bmiHeader.biWidth;
                   st->codec->height = imgfmt.bmiHeader.biHeight;
 
-                  st->codec->bits_per_sample = imgfmt.bmiHeader.biBitCount;
+                  st->codec->bits_per_coded_sample = imgfmt.bmiHeader.biBitCount;
                   st->codec->bit_rate = (uint64_t)stream->info.dwSampleSize * (uint64_t)stream->info.dwRate * 8 / (uint64_t)stream->info.dwScale;
                   st->codec->codec_tag = imgfmt.bmiHeader.biCompression;
-                  st->codec->codec_id = codec_get_id(codec_bmp_tags, imgfmt.bmiHeader.biCompression);
+                  st->codec->codec_id = ff_codec_get_id(ff_codec_bmp_tags, imgfmt.bmiHeader.biCompression);
+                  if (st->codec->codec_id == CODEC_ID_RAWVIDEO && imgfmt.bmiHeader.biCompression== BI_RGB) {
+                    st->codec->extradata = av_malloc(9 + FF_INPUT_BUFFER_PADDING_SIZE);
+                    if (st->codec->extradata) {
+                      st->codec->extradata_size = 9;
+                      memcpy(st->codec->extradata, "BottomUp", 9);
+                    }
+                  }
+
 
                   st->duration = stream->info.dwLength;
                 }
@@ -165,7 +173,6 @@ static int avisynth_read_packet(AVFormatContext *s, AVPacket *pkt)
 
   res = AVIStreamRead(stream->handle, stream->read, stream->chunck_samples, pkt->data, stream->chunck_size, &read_size, NULL);
 
-  pkt->pts = stream->read;
   pkt->size = read_size;
 
   stream->read += stream->chunck_samples;
@@ -207,16 +214,13 @@ static int avisynth_read_seek(AVFormatContext *s, int stream_index, int64_t pts,
   return 0;
 }
 
-AVInputFormat avisynth_demuxer = {
-  "avs",
-  "AVISynth",
-  sizeof(AVISynthContext),
-  NULL,
-  avisynth_read_header,
-  avisynth_read_packet,
-  avisynth_read_close,
-  avisynth_read_seek,
-  NULL,
-  0,
-  "avs",
+AVInputFormat ff_avisynth_demuxer = {
+    .name           = "avs",
+    .long_name      = NULL_IF_CONFIG_SMALL("AVISynth"),
+    .priv_data_size = sizeof(AVISynthContext),
+    .read_header    = avisynth_read_header,
+    .read_packet    = avisynth_read_packet,
+    .read_close     = avisynth_read_close,
+    .read_seek      = avisynth_read_seek,
+    .extensions     = "avs",
 };

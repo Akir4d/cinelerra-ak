@@ -19,15 +19,18 @@
  */
 
 /**
- * @file oggvorbis.c
+ * @file
  * Ogg Vorbis codec support via libvorbisenc.
  * @author Mark Hills <mark@pogo.org.uk>
  */
 
 #include <vorbis/vorbisenc.h>
 
+#include "libavutil/opt.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "vorbis.h"
+#include "libavutil/mathematics.h"
 
 #undef NDEBUG
 #include <assert.h>
@@ -37,38 +40,50 @@
 #define BUFFER_SIZE (1024*64)
 
 typedef struct OggVorbisContext {
+    AVClass *av_class;
     vorbis_info vi ;
     vorbis_dsp_state vd ;
     vorbis_block vb ;
     uint8_t buffer[BUFFER_SIZE];
     int buffer_index;
+    int eof;
 
     /* decoder */
     vorbis_comment vc ;
     ogg_packet op;
+
+    double iblock;
 } OggVorbisContext ;
 
+static const AVOption options[]={
+{"iblock", "Sets the impulse block bias", offsetof(OggVorbisContext, iblock), FF_OPT_TYPE_DOUBLE, {.dbl = 0}, -15, 0, AV_OPT_FLAG_AUDIO_PARAM|AV_OPT_FLAG_ENCODING_PARAM},
+{NULL}
+};
+static const AVClass class = { "libvorbis", av_default_item_name, options, LIBAVUTIL_VERSION_INT };
 
-static int oggvorbis_init_encoder(vorbis_info *vi, AVCodecContext *avccontext) {
+static av_cold int oggvorbis_init_encoder(vorbis_info *vi, AVCodecContext *avccontext) {
+    OggVorbisContext *context = avccontext->priv_data ;
     double cfreq;
 
     if(avccontext->flags & CODEC_FLAG_QSCALE) {
         /* variable bitrate */
         if(vorbis_encode_setup_vbr(vi, avccontext->channels,
                 avccontext->sample_rate,
-                avccontext->global_quality / (float)FF_QP2LAMBDA))
+                avccontext->global_quality / (float)FF_QP2LAMBDA / 10.0))
             return -1;
     } else {
+        int minrate = avccontext->rc_min_rate > 0 ? avccontext->rc_min_rate : -1;
+        int maxrate = avccontext->rc_min_rate > 0 ? avccontext->rc_max_rate : -1;
+
         /* constant bitrate */
         if(vorbis_encode_setup_managed(vi, avccontext->channels,
-                avccontext->sample_rate, -1, avccontext->bit_rate, -1))
+                avccontext->sample_rate, minrate, avccontext->bit_rate, maxrate))
             return -1;
 
-#ifdef OGGVORBIS_VBR_BY_ESTIMATE
-        /* variable bitrate by estimate */
-        if(vorbis_encode_ctl(vi, OV_ECTL_RATEMANAGE_AVG, NULL))
-            return -1;
-#endif
+        /* variable bitrate by estimate, disable slow rate management */
+        if(minrate == -1 && maxrate == -1)
+            if(vorbis_encode_ctl(vi, OV_ECTL_RATEMANAGE2_SET, NULL))
+                return -1;
     }
 
     /* cutoff frequency */
@@ -78,18 +93,54 @@ static int oggvorbis_init_encoder(vorbis_info *vi, AVCodecContext *avccontext) {
             return -1;
     }
 
+    if(context->iblock){
+        vorbis_encode_ctl(vi, OV_ECTL_IBLOCK_SET, &context->iblock);
+    }
+
+    if (avccontext->channels == 3 &&
+            avccontext->channel_layout != (AV_CH_LAYOUT_STEREO|AV_CH_FRONT_CENTER) ||
+        avccontext->channels == 4 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_2_2 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_QUAD ||
+        avccontext->channels == 5 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_5POINT0 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_5POINT0_BACK ||
+        avccontext->channels == 6 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_5POINT1 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_5POINT1_BACK ||
+        avccontext->channels == 7 &&
+            avccontext->channel_layout != (AV_CH_LAYOUT_5POINT1|AV_CH_BACK_CENTER) ||
+        avccontext->channels == 8 &&
+            avccontext->channel_layout != AV_CH_LAYOUT_7POINT1) {
+        if (avccontext->channel_layout) {
+            char name[32];
+            av_get_channel_layout_string(name, sizeof(name), avccontext->channels,
+                                         avccontext->channel_layout);
+            av_log(avccontext, AV_LOG_ERROR, "%s not supported by Vorbis: "
+                                             "output stream will have incorrect "
+                                             "channel layout.\n", name);
+        } else {
+            av_log(avccontext, AV_LOG_WARNING, "No channel layout specified. The encoder "
+                                               "will use Vorbis channel layout for "
+                                               "%d channels.\n", avccontext->channels);
+        }
+    }
+
     return vorbis_encode_setup_init(vi);
 }
+
+/* How many bytes are needed for a buffer of length 'l' */
+static int xiph_len(int l) { return (1 + l / 255 + l); }
 
 static av_cold int oggvorbis_encode_init(AVCodecContext *avccontext) {
     OggVorbisContext *context = avccontext->priv_data ;
     ogg_packet header, header_comm, header_code;
     uint8_t *p;
-    unsigned int offset, len;
+    unsigned int offset;
 
     vorbis_info_init(&context->vi) ;
     if(oggvorbis_init_encoder(&context->vi, avccontext) < 0) {
-        av_log(avccontext, AV_LOG_ERROR, "oggvorbis_encode_init: init_encoder failed") ;
+        av_log(avccontext, AV_LOG_ERROR, "oggvorbis_encode_init: init_encoder failed\n") ;
         return -1 ;
     }
     vorbis_analysis_init(&context->vd, &context->vi) ;
@@ -101,9 +152,11 @@ static av_cold int oggvorbis_encode_init(AVCodecContext *avccontext) {
     vorbis_analysis_headerout(&context->vd, &context->vc, &header,
                                 &header_comm, &header_code);
 
-    len = header.bytes + header_comm.bytes +  header_code.bytes;
-    avccontext->extradata_size= 64 + len + len/255;
-    p = avccontext->extradata= av_mallocz(avccontext->extradata_size);
+    avccontext->extradata_size=
+        1 + xiph_len(header.bytes) + xiph_len(header_comm.bytes) +
+        header_code.bytes;
+    p = avccontext->extradata =
+      av_malloc(avccontext->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
     p[0] = 2;
     offset = 1;
     offset += av_xiphlacing(&p[offset], header.bytes);
@@ -114,8 +167,7 @@ static av_cold int oggvorbis_encode_init(AVCodecContext *avccontext) {
     offset += header_comm.bytes;
     memcpy(&p[offset], header_code.packet, header_code.bytes);
     offset += header_code.bytes;
-    avccontext->extradata_size = offset;
-    avccontext->extradata= av_realloc(avccontext->extradata, avccontext->extradata_size);
+    assert(offset == avccontext->extradata_size);
 
 /*    vorbis_block_clear(&context->vb);
     vorbis_dsp_clear(&context->vd);
@@ -136,24 +188,28 @@ static int oggvorbis_encode_frame(AVCodecContext *avccontext,
                            int buf_size, void *data)
 {
     OggVorbisContext *context = avccontext->priv_data ;
-    float **buffer ;
     ogg_packet op ;
     signed short *audio = data ;
-    int l, samples = data ? OGGVORBIS_FRAME_SIZE : 0;
+    int l;
 
-    buffer = vorbis_analysis_buffer(&context->vd, samples) ;
+    if(data) {
+        const int samples = avccontext->frame_size;
+        float **buffer ;
+        int c, channels = context->vi.channels;
 
-    if(context->vi.channels == 1) {
-        for(l = 0 ; l < samples ; l++)
-            buffer[0][l]=audio[l]/32768.f;
-    } else {
-        for(l = 0 ; l < samples ; l++){
-            buffer[0][l]=audio[l*2]/32768.f;
-            buffer[1][l]=audio[l*2+1]/32768.f;
+        buffer = vorbis_analysis_buffer(&context->vd, samples) ;
+        for (c = 0; c < channels; c++) {
+            int co = (channels > 8) ? c :
+                ff_vorbis_encoding_channel_layout_offsets[channels-1][c];
+            for(l = 0 ; l < samples ; l++)
+                buffer[c][l]=audio[l*channels+co]/32768.f;
         }
+        vorbis_analysis_wrote(&context->vd, samples) ;
+    } else {
+        if(!context->eof)
+            vorbis_analysis_wrote(&context->vd, 0) ;
+        context->eof = 1;
     }
-
-    vorbis_analysis_wrote(&context->vd, samples) ;
 
     while(vorbis_analysis_blockout(&context->vd, &context->vb) == 1) {
         vorbis_analysis(&context->vb, NULL);
@@ -162,8 +218,12 @@ static int oggvorbis_encode_frame(AVCodecContext *avccontext,
         while(vorbis_bitrate_flushpacket(&context->vd, &op)) {
             /* i'd love to say the following line is a hack, but sadly it's
              * not, apparently the end of stream decision is in libogg. */
-            if(op.bytes==1)
+            if(op.bytes==1 && op.e_o_s)
                 continue;
+            if (context->buffer_index + sizeof(ogg_packet) + op.bytes > BUFFER_SIZE) {
+                av_log(avccontext, AV_LOG_ERROR, "libvorbis: buffer overflow.");
+                return -1;
+            }
             memcpy(context->buffer + context->buffer_index, &op, sizeof(ogg_packet));
             context->buffer_index += sizeof(ogg_packet);
             memcpy(context->buffer + context->buffer_index, op.packet, op.bytes);
@@ -181,9 +241,14 @@ static int oggvorbis_encode_frame(AVCodecContext *avccontext,
         avccontext->coded_frame->pts= av_rescale_q(op2->granulepos, (AVRational){1, avccontext->sample_rate}, avccontext->time_base);
         //FIXME we should reorder the user supplied pts and not assume that they are spaced by 1/sample_rate
 
+        if (l > buf_size) {
+            av_log(avccontext, AV_LOG_ERROR, "libvorbis: buffer overflow.");
+            return -1;
+        }
+
         memcpy(packets, op2->packet, l);
         context->buffer_index -= l + sizeof(ogg_packet);
-        memcpy(context->buffer, context->buffer + l + sizeof(ogg_packet), context->buffer_index);
+        memmove(context->buffer, context->buffer + l + sizeof(ogg_packet), context->buffer_index);
 //        av_log(avccontext, AV_LOG_DEBUG, "E%d\n", l);
     }
 
@@ -208,14 +273,16 @@ static av_cold int oggvorbis_encode_close(AVCodecContext *avccontext) {
 }
 
 
-AVCodec libvorbis_encoder = {
-    "libvorbis",
-    CODEC_TYPE_AUDIO,
-    CODEC_ID_VORBIS,
-    sizeof(OggVorbisContext),
-    oggvorbis_encode_init,
-    oggvorbis_encode_frame,
-    oggvorbis_encode_close,
-    .capabilities= CODEC_CAP_DELAY,
-    .long_name= "libvorbis Vorbis",
-} ;
+AVCodec ff_libvorbis_encoder = {
+    .name           = "libvorbis",
+    .type           = AVMEDIA_TYPE_AUDIO,
+    .id             = CODEC_ID_VORBIS,
+    .priv_data_size = sizeof(OggVorbisContext),
+    .init           = oggvorbis_encode_init,
+    .encode         = oggvorbis_encode_frame,
+    .close          = oggvorbis_encode_close,
+    .capabilities   = CODEC_CAP_DELAY,
+    .sample_fmts    = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
+    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis Vorbis"),
+    .priv_class     = &class,
+};

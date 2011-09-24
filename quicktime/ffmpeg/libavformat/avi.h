@@ -18,8 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_AVI_H
-#define FFMPEG_AVI_H
+#ifndef AVFORMAT_AVI_H
+#define AVFORMAT_AVI_H
+
+#include "metadata.h"
 
 #define AVIF_HASINDEX           0x00000010        // Index at end of file?
 #define AVIF_MUSTUSEINDEX       0x00000020
@@ -30,8 +32,16 @@
 
 #define AVI_MAX_RIFF_SIZE       0x40000000LL
 #define AVI_MASTER_INDEX_SIZE   256
+#define AVI_MAX_STREAM_COUNT    100
 
 /* index flags */
 #define AVIIF_INDEX             0x10
 
-#endif /* FFMPEG_AVI_H */
+extern const AVMetadataConv ff_avi_metadata_conv[];
+
+/**
+ * A list of AVI info tags.
+ */
+extern const char ff_avi_tags[][5];
+
+#endif /* AVFORMAT_AVI_H */

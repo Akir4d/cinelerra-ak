@@ -1,5 +1,4 @@
 /*
- * TIFF tables
  * Copyright (c) 2006 Konstantin Shishkov
  *
  * This file is part of FFmpeg.
@@ -20,12 +19,16 @@
  */
 
 /**
+ * @file
  * TIFF tables
- * @file tiff.h
+ *
+ * For more information about the TIFF format, check the official docs at:
+ * http://partners.adobe.com/public/developer/tiff/index.html
  * @author Konstantin Shishkov
  */
-#ifndef FFMPEG_TIFF_H
-#define FFMPEG_TIFF_H
+
+#ifndef AVCODEC_TIFF_H
+#define AVCODEC_TIFF_H
 
 #include <stdint.h>
 
@@ -37,6 +40,7 @@ enum TiffTags{
     TIFF_BPP,
     TIFF_COMPR,
     TIFF_INVERT = 0x106,
+    TIFF_FILL_ORDER = 0x10A,
     TIFF_STRIP_OFFS = 0x111,
     TIFF_SAMPLES_PER_PIXEL = 0x115,
     TIFF_ROWSPERSTRIP = 0x116,
@@ -46,6 +50,8 @@ enum TiffTags{
     TIFF_PLANAR = 0x11C,
     TIFF_XPOS = 0x11E,
     TIFF_YPOS = 0x11F,
+    TIFF_T4OPTIONS = 0x124,
+    TIFF_T6OPTIONS,
     TIFF_RES_UNIT = 0x128,
     TIFF_SOFTWARE_NAME = 0x131,
     TIFF_PREDICTOR = 0x13D,
@@ -83,4 +89,4 @@ static const uint8_t type_sizes[6] = {
     0, 1, 100, 2, 4, 8
 };
 
-#endif /* FFMPEG_TIFF_H */
+#endif /* AVCODEC_TIFF_H */

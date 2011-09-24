@@ -18,11 +18,13 @@
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 #include "adx.h"
 
 /**
- * @file adx.c
+ * @file
  * SEGA CRI adx codecs.
  *
  * Reference documents:
@@ -181,14 +183,14 @@ static int adx_encode_frame(AVCodecContext *avctx,
     return dst-frame;
 }
 
-AVCodec adpcm_adx_encoder = {
-    "adpcm_adx",
-    CODEC_TYPE_AUDIO,
-    CODEC_ID_ADPCM_ADX,
-    sizeof(ADXContext),
-    adx_encode_init,
-    adx_encode_frame,
-    adx_encode_close,
-    NULL,
-    .long_name = "SEGA CRI ADX",
+AVCodec ff_adpcm_adx_encoder = {
+    .name           = "adpcm_adx",
+    .type           = AVMEDIA_TYPE_AUDIO,
+    .id             = CODEC_ID_ADPCM_ADX,
+    .priv_data_size = sizeof(ADXContext),
+    .init           = adx_encode_init,
+    .encode         = adx_encode_frame,
+    .close          = adx_encode_close,
+    .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
+    .long_name = NULL_IF_CONFIG_SMALL("SEGA CRI ADX ADPCM"),
 };

@@ -22,7 +22,7 @@
 #include "avcodec.h"
 
 #define ALT_BITSTREAM_READER_LE
-#include "bitstream.h"
+#include "get_bits.h"
 
 typedef union MacroBlock {
     uint16_t pixels[4];
@@ -61,6 +61,7 @@ static av_cold int escape124_decode_init(AVCodecContext *avctx)
 {
     Escape124Context *s = avctx->priv_data;
 
+    avcodec_get_frame_defaults(&s->frame);
     avctx->pix_fmt = PIX_FMT_RGB555;
 
     s->num_superblocks = ((unsigned)avctx->width / 8) *
@@ -195,19 +196,12 @@ static const uint16_t mask_matrix[] = {0x1,   0x2,   0x10,   0x20,
                                        0x100, 0x200, 0x1000, 0x2000,
                                        0x400, 0x800, 0x4000, 0x8000};
 
-/**
- * Decode a single frame
- * @param avctx decoder context
- * @param data decoded frame
- * @param data_size size of the decoded frame
- * @param buf input buffer
- * @param buf_size input buffer size
- * @return 0 success, -1 on error
- */
 static int escape124_decode_frame(AVCodecContext *avctx,
                                   void *data, int *data_size,
-                                  const uint8_t *buf, int buf_size)
+                                  AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     Escape124Context *s = avctx->priv_data;
 
     GetBitContext gb;
@@ -221,7 +215,8 @@ static int escape124_decode_frame(AVCodecContext *avctx,
     uint16_t* old_frame_data, *new_frame_data;
     unsigned old_stride, new_stride;
 
-    AVFrame new_frame = { { 0 } };
+    AVFrame new_frame;
+    avcodec_get_frame_defaults(&new_frame);
 
     init_get_bits(&gb, buf, buf_size * 8);
 
@@ -370,16 +365,15 @@ static int escape124_decode_frame(AVCodecContext *avctx,
 }
 
 
-AVCodec escape124_decoder = {
-    "escape124",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_ESCAPE124,
-    sizeof(Escape124Context),
-    escape124_decode_init,
-    NULL,
-    escape124_decode_close,
-    escape124_decode_frame,
-    CODEC_CAP_DR1,
-    .long_name = "Escape 124",
+AVCodec ff_escape124_decoder = {
+    .name           = "escape124",
+    .type           = AVMEDIA_TYPE_VIDEO,
+    .id             = CODEC_ID_ESCAPE124,
+    .priv_data_size = sizeof(Escape124Context),
+    .init           = escape124_decode_init,
+    .close          = escape124_decode_close,
+    .decode         = escape124_decode_frame,
+    .capabilities   = CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("Escape 124"),
 };
 

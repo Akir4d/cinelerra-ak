@@ -1,7 +1,7 @@
 /*
  * Audio and Video frame extraction
- * Copyright (c) 2003 Fabrice Bellard.
- * Copyright (c) 2003 Michael Niedermayer.
+ * Copyright (c) 2003 Fabrice Bellard
+ * Copyright (c) 2003 Michael Niedermayer
  *
  * This file is part of FFmpeg.
  *
@@ -22,7 +22,7 @@
 
 #include "parser.h"
 
-AVCodecParser *av_first_parser = NULL;
+static AVCodecParser *av_first_parser = NULL;
 
 AVCodecParser* av_parser_next(AVCodecParser *p){
     if(p) return p->next;
@@ -72,64 +72,77 @@ AVCodecParserContext *av_parser_init(int codec_id)
         }
     }
     s->fetch_timestamp=1;
-    s->pict_type = FF_I_TYPE;
+    s->pict_type = AV_PICTURE_TYPE_I;
+    s->key_frame = -1;
+    s->convergence_duration = 0;
+    s->dts_sync_point       = INT_MIN;
+    s->dts_ref_dts_delta    = INT_MIN;
+    s->pts_dts_delta        = INT_MIN;
     return s;
 }
 
-/**
- *
- * @param buf           input
- * @param buf_size      input length, to signal EOF, this should be 0 (so that the last frame can be output)
- * @param pts           input presentation timestamp
- * @param dts           input decoding timestamp
- * @param poutbuf       will contain a pointer to the first byte of the output frame
- * @param poutbuf_size  will contain the length of the output frame
- * @return the number of bytes of the input bitstream used
- *
- * Example:
- * @code
- *   while(in_len){
- *       len = av_parser_parse(myparser, AVCodecContext, &data, &size,
- *                                       in_data, in_len,
- *                                       pts, dts);
- *       in_data += len;
- *       in_len  -= len;
- *
- *       if(size)
- *          decode_frame(data, size);
- *   }
- * @endcode
- */
-int av_parser_parse(AVCodecParserContext *s,
-                    AVCodecContext *avctx,
-                    uint8_t **poutbuf, int *poutbuf_size,
-                    const uint8_t *buf, int buf_size,
-                    int64_t pts, int64_t dts)
+void ff_fetch_timestamp(AVCodecParserContext *s, int off, int remove){
+    int i;
+
+    s->dts= s->pts= AV_NOPTS_VALUE;
+    s->pos= -1;
+    s->offset= 0;
+    for(i = 0; i < AV_PARSER_PTS_NB; i++) {
+        if (   s->cur_offset + off >= s->cur_frame_offset[i]
+            && (s->frame_offset < s->cur_frame_offset[i] ||
+              (!s->frame_offset && !s->next_frame_offset)) // first field/frame
+            //check is disabled  because mpeg-ts doesnt send complete PES packets
+            && /*s->next_frame_offset + off <*/  s->cur_frame_end[i]){
+            s->dts= s->cur_frame_dts[i];
+            s->pts= s->cur_frame_pts[i];
+            s->pos= s->cur_frame_pos[i];
+            s->offset = s->next_frame_offset - s->cur_frame_offset[i];
+            if(remove)
+                s->cur_frame_offset[i]= INT64_MAX;
+            if(s->cur_offset + off < s->cur_frame_end[i])
+                break;
+        }
+    }
+}
+
+int av_parser_parse2(AVCodecParserContext *s,
+                     AVCodecContext *avctx,
+                     uint8_t **poutbuf, int *poutbuf_size,
+                     const uint8_t *buf, int buf_size,
+                     int64_t pts, int64_t dts,
+                     int64_t pos)
 {
-    int index, i, k;
+    int index, i;
     uint8_t dummy_buf[FF_INPUT_BUFFER_PADDING_SIZE];
+
+    if(!(s->flags & PARSER_FLAG_FETCHED_OFFSET)) {
+        s->next_frame_offset =
+        s->cur_offset        = pos;
+        s->flags |= PARSER_FLAG_FETCHED_OFFSET;
+    }
 
     if (buf_size == 0) {
         /* padding is always necessary even if EOF, so we add it here */
         memset(dummy_buf, 0, sizeof(dummy_buf));
         buf = dummy_buf;
-    } else {
+    } else if (s->cur_offset + buf_size !=
+               s->cur_frame_end[s->cur_frame_start_index]) { /* skip remainder packets */
         /* add a new packet descriptor */
-        k = (s->cur_frame_start_index + 1) & (AV_PARSER_PTS_NB - 1);
-        s->cur_frame_start_index = k;
-        s->cur_frame_offset[k] = s->cur_offset;
-        s->cur_frame_pts[k] = pts;
-        s->cur_frame_dts[k] = dts;
+            i = (s->cur_frame_start_index + 1) & (AV_PARSER_PTS_NB - 1);
+            s->cur_frame_start_index = i;
+            s->cur_frame_offset[i] = s->cur_offset;
+            s->cur_frame_end[i] = s->cur_offset + buf_size;
+            s->cur_frame_pts[i] = pts;
+            s->cur_frame_dts[i] = dts;
+            s->cur_frame_pos[i] = pos;
+    }
 
-        /* fill first PTS/DTS */
-        if (s->fetch_timestamp){
-            s->fetch_timestamp=0;
-            s->last_pts = pts;
-            s->last_dts = dts;
-            s->last_offset = 0;
-            s->cur_frame_pts[k] =
-            s->cur_frame_dts[k] = AV_NOPTS_VALUE;
-        }
+    if (s->fetch_timestamp){
+        s->fetch_timestamp=0;
+        s->last_pts = s->pts;
+        s->last_dts = s->dts;
+        s->last_pos = s->pos;
+        ff_fetch_timestamp(s, 0, 0);
     }
 
     /* WARNING: the returned index can be negative */
@@ -138,35 +151,11 @@ int av_parser_parse(AVCodecParserContext *s,
     /* update the file pointer */
     if (*poutbuf_size) {
         /* fill the data for the current frame */
-        s->frame_offset = s->last_frame_offset;
-        s->pts = s->last_pts;
-        s->dts = s->last_dts;
-        s->offset = s->last_offset;
+        s->frame_offset = s->next_frame_offset;
 
         /* offset of the next frame */
-        s->last_frame_offset = s->cur_offset + index;
-        /* find the packet in which the new frame starts. It
-           is tricky because of MPEG video start codes
-           which can begin in one packet and finish in
-           another packet. In the worst case, an MPEG
-           video start code could be in 4 different
-           packets. */
-        k = s->cur_frame_start_index;
-        for(i = 0; i < AV_PARSER_PTS_NB; i++) {
-            if (s->last_frame_offset >= s->cur_frame_offset[k])
-                break;
-            k = (k - 1) & (AV_PARSER_PTS_NB - 1);
-        }
-
-        s->last_pts = s->cur_frame_pts[k];
-        s->last_dts = s->cur_frame_dts[k];
-        s->last_offset = s->last_frame_offset - s->cur_frame_offset[k];
-
-        /* some parsers tell us the packet size even before seeing the first byte of the next packet,
-           so the next pts/dts is in the next chunk */
-        if(index == buf_size){
-            s->fetch_timestamp=1;
-        }
+        s->next_frame_offset = s->cur_offset + index;
+        s->fetch_timestamp=1;
     }
     if (index < 0)
         index = 0;
@@ -197,7 +186,7 @@ int av_parser_change(AVCodecParserContext *s,
     *poutbuf_size= buf_size;
     if(avctx->extradata){
         if(  (keyframe && (avctx->flags2 & CODEC_FLAG2_LOCAL_HEADER))
-            /*||(s->pict_type != FF_I_TYPE && (s->flags & PARSER_FLAG_DUMP_EXTRADATA_AT_NOKEY))*/
+            /*||(s->pict_type != AV_PICTURE_TYPE_I && (s->flags & PARSER_FLAG_DUMP_EXTRADATA_AT_NOKEY))*/
             /*||(? && (s->flags & PARSER_FLAG_DUMP_EXTRADATA_AT_BEGIN)*/){
             int size= buf_size + avctx->extradata_size;
             *poutbuf_size= size;
@@ -226,16 +215,15 @@ void av_parser_close(AVCodecParserContext *s)
 
 /**
  * combines the (truncated) bitstream to a complete frame
- * @returns -1 if no complete frame could be created, AVERROR(ENOMEM) if there was a memory allocation error
+ * @return -1 if no complete frame could be created, AVERROR(ENOMEM) if there was a memory allocation error
  */
 int ff_combine_frame(ParseContext *pc, int next, const uint8_t **buf, int *buf_size)
 {
-#if 0
     if(pc->overread){
-        printf("overread %d, state:%X next:%d index:%d o_index:%d\n", pc->overread, pc->state, next, pc->index, pc->overread_index);
-        printf("%X %X %X %X\n", (*buf)[0], (*buf)[1],(*buf)[2],(*buf)[3]);
+        av_dlog(pc, "overread %d, state:%X next:%d index:%d o_index:%d\n",
+                pc->overread, pc->state, next, pc->index, pc->overread_index);
+        av_dlog(pc, "%X %X %X %X\n", (*buf)[0], (*buf)[1], (*buf)[2], (*buf)[3]);
     }
-#endif
 
     /* Copy overread bytes from last frame into buffer. */
     for(; pc->overread>0; pc->overread--){
@@ -279,15 +267,15 @@ int ff_combine_frame(ParseContext *pc, int next, const uint8_t **buf, int *buf_s
     /* store overread bytes */
     for(;next < 0; next++){
         pc->state = (pc->state<<8) | pc->buffer[pc->last_index + next];
+        pc->state64 = (pc->state64<<8) | pc->buffer[pc->last_index + next];
         pc->overread++;
     }
 
-#if 0
     if(pc->overread){
-        printf("overread %d, state:%X next:%d index:%d o_index:%d\n", pc->overread, pc->state, next, pc->index, pc->overread_index);
-        printf("%X %X %X %X\n", (*buf)[0], (*buf)[1],(*buf)[2],(*buf)[3]);
+        av_dlog(pc, "overread %d, state:%X next:%d index:%d o_index:%d\n",
+                pc->overread, pc->state, next, pc->index, pc->overread_index);
+        av_dlog(pc, "%X %X %X %X\n", (*buf)[0], (*buf)[1],(*buf)[2],(*buf)[3]);
     }
-#endif
 
     return 0;
 }
@@ -296,7 +284,7 @@ void ff_parse_close(AVCodecParserContext *s)
 {
     ParseContext *pc = s->priv_data;
 
-    av_free(pc->buffer);
+    av_freep(&pc->buffer);
 }
 
 void ff_parse1_close(AVCodecParserContext *s)

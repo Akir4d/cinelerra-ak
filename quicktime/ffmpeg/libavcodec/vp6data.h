@@ -1,7 +1,4 @@
-/**
- * @file vp6data.h
- * VP6 compatible video decoder
- *
+/*
  * Copyright (C) 2006  Aurelien Jacobs <aurel@gnuage.org>
  *
  * This file is part of FFmpeg.
@@ -21,8 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_VP6DATA_H
-#define FFMPEG_VP6DATA_H
+/**
+ * @file
+ * VP6 compatible video decoder
+ */
+
+#ifndef AVCODEC_VP6DATA_H
+#define AVCODEC_VP6DATA_H
 
 #include "vp56data.h"
 
@@ -283,7 +285,7 @@ static const int16_t vp6_block_copy_filter[17][8][4] = {
     {  -2,  16, 118,  -4  } },
 };
 
-static const vp56_tree_t vp6_pcr_tree[] = {
+static const VP56Tree vp6_pcr_tree[] = {
     { 8, 0},
     { 4, 1},
     { 2, 2}, {-1}, {-2},
@@ -305,4 +307,4 @@ static const uint8_t vp6_huff_run_map[] = {
     10, 13, 11, 12, 0, 1, 2, 3, 14, 8, 15, 16, 4, 5, 6, 7
 };
 
-#endif /* FFMPEG_VP6DATA_H */
+#endif /* AVCODEC_VP6DATA_H */

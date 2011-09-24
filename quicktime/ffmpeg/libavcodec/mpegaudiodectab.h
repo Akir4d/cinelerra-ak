@@ -20,18 +20,27 @@
  */
 
 /**
- * @file mpegaudiodectab.h
+ * @file
  * mpeg audio layer decoder tables.
  */
 
-#ifndef FFMPEG_MPEGAUDIODECTAB_H
-#define FFMPEG_MPEGAUDIODECTAB_H
+#ifndef AVCODEC_MPEGAUDIODECTAB_H
+#define AVCODEC_MPEGAUDIODECTAB_H
 
+#include <stddef.h>
 #include <stdint.h>
+
 #include "mpegaudio.h"
 
 /*******************************************************/
 /* layer 3 tables */
+
+/* layer 3 huffman tables */
+typedef struct HuffTable {
+    int xsize;
+    const uint8_t *bits;
+    const uint16_t *codes;
+} HuffTable;
 
 /* layer3 scale factor size */
 static const uint8_t slen_table[2][16] = {
@@ -603,4 +612,4 @@ static const float ci_table[8] = {
     -0.6, -0.535, -0.33, -0.185, -0.095, -0.041, -0.0142, -0.0037,
 };
 
-#endif /* FFMPEG_MPEGAUDIODECTAB_H */
+#endif /* AVCODEC_MPEGAUDIODECTAB_H */

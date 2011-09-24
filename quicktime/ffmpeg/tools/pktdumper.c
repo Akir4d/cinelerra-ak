@@ -18,13 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <avformat.h>
 #include <limits.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "libavformat/avformat.h"
 
 #define PKTFILESUFF "_%08"PRId64"_%02d_%010"PRId64"_%06d_%c.bin"
 
@@ -89,9 +89,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    err = av_find_stream_info(fctx);
+    err = avformat_find_stream_info(fctx, NULL);
     if (err < 0) {
-        fprintf(stderr, "av_find_stream_info: error %d\n", err);
+        fprintf(stderr, "avformat_find_stream_info: error %d\n", err);
         return 1;
     }
 
@@ -99,18 +99,25 @@ int main(int argc, char **argv)
 
     while ((err = av_read_frame(fctx, &pkt)) >= 0) {
         int fd;
-        snprintf(pktfilename, PATH_MAX-1, fntemplate, pktnum, pkt.stream_index, pkt.pts, pkt.size, (pkt.flags & PKT_FLAG_KEY)?'K':'_');
-        printf(PKTFILESUFF"\n", pktnum, pkt.stream_index, pkt.pts, pkt.size, (pkt.flags & PKT_FLAG_KEY)?'K':'_');
+        snprintf(pktfilename, PATH_MAX-1, fntemplate, pktnum, pkt.stream_index, pkt.pts, pkt.size, (pkt.flags & AV_PKT_FLAG_KEY)?'K':'_');
+        printf(PKTFILESUFF"\n", pktnum, pkt.stream_index, pkt.pts, pkt.size, (pkt.flags & AV_PKT_FLAG_KEY)?'K':'_');
         //printf("open(\"%s\")\n", pktfilename);
         if (!nowrite) {
             fd = open(pktfilename, O_WRONLY|O_CREAT, 0644);
-            write(fd, pkt.data, pkt.size);
+            err = write(fd, pkt.data, pkt.size);
+            if (err < 0) {
+                fprintf(stderr, "write: error %d\n", err);
+                return 1;
+            }
             close(fd);
         }
+        av_free_packet(&pkt);
         pktnum++;
         if (maxpkts && (pktnum >= maxpkts))
             break;
     }
+
+    av_close_input_file(fctx);
 
     while (donotquit)
         sleep(60);

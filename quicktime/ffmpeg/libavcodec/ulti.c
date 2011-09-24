@@ -20,14 +20,13 @@
  */
 
 /**
- * @file ulti.c
+ * @file
  * IBM Ultimotion Video Decoder.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "avcodec.h"
 #include "bytestream.h"
@@ -50,19 +49,30 @@ static av_cold int ulti_decode_init(AVCodecContext *avctx)
     s->height = avctx->height;
     s->blocks = (s->width / 8) * (s->height / 8);
     avctx->pix_fmt = PIX_FMT_YUV410P;
+    avcodec_get_frame_defaults(&s->frame);
     avctx->coded_frame = (AVFrame*) &s->frame;
     s->ulti_codebook = ulti_codebook;
 
     return 0;
 }
 
-static int block_coords[8] = // 4x4 block coords in 8x8 superblock
+static av_cold int ulti_decode_end(AVCodecContext *avctx){
+    UltimotionDecodeContext *s = avctx->priv_data;
+    AVFrame *pic = &s->frame;
+
+    if (pic->data[0])
+        avctx->release_buffer(avctx, pic);
+
+    return 0;
+}
+
+static const int block_coords[8] = // 4x4 block coords in 8x8 superblock
     { 0, 0, 0, 4, 4, 4, 4, 0};
 
-static int angle_by_index[4] = { 0, 2, 6, 12};
+static const int angle_by_index[4] = { 0, 2, 6, 12};
 
 /* Lookup tables for luma and chroma - used by ulti_convert_yuv() */
-static uint8_t ulti_lumas[64] =
+static const uint8_t ulti_lumas[64] =
     { 0x10, 0x13, 0x17, 0x1A, 0x1E, 0x21, 0x25, 0x28,
       0x2C, 0x2F, 0x33, 0x36, 0x3A, 0x3D, 0x41, 0x44,
       0x48, 0x4B, 0x4F, 0x52, 0x56, 0x59, 0x5C, 0x60,
@@ -72,7 +82,7 @@ static uint8_t ulti_lumas[64] =
       0xB7, 0xBA, 0xBE, 0xC1, 0xC5, 0xC8, 0xCC, 0xCF,
       0xD3, 0xD6, 0xDA, 0xDD, 0xE1, 0xE4, 0xE8, 0xEB};
 
-static uint8_t ulti_chromas[16] =
+static const uint8_t ulti_chromas[16] =
     { 0x60, 0x67, 0x6D, 0x73, 0x7A, 0x80, 0x86, 0x8D,
       0x93, 0x99, 0xA0, 0xA6, 0xAC, 0xB3, 0xB9, 0xC0};
 
@@ -200,8 +210,10 @@ static void ulti_grad(AVFrame *frame, int x, int y, uint8_t *Y, int chroma, int 
 
 static int ulti_decode_frame(AVCodecContext *avctx,
                              void *data, int *data_size,
-                             const uint8_t *buf, int buf_size)
+                             AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     UltimotionDecodeContext *s=avctx->priv_data;
     int modifier = 0;
     int uniq = 0;
@@ -213,13 +225,10 @@ static int ulti_decode_frame(AVCodecContext *avctx,
     int skip;
     int tmp;
 
-    if(s->frame.data[0])
-        avctx->release_buffer(avctx, &s->frame);
-
     s->frame.reference = 1;
     s->frame.buffer_hints = FF_BUFFER_HINTS_VALID | FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
-    if(avctx->get_buffer(avctx, &s->frame) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+    if (avctx->reget_buffer(avctx, &s->frame) < 0) {
+        av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
         return -1;
     }
 
@@ -393,24 +402,15 @@ static int ulti_decode_frame(AVCodecContext *avctx,
     return buf_size;
 }
 
-static av_cold int ulti_decode_end(AVCodecContext *avctx)
-{
-/*    UltimotionDecodeContext *s = avctx->priv_data;*/
-
-    return 0;
-}
-
-AVCodec ulti_decoder = {
-    "ultimotion",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_ULTI,
-    sizeof(UltimotionDecodeContext),
-    ulti_decode_init,
-    NULL,
-    ulti_decode_end,
-    ulti_decode_frame,
-    CODEC_CAP_DR1,
-    NULL,
-    .long_name = "IBM UltiMotion",
+AVCodec ff_ulti_decoder = {
+    .name           = "ultimotion",
+    .type           = AVMEDIA_TYPE_VIDEO,
+    .id             = CODEC_ID_ULTI,
+    .priv_data_size = sizeof(UltimotionDecodeContext),
+    .init           = ulti_decode_init,
+    .close          = ulti_decode_end,
+    .decode         = ulti_decode_frame,
+    .capabilities   = CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("IBM UltiMotion"),
 };
 

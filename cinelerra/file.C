@@ -35,6 +35,7 @@
 #include "filecr2.h"
 #include "fileexr.h"
 #include "fileogg.h"
+#include "fileffmpeg.h"
 #include "filexml.h"
 #include "filejpeg.h"
 #include "filemov.h"
@@ -226,6 +227,14 @@ int File::get_options(FormatTools *format,
 				video_options,
 				format);
 			break;
+		//case FILE_FFMPEG:
+		//	FileFFMPEG::get_parameters(parent_window, 
+		//		asset,
+		//		format_window,
+		//		audio_options,
+		//		video_options,
+		//		format);
+		//	break;
 		case FILE_PNG:
 		case FILE_PNG_LIST:
 			FilePNG::get_parameters(parent_window, 
@@ -462,6 +471,13 @@ int File::open_file(Preferences *preferences,
 				return FILE_IS_XML;
 			}    // can't load project file
 			else
+			if(FileFFMPEG::check_sig(this->asset))
+			{
+// FFMPEG FILE LOADER
+				fclose(stream);
+				file = new FileFFMPEG(this->asset, this);
+			}
+			else
 			if(FileMOV::check_sig(this->asset))
 			{
 // MOV file
@@ -480,6 +496,10 @@ int File::open_file(Preferences *preferences,
 // format already determined
 		case FILE_AC3:
 			file = new FileAC3(this->asset, this);
+			break;
+		
+		case FILE_FFMPEG:
+			file = new FileFFMPEG(this->asset, this);
 			break;
 
 		case FILE_PCM:
@@ -1228,6 +1248,8 @@ int File::strtoformat(ArrayList<PluginServer*> *plugindb, char *format)
 	if(!strcasecmp(format, _(VORBIS_NAME))) return FILE_VORBIS;
 	else
 	if(!strcasecmp(format, _(RAWDV_NAME))) return FILE_RAWDV;
+	else
+	if(!strcasecmp(format, _(FFMPEG_NAME))) return FILE_FFMPEG;
 	return 0;
 }
 
@@ -1329,6 +1351,9 @@ char* File::formattostr(ArrayList<PluginServer*> *plugindb, int format)
 			break;
 		case FILE_RAWDV:
 			return _(RAWDV_NAME);
+			break;
+		case FILE_FFMPEG:
+			return _(FFMPEG_NAME);
 			break;
 		default:
 			return _("Unknown");

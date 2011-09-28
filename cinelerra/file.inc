@@ -64,6 +64,7 @@
 #define FILE_YUV		29	// mjpegtools YUV4MPEG (aka YUV4MPEG2)
 #define FILE_VORBIS             31
 #define FILE_RAWDV		32
+#define FILE_FFMPEG             33
 
 // For formats supported by plugins, the format number is the plugin number in the 
 // plugin list ORed with 0x8000.
@@ -125,6 +126,7 @@ N_("Unknown sound")
 N_("TGA Sequence")
 N_("TGA")
 N_("TIFF")
+N_("FFMPEG")
 N_("TIFF Sequence")
 N_("MPEG Video")    // For encoding only
 N_("OGG Theora/Vorbis")
@@ -165,6 +167,7 @@ N_("OGG Theora/Vorbis")
 #define CR2_NAME "Raw Camera"
 #define EXR_LIST_NAME "EXR Sequence"
 #define YUV_NAME "YUV4MPEG Stream"
+#define FFMPEG_NAME "FFMPEG"
 
 
 #define BITSLINEAR8    8

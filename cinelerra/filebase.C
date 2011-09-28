@@ -42,10 +42,7 @@ FileBase::FileBase(Asset *asset, File *file)
 
 FileBase::~FileBase()
 {
-	if(audio_buffer_in) delete [] audio_buffer_in;
-	if(audio_buffer_out) delete [] audio_buffer_out;
-	if(video_buffer_in) delete [] video_buffer_in;
-	if(video_buffer_out) delete [] video_buffer_out;
+	close_file();
 	if(row_pointers_in) delete [] row_pointers_in;
 	if(row_pointers_out) delete [] row_pointers_out;
 	if(float_buffer) delete [] float_buffer;
@@ -55,16 +52,251 @@ FileBase::~FileBase()
 
 int FileBase::close_file()
 {
-	if(audio_buffer_in) delete [] audio_buffer_in;
-	if(audio_buffer_out) delete [] audio_buffer_out;
-	if(video_buffer_in) delete [] video_buffer_in;
-	if(video_buffer_out) delete [] video_buffer_out;
 	if(row_pointers_in) delete [] row_pointers_in;
 	if(row_pointers_out) delete [] row_pointers_out;
 	if(float_buffer) delete [] float_buffer;
+	if(pcm_history)
+	{
+		for(int i = 0; i < history_channels; i++)
+			delete [] pcm_history[i];
+		delete [] pcm_history;
+	}
 	close_file_derived();
 	reset_parameters();
 	delete_ima4();
+}
+
+void FileBase::update_pcm_history(int64_t len)
+{
+	decode_start = 0;
+	decode_len = 0;
+
+	if(!pcm_history)
+	{
+		history_channels = asset->channels;
+		pcm_history = new double*[history_channels];
+		for(int i = 0; i < history_channels; i++)
+			pcm_history[i] = new double[HISTORY_MAX];
+		history_start = 0;
+		history_size = 0;
+		history_allocated = HISTORY_MAX;
+	}
+	
+
+	// Restart history.  Don't bother shifting history back.
+	if(file->current_sample < history_start ||
+		file->current_sample > history_start + history_size)
+	{
+		history_size = 0;
+		history_start = file->current_sample;
+		decode_start = file->current_sample;
+		decode_len = len;
+	}
+	else
+// Shift history forward to make room for new samples
+	if(file->current_sample > history_start + HISTORY_MAX)
+	{
+		int diff = file->current_sample - (history_start + HISTORY_MAX);
+		for(int i = 0; i < asset->channels; i++)
+		{
+			double *temp = pcm_history[i];
+			memmove(temp, temp + diff, (history_size - diff) * sizeof(double));
+		}
+
+		history_start += diff;
+		history_size -= diff;
+
+// Decode more data
+		decode_start = history_start + history_size;
+		decode_len = file->current_sample + len - (history_start + history_size);
+	}
+	else
+// Starting somewhere in the buffer
+	{
+		decode_start = history_start + history_size;
+		decode_len = file->current_sample + len - (history_start + history_size);
+	}
+}
+
+void FileBase::append_history(float **new_data, int offset, int len)
+{
+	allocate_history(len);
+
+	for(int i = 0; i < history_channels; i++)
+	{
+		double *output = pcm_history[i] + history_size;
+		float *input = new_data[i]+offset;
+		for(int j = 0; j < len; j++)
+			*output++ = *input++;
+	}
+
+	history_size += len;
+	decode_end += len;
+}
+
+void FileBase::append_history(const void *in, enum SampleFormat format, int offset, int len)
+{
+  switch (format) 
+  {
+  default:
+  case SAMPLE_FMT_NONE:
+	// uhhhh..... 
+	pad_history(len);
+	break;
+
+  case SAMPLE_FMT_U8:
+	{
+	// unsigned 8 bits 
+	allocate_history(len);
+	uint8_t *new_data =  (uint8_t *)in;
+
+	for(int i = 0; i < history_channels; i++)
+	{
+		double *output = pcm_history[i] + history_size;
+		uint8_t *input = new_data + i + offset*history_channels;
+		for(int j = 0; j < len; j++)
+		{
+			*output++ = (double)(*input-128) / 128;
+			input += history_channels;
+		}
+	}
+	break;
+	}
+
+  case SAMPLE_FMT_S16:
+	{
+		// signed 16 bits 
+		allocate_history(len);
+		int16_t *new_data =  (int16_t *)in;
+
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			int16_t *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++)
+			{
+				*output++ = (double)*input / 32768;
+				input += history_channels;
+			}
+		}
+		break;
+	}
+
+  case SAMPLE_FMT_S32:
+	{
+		// signed 32 bits 
+		allocate_history(len);
+		int32_t *new_data =  (int32_t *)in;
+
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			int32_t *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++)
+			{
+				*output++ = (double)*input / 1073741824.;
+				input += history_channels;
+			}
+		}
+	break;
+	}
+
+  case SAMPLE_FMT_FLT:
+	{
+		// float 
+		allocate_history(len);
+		float *new_data =  (float *)in;
+
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			float *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++)
+			{
+				*output++ = *input;
+				input += history_channels;
+			}
+		}
+	break;
+	}
+
+  case SAMPLE_FMT_DBL:
+	{
+		// double 
+		allocate_history(len);
+		double *new_data =  (double *)in;
+
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			double *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++)
+			{
+				*output++ = *input;
+				input += history_channels;
+			}
+		}
+	break;
+	}
+  }
+
+  history_size += len;
+  decode_end += len;
+}
+
+void FileBase::pad_history(int len)
+{
+	allocate_history(len);
+
+	for(int i = 0; i < history_channels; i++)
+	{
+		double *output = pcm_history[i] + history_size;
+		for(int j = 0; j < len; j++)
+		{
+			*output++ = 0.;
+		}
+	}
+
+	history_size += len;
+	decode_end += len;
+}
+
+void FileBase::read_history(double *dst,
+	int64_t start_sample, 
+	int channel,
+	int64_t len)
+{
+	if(start_sample - history_start + len > history_size)
+		len = history_size - (start_sample - history_start);
+	double *input = pcm_history[channel] + start_sample - history_start;
+	for(int i = 0; i < len; i++)
+	{
+		*dst++ = *input++;
+	}
+}
+
+void FileBase::allocate_history(int len)
+{
+	if(history_size + len > history_allocated)
+	{
+		double **temp = new double*[history_channels];
+
+		for(int i = 0; i < history_channels; i++)
+		{
+			temp[i] = new double[history_size + len];
+			memmove(temp[i], pcm_history[i], history_size * sizeof(double));
+			delete [] pcm_history[i];
+		}
+
+		delete [] pcm_history;
+		pcm_history = temp;
+		history_allocated = history_size + len;
+	}
+}
+
+int64_t FileBase::get_history_sample()
+{
+	return history_start + history_size;
 }
 
 int FileBase::set_dither()
@@ -75,11 +307,8 @@ int FileBase::set_dither()
 
 int FileBase::reset_parameters()
 {
+	decode_end=0;
 	dither = 0;
-	audio_buffer_in = 0;
-	video_buffer_in = 0;
-	audio_buffer_out = 0;
-	video_buffer_out = 0;
 	float_buffer = 0;
 	row_pointers_in = 0;
 	row_pointers_out = 0;
@@ -92,6 +321,12 @@ int FileBase::reset_parameters()
 	ulawtofloat_table = 0;
 	floattoulaw_table = 0;
 	rd = wr = 0;
+
+	pcm_history = 0; 
+	history_start = 0; 
+	history_size = 0; 
+	history_allocated = 0;
+	//history_channels = 0;
 
 	delete_ulaw_tables();
 	reset_parameters_derived();
@@ -133,10 +368,10 @@ int FileBase::get_mode(char *mode, int rd, int wr)
 
 int FileBase::get_video_buffer(unsigned char **buffer, int depth)
 {
-// get a raw video buffer for writing or compression by a library
+	// get a raw video buffer for writing or compression by a library
 	if(!*buffer)
 	{
-// Video compression is entirely done in the library.
+		// Video compression is entirely done in the library.
 		int64_t bytes = asset->width * asset->height * depth;
 		*buffer = new unsigned char[bytes];
 	}
@@ -164,7 +399,7 @@ int FileBase::get_row_pointers(unsigned char *buffer, unsigned char ***pointers,
 
 int FileBase::match4(char *in, char *out)
 {
-	if(in[0] == out[0] &&
+	if(	in[0] == out[0] &&
 		in[1] == out[1] &&
 		in[2] == out[2] &&
 		in[3] == out[3])

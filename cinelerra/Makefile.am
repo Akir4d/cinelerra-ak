@@ -142,6 +142,7 @@ cinelerra_SOURCES = aattachmentpoint.C \
 		    fileavi.C \
 		    filebaseaudio.C \
 		    filebase.C \
+		    fileffmpeg.C \
 		    filebaseima4.C \
 		    filebaseulaw.C \
 		    file.C \
@@ -455,8 +456,9 @@ noinst_HEADERS = aattachmentpoint.h \
 		 fileformat.h \
 		 file.h \
 		 filecr2.h \
-	    filedv.h \
-	    fileogg.h \
+	    	 filedv.h \
+	    	 fileogg.h \
+		 fileffmpeg.h \
 		 fileexr.h \
 		 filejpeg.h \
 		 filelist.h \

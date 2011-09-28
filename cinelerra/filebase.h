@@ -33,7 +33,15 @@
 #include "strategies.inc"
 #include "vframe.inc"
 
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+}
+
 #include <sys/types.h>
+
+// Number of samples saved before the current read position
+#define HISTORY_MAX 0x10000
 
 // inherited by every file interpreter
 class FileBase
@@ -104,6 +112,22 @@ public:
 // This file can copy compressed frames directly from the asset
 	virtual int can_copy_from(Edit *edit, int64_t position) { return 0; }; 
 	virtual int get_render_strategy(ArrayList<int>* render_strategies) { return VRENDER_VPIXEL; };
+		/* Start history manager for fileffmpeg */
+// Manages an audio history buffer
+	void update_pcm_history(int64_t len);
+// Returns history_start + history_size
+	int64_t get_history_sample();
+// contiguous float
+	void append_history(float **new_data, int offset, int len);
+// Interleaved 
+	void append_history(const void *new_data, enum SampleFormat format, int offset, int samples);
+	void pad_history(int len);
+	void read_history(double *dst,
+		int64_t start_sample, 
+		int channel,
+		int64_t len);
+	void allocate_history(int len);
+		/* End history manager for fileffmpeg */
 
 protected:
 // Return 1 if the render_strategy is present on the list.
@@ -152,9 +176,9 @@ protected:
 	int64_t ima4_samples_to_bytes(int64_t samples, int channels);
 	int64_t ima4_bytes_to_samples(int64_t bytes, int channels);
 
-	char *audio_buffer_in, *audio_buffer_out;    // for raw audio reads and writes
+	//char *audio_buffer_in, *audio_buffer_out;    // for raw audio reads and writes
 	float *float_buffer;          // for floating point feathering
-	unsigned char *video_buffer_in, *video_buffer_out;
+	//unsigned char *video_buffer_in, *video_buffer_out;
 	unsigned char **row_pointers_in, **row_pointers_out;
 	int64_t prev_buffer_position;  // for audio determines if reading raw data is necessary
 	int64_t prev_frame_position;   // for video determines if reading raw video data is necessary
@@ -167,6 +191,20 @@ protected:
 	int dither;
 	int internal_byte_order;
 	File *file;
+		/* Start history manager for fileffmpeg */
+// ================================= Audio compression
+	double **pcm_history;
+	int64_t history_allocated;
+	int64_t history_size;
+	int64_t history_start;
+	int history_channels;
+// Range to decode to fill history buffer.  Maintained by FileBase.
+	int64_t decode_start;
+	int64_t decode_len;
+// End of last decoded sample.  Maintained by user for seeking.
+	int64_t decode_end;
+		/* End of history manager for fileffmpeg */
+
 
 private:
 

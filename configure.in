@@ -305,7 +305,7 @@ i586 | i686)
 	fi
 ;;
 x86_64)
-	test "x$enable_mmx" = "xauto" && enable_mmx=yes
+	test "x$enable_mmx" = "xauto" && enable_mmx=no
 	CPU_CFLAGS="-DX86_CPU $CPU_CFLAGS"
 	if test "x$enable_mmx" = "xyes"; then
 		CPU_CFLAGS="-DHAVE_MMX -DUSE_MMX $CPU_CFLAGS"
@@ -361,12 +361,30 @@ if test "x$with_external_ffmpeg" = "xyes"; then
      else
 	     PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc])
      fi
+     FFMPEG_CFLAGS="$FFMPEG_CFLAGS -D__STDC_CONSTANT_MACROS"
      FFMPEG_EXTERNALTEXT="External ffmpeg"
 else
      FFMPEG_FOLDER=ffmpeg
-     FFMPEG_CFLAGS="-I\$(top_srcdir)/quicktime/ffmpeg"
+     dnl --------------------------------------------------------------
+     dnl check if libavcodec contains img_convert
+     dnl if not, that means that libswscale is compiled in
+     
+     AC_MSG_CHECKING(for ffmpeg swscale support)
+     saved_LIBS="$LIBS"
+     LIBS="$saved_LIBS $FFMPEG_TEMP_LIBS"
+     AC_TRY_LINK([#include $(top_builddir)/quicktime/ffmpeg/libavcodec/avcodec.h],
+		 [img_convert(0, 0, 0,0,0,0)],
+		 enable_ffmpeg_swscale=no,enable_ffmpeg_swscale=yes)
+     LIBS="$saved_LIBS"
+     AC_MSG_RESULT($enable_ffmpeg_swscale)
+     FFMPEG_CFLAGS="-I\$(top_srcdir)/quicktime/ffmpeg -D__STDC_CONSTANT_MACROS"
      FFMPEG_LIBS="-L\$(top_builddir)/quicktime/ffmpeg/libavcodec -lavcodec-cinelerra \
 		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerra"
+     if test x"$enable_ffmpeg_swscale" = xyes; then
+     		dnl AC_DEFINE(HAVE_SWSCALER)
+     		FFMPEG_CFLAGS="$FFMPEG_CFLAGS -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
+		FFMPEG_LIBS="$FFMPEG_LIBS -L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerra"
+     fi
      FFMPEG_EXTERNALTEXT="Internal ffmpeg"
 fi
 

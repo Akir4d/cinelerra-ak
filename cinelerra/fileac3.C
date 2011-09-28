@@ -96,6 +96,41 @@ int FileAC3::open_file(int rd, int wr)
 		codec_context->bit_rate = asset->ac3_bitrate * 1000;
 		codec_context->sample_rate = asset->sample_rate;
 		codec_context->channels = asset->channels;
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
+		codec_context->sample_fmt = SAMPLE_FMT_S16;
+#else	
+		codec_context->sample_fmt = AV_SAMPLE_FMT_S16;
+		switch(asset->channels)
+		{
+			case 1:
+				codec_context->channel_layout = AV_CH_LAYOUT_MONO;
+				break;
+			case 2:
+				codec_context->channel_layout = AV_CH_LAYOUT_STEREO;
+				break;
+			case 3:
+				codec_context->channel_layout = AV_CH_LAYOUT_SURROUND;
+				break;
+			case 4:
+				codec_context->channel_layout = AV_CH_LAYOUT_QUAD;
+				break;
+			case 5:
+				codec_context->channel_layout = AV_CH_LAYOUT_5POINT0;
+				break;
+			case 6:
+				codec_context->channel_layout = AV_CH_LAYOUT_5POINT1;
+				break;
+			case 7:
+				codec_context->channel_layout = AV_CH_LAYOUT_7POINT0;
+				break;
+			case 8:
+				codec_context->channel_layout = AV_CH_LAYOUT_7POINT1;
+				break;
+			default:
+				codec_context->channel_layout = AV_CH_LAYOUT_NATIVE;
+				break;
+		}
+#endif
 		if(avcodec_open(codec_context, codec))
 		{
 			eprintf("failed to open codec.\n");

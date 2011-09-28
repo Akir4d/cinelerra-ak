@@ -2,7 +2,7 @@
 
 #ifdef HAVE_SWSCALER
 extern "C" {
-#include <swscale.h>
+#include "libswscale/swscale.h"
 }
 #endif
 
@@ -364,12 +364,24 @@ int FFMPEG::decode(uint8_t *data, long data_size, VFrame *frame_out) {
 
 	// NOTE: frame must already have data space allocated
 	
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
 	got_picture = 0;
 	int length = avcodec_decode_video(context,
 					  picture,
 					  &got_picture,
 					  data,
 					  data_size);
+#else	
+	AVPacket pkt;
+	got_picture = 0;
+	av_init_packet( &pkt );
+	pkt.data = data;
+	pkt.size = data_size;
+	int length = avcodec_decode_video2(context,
+					  picture,
+					  &got_picture,
+					  &pkt);
+#endif
 	
 	if (length < 0) {
 		printf("FFMPEG::decode error decoding frame\n");

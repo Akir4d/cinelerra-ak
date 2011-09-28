@@ -19,10 +19,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_BYTESTREAM_H
-#define FFMPEG_BYTESTREAM_H
+#ifndef AVCODEC_BYTESTREAM_H
+#define AVCODEC_BYTESTREAM_H
 
+#include <string.h>
 #include "libavutil/common.h"
+#include "libavutil/intreadwrite.h"
+
+typedef struct {
+    const uint8_t *buffer, *buffer_end;
+} GetByteContext;
 
 #define DEF_T(type, name, bytes, read, write)                             \
 static av_always_inline type bytestream_get_ ## name(const uint8_t **b){\
@@ -32,6 +38,18 @@ static av_always_inline type bytestream_get_ ## name(const uint8_t **b){\
 static av_always_inline void bytestream_put_ ##name(uint8_t **b, const type value){\
     write(*b, value);\
     (*b) += bytes;\
+}\
+static av_always_inline type bytestream2_get_ ## name(GetByteContext *g)\
+{\
+    if (g->buffer_end - g->buffer < bytes)\
+        return 0;\
+    return bytestream_get_ ## name(&g->buffer);\
+}\
+static av_always_inline type bytestream2_peek_ ## name(GetByteContext *g)\
+{\
+    if (g->buffer_end - g->buffer < bytes)\
+        return 0;\
+    return read(g->buffer);\
 }
 
 #define DEF(name, bytes, read, write) \
@@ -53,6 +71,34 @@ DEF  (byte, 1, AV_RB8 , AV_WB8 )
 #undef DEF64
 #undef DEF_T
 
+static av_always_inline void bytestream2_init(GetByteContext *g,
+                                              const uint8_t *buf, int buf_size)
+{
+    g->buffer =  buf;
+    g->buffer_end = buf + buf_size;
+}
+
+static av_always_inline unsigned int bytestream2_get_bytes_left(GetByteContext *g)
+{
+    return g->buffer_end - g->buffer;
+}
+
+static av_always_inline void bytestream2_skip(GetByteContext *g,
+                                              unsigned int size)
+{
+    g->buffer += FFMIN(g->buffer_end - g->buffer, size);
+}
+
+static av_always_inline unsigned int bytestream2_get_buffer(GetByteContext *g,
+                                                            uint8_t *dst,
+                                                            unsigned int size)
+{
+    int size2 = FFMIN(g->buffer_end - g->buffer, size);
+    memcpy(dst, g->buffer, size2);
+    g->buffer += size2;
+    return size2;
+}
+
 static av_always_inline unsigned int bytestream_get_buffer(const uint8_t **b, uint8_t *dst, unsigned int size)
 {
     memcpy(dst, *b, size);
@@ -66,4 +112,4 @@ static av_always_inline void bytestream_put_buffer(uint8_t **b, const uint8_t *s
     (*b) += size;
 }
 
-#endif /* FFMPEG_BYTESTREAM_H */
+#endif /* AVCODEC_BYTESTREAM_H */

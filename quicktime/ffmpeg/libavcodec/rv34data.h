@@ -20,12 +20,12 @@
  */
 
 /**
- * @file rv34data.h
+ * @file
  * miscellaneous RV30/40 tables
  */
 
-#ifndef FFMPEG_RV34DATA_H
-#define FFMPEG_RV34DATA_H
+#ifndef AVCODEC_RV34DATA_H
+#define AVCODEC_RV34DATA_H
 
 #include <stdint.h>
 
@@ -123,7 +123,7 @@ static const uint8_t rv34_quant_to_vlc_set[2][31] = {
 
 /**
  * table for obtaining the quantizer difference
- * @todo Use with modified_quant_tab from h263data.h.
+ * @todo Use with ff_modified_quant_tab from h263data.h.
  */
 static const uint8_t rv34_dquant_tab[2][32]={
 //  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
@@ -138,11 +138,11 @@ static const uint8_t rv34_dquant_tab[2][32]={
  * maximum number of macroblocks for each of the possible slice offset sizes
  * @todo This is the same as ff_mba_max, maybe use it instead.
  */
-static const uint16_t rv34_mb_max_sizes[6] = { 0x2F, 0x68, 0x18B, 0x62F, 0x18BF, 0x23FF };
+static const uint16_t rv34_mb_max_sizes[6] = { 0x2F, 0x62, 0x18B, 0x62F, 0x18BF, 0x23FF };
 /**
  * bits needed to code the slice offset for the given size
  * @todo This is the same as ff_mba_length, maybe use it instead.
  */
 static const uint8_t rv34_mb_bits_sizes[6] = { 6, 7, 9, 11, 13, 14 };
 
-#endif /* FFMPEG_RV34DATA_H */
+#endif /* AVCODEC_RV34DATA_H */

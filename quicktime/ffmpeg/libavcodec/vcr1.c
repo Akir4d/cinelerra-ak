@@ -20,7 +20,7 @@
  */
 
 /**
- * @file vcr1.c
+ * @file
  * ati vcr1 codec.
  */
 
@@ -29,6 +29,10 @@
 
 //#undef NDEBUG
 //#include <assert.h>
+
+/* Disable the encoder. */
+#undef CONFIG_VCR1_ENCODER
+#define CONFIG_VCR1_ENCODER 0
 
 typedef struct VCR1Context{
     AVCodecContext *avctx;
@@ -39,8 +43,10 @@ typedef struct VCR1Context{
 
 static int decode_frame(AVCodecContext *avctx,
                         void *data, int *data_size,
-                        const uint8_t *buf, int buf_size)
+                        AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     VCR1Context * const a = avctx->priv_data;
     AVFrame *picture = data;
     AVFrame * const p= (AVFrame*)&a->picture;
@@ -55,7 +61,7 @@ static int decode_frame(AVCodecContext *avctx,
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
-    p->pict_type= FF_I_TYPE;
+    p->pict_type= AV_PICTURE_TYPE_I;
     p->key_frame= 1;
 
     for(i=0; i<16; i++){
@@ -113,16 +119,15 @@ static int decode_frame(AVCodecContext *avctx,
     return buf_size;
 }
 
-#if 0
+#if CONFIG_VCR1_ENCODER
 static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
     VCR1Context * const a = avctx->priv_data;
     AVFrame *pict = data;
     AVFrame * const p= (AVFrame*)&a->picture;
     int size;
-    int mb_x, mb_y;
 
     *p = *pict;
-    p->pict_type= FF_I_TYPE;
+    p->pict_type= AV_PICTURE_TYPE_I;
     p->key_frame= 1;
 
     emms_c();
@@ -141,6 +146,7 @@ static av_cold void common_init(AVCodecContext *avctx){
     VCR1Context * const a = avctx->priv_data;
 
     avctx->coded_frame= (AVFrame*)&a->picture;
+    avcodec_get_frame_defaults(&a->picture);
     a->avctx= avctx;
 }
 
@@ -153,7 +159,16 @@ static av_cold int decode_init(AVCodecContext *avctx){
     return 0;
 }
 
-#if 0
+static av_cold int decode_end(AVCodecContext *avctx){
+    VCR1Context *s = avctx->priv_data;
+
+    if (s->picture.data[0])
+        avctx->release_buffer(avctx, &s->picture);
+
+    return 0;
+}
+
+#if CONFIG_VCR1_ENCODER
 static av_cold int encode_init(AVCodecContext *avctx){
 
     common_init(avctx);
@@ -162,31 +177,28 @@ static av_cold int encode_init(AVCodecContext *avctx){
 }
 #endif
 
-AVCodec vcr1_decoder = {
+AVCodec ff_vcr1_decoder = {
     "vcr1",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_VCR1,
     sizeof(VCR1Context),
     decode_init,
     NULL,
-    NULL,
+    decode_end,
     decode_frame,
     CODEC_CAP_DR1,
-    .long_name = "ATI VCR1",
+    .long_name = NULL_IF_CONFIG_SMALL("ATI VCR1"),
 };
-#if 0
-#ifdef CONFIG_ENCODERS
 
-AVCodec vcr1_encoder = {
+#if CONFIG_VCR1_ENCODER
+AVCodec ff_vcr1_encoder = {
     "vcr1",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_VCR1,
     sizeof(VCR1Context),
     encode_init,
     encode_frame,
     //encode_end,
-    .long_name = "ATI VCR1",
+    .long_name = NULL_IF_CONFIG_SMALL("ATI VCR1"),
 };
-
-#endif //CONFIG_ENCODERS
 #endif

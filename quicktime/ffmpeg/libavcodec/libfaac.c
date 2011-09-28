@@ -20,7 +20,7 @@
  */
 
 /**
- * @file libfaac.c
+ * @file
  * Interface to libfaac for aac encoding.
  */
 
@@ -31,6 +31,13 @@ typedef struct FaacAudioContext {
     faacEncHandle faac_handle;
 } FaacAudioContext;
 
+static const int channel_maps[][6] = {
+    { 2, 0, 1 },          //< C L R
+    { 2, 0, 1, 3 },       //< C L R Cs
+    { 2, 0, 1, 3, 4 },    //< C L R Ls Rs
+    { 2, 0, 1, 4, 5, 3 }, //< C L R Ls Rs LFE
+};
+
 static av_cold int Faac_encode_init(AVCodecContext *avctx)
 {
     FaacAudioContext *s = avctx->priv_data;
@@ -38,8 +45,10 @@ static av_cold int Faac_encode_init(AVCodecContext *avctx)
     unsigned long samples_input, max_bytes_output;
 
     /* number of channels */
-    if (avctx->channels < 1 || avctx->channels > 6)
+    if (avctx->channels < 1 || avctx->channels > 6) {
+        av_log(avctx, AV_LOG_ERROR, "encoding %d channel(s) is not allowed\n", avctx->channels);
         return -1;
+    }
 
     s->faac_handle = faacEncOpen(avctx->sample_rate,
                                  avctx->channels,
@@ -84,6 +93,9 @@ static av_cold int Faac_encode_init(AVCodecContext *avctx)
     }
     faac_cfg->outputFormat = 1;
     faac_cfg->inputFormat = FAAC_INPUT_16BIT;
+    if (avctx->channels > 2)
+        memcpy(faac_cfg->channel_map, channel_maps[avctx->channels-3],
+               avctx->channels * sizeof(int));
 
     avctx->frame_size = samples_input / avctx->channels;
 
@@ -122,10 +134,11 @@ static int Faac_encode_frame(AVCodecContext *avctx,
 {
     FaacAudioContext *s = avctx->priv_data;
     int bytes_written;
+    int num_samples = data ? avctx->frame_size : 0;
 
     bytes_written = faacEncEncode(s->faac_handle,
                                   data,
-                                  avctx->frame_size * avctx->channels,
+                                  num_samples * avctx->channels,
                                   frame,
                                   buf_size);
 
@@ -143,13 +156,24 @@ static av_cold int Faac_encode_close(AVCodecContext *avctx)
     return 0;
 }
 
-AVCodec libfaac_encoder = {
+static const AVProfile profiles[] = {
+    { FF_PROFILE_AAC_MAIN, "Main" },
+    { FF_PROFILE_AAC_LOW,  "LC"   },
+    { FF_PROFILE_AAC_SSR,  "SSR"  },
+    { FF_PROFILE_AAC_LTP,  "LTP"  },
+    { FF_PROFILE_UNKNOWN },
+};
+
+AVCodec ff_libfaac_encoder = {
     "libfaac",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_AAC,
     sizeof(FaacAudioContext),
     Faac_encode_init,
     Faac_encode_frame,
     Faac_encode_close,
-    .long_name = "libfaac AAC (Advanced Audio Codec)",
+    .capabilities = CODEC_CAP_SMALL_LAST_FRAME | CODEC_CAP_DELAY,
+    .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
+    .long_name = NULL_IF_CONFIG_SMALL("libfaac AAC (Advanced Audio Codec)"),
+    .profiles = NULL_IF_CONFIG_SMALL(profiles),
 };

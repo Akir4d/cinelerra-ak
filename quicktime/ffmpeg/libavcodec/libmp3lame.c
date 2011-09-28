@@ -20,20 +20,25 @@
  */
 
 /**
- * @file mp3lameaudio.c
+ * @file
  * Interface to libmp3lame for mp3 encoding.
  */
 
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 #include "mpegaudio.h"
 #include <lame/lame.h>
 
-#define BUFFER_SIZE (7200 + MPA_FRAME_SIZE + MPA_FRAME_SIZE/4)
+#define BUFFER_SIZE (7200 + 2*MPA_FRAME_SIZE + MPA_FRAME_SIZE/4)
 typedef struct Mp3AudioContext {
     lame_global_flags *gfp;
     int stereo;
     uint8_t buffer[BUFFER_SIZE];
     int buffer_index;
+    struct {
+        int *left;
+        int *right;
+    } s32_data;
 } Mp3AudioContext;
 
 static av_cold int MP3lame_encode_init(AVCodecContext *avctx)
@@ -50,15 +55,17 @@ static av_cold int MP3lame_encode_init(AVCodecContext *avctx)
     lame_set_in_samplerate(s->gfp, avctx->sample_rate);
     lame_set_out_samplerate(s->gfp, avctx->sample_rate);
     lame_set_num_channels(s->gfp, avctx->channels);
-    /* lame 3.91 dies on quality != 5 */
-    lame_set_quality(s->gfp, 5);
-    /* lame 3.91 doesn't work in mono */
-    lame_set_mode(s->gfp, JOINT_STEREO);
+    if(avctx->compression_level == FF_COMPRESSION_DEFAULT) {
+        lame_set_quality(s->gfp, 5);
+    } else {
+        lame_set_quality(s->gfp, avctx->compression_level);
+    }
+    lame_set_mode(s->gfp, s->stereo ? JOINT_STEREO : MONO);
     lame_set_brate(s->gfp, avctx->bit_rate/1000);
     if(avctx->flags & CODEC_FLAG_QSCALE) {
         lame_set_brate(s->gfp, 0);
         lame_set_VBR(s->gfp, vbr_default);
-        lame_set_VBR_q(s->gfp, avctx->global_quality / (float)FF_QP2LAMBDA);
+        lame_set_VBR_quality(s->gfp, avctx->global_quality/(float)FF_QP2LAMBDA);
     }
     lame_set_bWriteVbrTag(s->gfp,0);
     lame_set_disable_reservoir(s->gfp, avctx->flags2 & CODEC_FLAG2_BIT_RESERVOIR ? 0 : 1);
@@ -67,8 +74,25 @@ static av_cold int MP3lame_encode_init(AVCodecContext *avctx)
 
     avctx->frame_size = lame_get_framesize(s->gfp);
 
-    avctx->coded_frame= avcodec_alloc_frame();
+    if(!(avctx->coded_frame= avcodec_alloc_frame())) {
+        lame_close(s->gfp);
+
+        return AVERROR(ENOMEM);
+    }
     avctx->coded_frame->key_frame= 1;
+
+    if(AV_SAMPLE_FMT_S32 == avctx->sample_fmt && s->stereo) {
+        int nelem = 2 * avctx->frame_size;
+
+        if(! (s->s32_data.left = av_malloc(nelem * sizeof(int)))) {
+            av_freep(&avctx->coded_frame);
+            lame_close(s->gfp);
+
+            return AVERROR(ENOMEM);
+        }
+
+        s->s32_data.right = s->s32_data.left + avctx->frame_size;
+    }
 
     return 0;
 
@@ -78,8 +102,8 @@ err:
     return -1;
 }
 
-static const int sSampleRates[3] = {
-    44100, 48000,  32000
+static const int sSampleRates[] = {
+    44100, 48000,  32000, 22050, 24000, 16000, 11025, 12000, 8000, 0
 };
 
 static const int sBitRates[2][3][15] = {
@@ -144,7 +168,45 @@ static int MP3lame_encode_frame(AVCodecContext *avctx,
 
     /* lame 3.91 dies on '1-channel interleaved' data */
 
-    if(data){
+    if(!data){
+        lame_result= lame_encode_flush(
+                s->gfp,
+                s->buffer + s->buffer_index,
+                BUFFER_SIZE - s->buffer_index
+                );
+#if 2147483647 == INT_MAX
+    }else if(AV_SAMPLE_FMT_S32 == avctx->sample_fmt){
+        if (s->stereo) {
+            int32_t *rp = data;
+            int32_t *mp = rp + 2*avctx->frame_size;
+            int *wpl = s->s32_data.left;
+            int *wpr = s->s32_data.right;
+
+            while (rp < mp) {
+                *wpl++ = *rp++;
+                *wpr++ = *rp++;
+            }
+
+            lame_result = lame_encode_buffer_int(
+                s->gfp,
+                s->s32_data.left,
+                s->s32_data.right,
+                avctx->frame_size,
+                s->buffer + s->buffer_index,
+                BUFFER_SIZE - s->buffer_index
+                );
+        } else {
+            lame_result = lame_encode_buffer_int(
+                s->gfp,
+                data,
+                data,
+                avctx->frame_size,
+                s->buffer + s->buffer_index,
+                BUFFER_SIZE - s->buffer_index
+                );
+        }
+#endif
+    }else{
         if (s->stereo) {
             lame_result = lame_encode_buffer_interleaved(
                 s->gfp,
@@ -163,18 +225,14 @@ static int MP3lame_encode_frame(AVCodecContext *avctx,
                 BUFFER_SIZE - s->buffer_index
                 );
         }
-    }else{
-        lame_result= lame_encode_flush(
-                s->gfp,
-                s->buffer + s->buffer_index,
-                BUFFER_SIZE - s->buffer_index
-                );
     }
 
-    if(lame_result==-1) {
-        /* output buffer too small */
-        av_log(avctx, AV_LOG_ERROR, "lame: output buffer too small (buffer index: %d, free bytes: %d)\n", s->buffer_index, BUFFER_SIZE - s->buffer_index);
-        return 0;
+    if(lame_result < 0){
+        if(lame_result==-1) {
+            /* output buffer too small */
+            av_log(avctx, AV_LOG_ERROR, "lame: output buffer too small (buffer index: %d, free bytes: %d)\n", s->buffer_index, BUFFER_SIZE - s->buffer_index);
+        }
+        return -1;
     }
 
     s->buffer_index += lame_result;
@@ -182,26 +240,27 @@ static int MP3lame_encode_frame(AVCodecContext *avctx,
     if(s->buffer_index<4)
         return 0;
 
-        len= mp3len(s->buffer, NULL, NULL);
+    len= mp3len(s->buffer, NULL, NULL);
 //av_log(avctx, AV_LOG_DEBUG, "in:%d packet-len:%d index:%d\n", avctx->frame_size, len, s->buffer_index);
-        if(len <= s->buffer_index){
-            memcpy(frame, s->buffer, len);
-            s->buffer_index -= len;
+    if(len <= s->buffer_index){
+        memcpy(frame, s->buffer, len);
+        s->buffer_index -= len;
 
-            memmove(s->buffer, s->buffer+len, s->buffer_index);
+        memmove(s->buffer, s->buffer+len, s->buffer_index);
             //FIXME fix the audio codec API, so we do not need the memcpy()
 /*for(i=0; i<len; i++){
     av_log(avctx, AV_LOG_DEBUG, "%2X ", frame[i]);
 }*/
-            return len;
-        }else
-            return 0;
+        return len;
+    }else
+        return 0;
 }
 
 static av_cold int MP3lame_encode_close(AVCodecContext *avctx)
 {
     Mp3AudioContext *s = avctx->priv_data;
 
+    av_freep(&s->s32_data.left);
     av_freep(&avctx->coded_frame);
 
     lame_close(s->gfp);
@@ -209,14 +268,20 @@ static av_cold int MP3lame_encode_close(AVCodecContext *avctx)
 }
 
 
-AVCodec libmp3lame_encoder = {
+AVCodec ff_libmp3lame_encoder = {
     "libmp3lame",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_MP3,
     sizeof(Mp3AudioContext),
     MP3lame_encode_init,
     MP3lame_encode_frame,
     MP3lame_encode_close,
     .capabilities= CODEC_CAP_DELAY,
-    .long_name= "libmp3lame MP3 (MPEG audio layer 3)",
+    .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,
+#if 2147483647 == INT_MAX
+    AV_SAMPLE_FMT_S32,
+#endif
+    AV_SAMPLE_FMT_NONE},
+    .supported_samplerates= sSampleRates,
+    .long_name= NULL_IF_CONFIG_SMALL("libmp3lame MP3 (MPEG audio layer 3)"),
 };

@@ -20,13 +20,14 @@
  */
 
 /**
- * @file dxa.c
+ * @file
  * DXA Video decoder
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 
 #include <zlib.h>
@@ -187,8 +188,10 @@ static int decode_13(AVCodecContext *avctx, DxaDecContext *c, uint8_t* dst, uint
     return 0;
 }
 
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const uint8_t *buf, int buf_size)
+static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     DxaDecContext * const c = avctx->priv_data;
     uint8_t *outptr, *srcptr, *tmpptr;
     unsigned long dsize;
@@ -237,13 +240,13 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const
     switch(compr){
     case -1:
         c->pic.key_frame = 0;
-        c->pic.pict_type = FF_P_TYPE;
+        c->pic.pict_type = AV_PICTURE_TYPE_P;
         if(c->prev.data[0])
             memcpy(c->pic.data[0], c->prev.data[0], c->pic.linesize[0] * avctx->height);
         else{ // Should happen only when first frame is 'NULL'
             memset(c->pic.data[0], 0, c->pic.linesize[0] * avctx->height);
             c->pic.key_frame = 1;
-            c->pic.pict_type = FF_I_TYPE;
+            c->pic.pict_type = AV_PICTURE_TYPE_I;
         }
         break;
     case 2:
@@ -251,7 +254,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const
     case 4:
     case 5:
         c->pic.key_frame = !(compr & 1);
-        c->pic.pict_type = (compr & 1) ? FF_P_TYPE : FF_I_TYPE;
+        c->pic.pict_type = (compr & 1) ? AV_PICTURE_TYPE_P : AV_PICTURE_TYPE_I;
         for(j = 0; j < avctx->height; j++){
             if(compr & 1){
                 for(i = 0; i < avctx->width; i++)
@@ -266,7 +269,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const
     case 12: // ScummVM coding
     case 13:
         c->pic.key_frame = 0;
-        c->pic.pict_type = FF_P_TYPE;
+        c->pic.pict_type = AV_PICTURE_TYPE_P;
         decode_13(avctx, c, c->pic.data[0], srcptr, c->prev.data[0]);
         break;
     default:
@@ -292,9 +295,8 @@ static av_cold int decode_init(AVCodecContext *avctx)
     c->avctx = avctx;
     avctx->pix_fmt = PIX_FMT_PAL8;
 
-    if (avcodec_check_dimensions(avctx, avctx->width, avctx->height) < 0) {
-        return -1;
-    }
+    avcodec_get_frame_defaults(&c->pic);
+    avcodec_get_frame_defaults(&c->prev);
 
     c->dsize = avctx->width * avctx->height * 2;
     if((c->decomp_buf = av_malloc(c->dsize)) == NULL) {
@@ -318,15 +320,16 @@ static av_cold int decode_end(AVCodecContext *avctx)
     return 0;
 }
 
-AVCodec dxa_decoder = {
+AVCodec ff_dxa_decoder = {
     "dxa",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_DXA,
     sizeof(DxaDecContext),
     decode_init,
     NULL,
     decode_end,
     decode_frame,
-    .long_name = "Feeble Files/ScummVM DXA",
+    CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("Feeble Files/ScummVM DXA"),
 };
 

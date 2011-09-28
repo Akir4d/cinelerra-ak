@@ -57,7 +57,7 @@
  */
 
 /**
- * @file jfdctint.c
+ * @file
  * Independent JPEG Group's slow & accurate dct.
  */
 
@@ -66,7 +66,6 @@
 #include "libavutil/common.h"
 #include "dsputil.h"
 
-#define SHIFT_TEMPS
 #define DCTSIZE 8
 #define BITS_IN_JSAMPLE 8
 #define GLOBAL(x) x
@@ -182,12 +181,11 @@
 
 
 static av_always_inline void row_fdct(DCTELEM * data){
-  int_fast32_t tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
-  int_fast32_t tmp10, tmp11, tmp12, tmp13;
-  int_fast32_t z1, z2, z3, z4, z5;
+  int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+  int tmp10, tmp11, tmp12, tmp13;
+  int z1, z2, z3, z4, z5;
   DCTELEM *dataptr;
   int ctr;
-  SHIFT_TEMPS
 
   /* Pass 1: process rows. */
   /* Note results are scaled up by sqrt(8) compared to a true DCT; */
@@ -261,12 +259,11 @@ static av_always_inline void row_fdct(DCTELEM * data){
 GLOBAL(void)
 ff_jpeg_fdct_islow (DCTELEM * data)
 {
-  int_fast32_t tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
-  int_fast32_t tmp10, tmp11, tmp12, tmp13;
-  int_fast32_t z1, z2, z3, z4, z5;
+  int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+  int tmp10, tmp11, tmp12, tmp13;
+  int z1, z2, z3, z4, z5;
   DCTELEM *dataptr;
   int ctr;
-  SHIFT_TEMPS
 
   row_fdct(data);
 
@@ -348,12 +345,11 @@ ff_jpeg_fdct_islow (DCTELEM * data)
 GLOBAL(void)
 ff_fdct248_islow (DCTELEM * data)
 {
-  int_fast32_t tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
-  int_fast32_t tmp10, tmp11, tmp12, tmp13;
-  int_fast32_t z1;
+  int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+  int tmp10, tmp11, tmp12, tmp13;
+  int z1;
   DCTELEM *dataptr;
   int ctr;
-  SHIFT_TEMPS
 
   row_fdct(data);
 

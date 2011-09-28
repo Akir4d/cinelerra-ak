@@ -1,6 +1,6 @@
 /*
  * FFM (ffserver live feed) common header
- * Copyright (c) 2001 Fabrice Bellard.
+ * Copyright (c) 2001 Fabrice Bellard
  *
  * This file is part of FFmpeg.
  *
@@ -19,22 +19,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_FFM_H
-#define FFMPEG_FFM_H
+#ifndef AVFORMAT_FFM_H
+#define AVFORMAT_FFM_H
 
+#include <stdint.h>
 #include "avformat.h"
+#include "avio.h"
 
 /* The FFM file is made of blocks of fixed size */
 #define FFM_HEADER_SIZE 14
+#define FFM_PACKET_SIZE 4096
 #define PACKET_ID       0x666d
 
 /* each packet contains frames (which can span several packets */
-#define FRAME_HEADER_SIZE    8
+#define FRAME_HEADER_SIZE    16
 #define FLAG_KEY_FRAME       0x01
-
-typedef struct FFMStream {
-    int64_t pts;
-} FFMStream;
+#define FLAG_DTS             0x02
 
 enum {
     READ_HEADER,
@@ -43,18 +43,21 @@ enum {
 
 typedef struct FFMContext {
     /* only reading mode */
-    offset_t write_index, file_size;
+    int64_t write_index, file_size;
     int read_state;
-    uint8_t header[FRAME_HEADER_SIZE];
+    uint8_t header[FRAME_HEADER_SIZE+4];
 
     /* read and write */
     int first_packet; /* true if first packet, needed to set the discontinuity tag */
-    int first_frame_in_packet; /* true if first frame in packet, needed to know if PTS information is valid */
     int packet_size;
     int frame_offset;
-    int64_t pts;
+    int64_t dts;
     uint8_t *packet_ptr, *packet_end;
     uint8_t packet[FFM_PACKET_SIZE];
 } FFMContext;
 
-#endif /* FFMPEG_FFM_H */
+int64_t ffm_read_write_index(int fd);
+int ffm_write_write_index(int fd, int64_t pos);
+void ffm_set_write_index(AVFormatContext *s, int64_t pos, int64_t file_size);
+
+#endif /* AVFORMAT_FFM_H */

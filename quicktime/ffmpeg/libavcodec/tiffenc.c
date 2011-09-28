@@ -21,17 +21,18 @@
 
 /**
  * TIFF image encoder
- * @file tiffenc.c
+ * @file
  * @author Bartlomiej Wolowiec
  */
 #include "avcodec.h"
-#ifdef CONFIG_ZLIB
+#if CONFIG_ZLIB
 #include <zlib.h>
 #endif
 #include "bytestream.h"
 #include "tiff.h"
 #include "rle.h"
 #include "lzw.h"
+#include "put_bits.h"
 
 #define TIFF_MAX_ENTRY 32
 
@@ -41,6 +42,7 @@ static const uint8_t type_sizes2[6] = {
 };
 
 typedef struct TiffEncoderContext {
+    AVClass *avclass;
     AVCodecContext *avctx;
     AVFrame picture;
 
@@ -91,7 +93,7 @@ static void tnput(uint8_t ** p, int n, const uint8_t * val, enum TiffTypes type,
                   int flip)
 {
     int i;
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
     flip ^= ((int[]) {0, 0, 0, 1, 3, 3})[type];
 #endif
     for (i = 0; i < n * type_sizes2[type]; i++)
@@ -151,7 +153,7 @@ static int encode_strip(TiffEncoderContext * s, const int8_t * src,
 {
 
     switch (compr) {
-#ifdef CONFIG_ZLIB
+#if CONFIG_ZLIB
     case TIFF_DEFLATE:
     case TIFF_ADOBE_DEFLATE:
         {
@@ -209,18 +211,19 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
     uint32_t *strip_offsets = NULL;
     int bytes_per_row;
     uint32_t res[2] = { 72, 1 };        // image resolution (72/1)
-    static const uint16_t bpp_tab[] = { 8, 8, 8, 8 };
+    uint16_t bpp_tab[] = { 8, 8, 8, 8 };
     int ret = -1;
     int is_yuv = 0;
     uint8_t *yuv_line = NULL;
     int shift_h, shift_v;
 
+    s->avctx = avctx;
     s->buf_start = buf;
     s->buf = &ptr;
     s->buf_size = buf_size;
 
     *p = *pict;
-    p->pict_type = FF_I_TYPE;
+    p->pict_type = AV_PICTURE_TYPE_I;
     p->key_frame = 1;
     avctx->coded_frame= &s->picture;
 
@@ -229,7 +232,7 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
         s->compr = TIFF_RAW;
     } else if(avctx->compression_level == 2) {
         s->compr = TIFF_LZW;
-#ifdef CONFIG_ZLIB
+#if CONFIG_ZLIB
     } else if ((avctx->compression_level >= 3)) {
         s->compr = TIFF_DEFLATE;
 #endif
@@ -254,12 +257,10 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
         s->photometric_interpretation = 3;
         break;
     case PIX_FMT_MONOBLACK:
-        s->bpp = 1;
-        s->photometric_interpretation = 1;
-        break;
     case PIX_FMT_MONOWHITE:
         s->bpp = 1;
-        s->photometric_interpretation = 0;
+        s->photometric_interpretation = avctx->pix_fmt == PIX_FMT_MONOBLACK;
+        bpp_tab[0] = 1;
         break;
     case PIX_FMT_YUV420P:
     case PIX_FMT_YUV422P:
@@ -281,7 +282,7 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
         return -1;
     }
     if (!is_yuv)
-        s->bpp_tab_size = (s->bpp >> 3);
+        s->bpp_tab_size = ((s->bpp + 7) >> 3);
 
     if (s->compr == TIFF_DEFLATE || s->compr == TIFF_ADOBE_DEFLATE || s->compr == TIFF_LZW)
         //best choose for DEFLATE
@@ -304,6 +305,10 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
 
     strip_sizes = av_mallocz(sizeof(*strip_sizes) * strips);
     strip_offsets = av_mallocz(sizeof(*strip_offsets) * strips);
+    if (!strip_sizes || !strip_offsets) {
+        ret = AVERROR(ENOMEM);
+        goto fail;
+    }
 
     bytes_per_row = (((s->width - 1)/s->subsampling[0] + 1) * s->bpp
                     * s->subsampling[0] * s->subsampling[1] + 7) >> 3;
@@ -311,11 +316,12 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
         yuv_line = av_malloc(bytes_per_row);
         if (yuv_line == NULL){
             av_log(s->avctx, AV_LOG_ERROR, "Not enough memory\n");
+            ret = AVERROR(ENOMEM);
             goto fail;
         }
     }
 
-#ifdef CONFIG_ZLIB
+#if CONFIG_ZLIB
     if (s->compr == TIFF_DEFLATE || s->compr == TIFF_ADOBE_DEFLATE) {
         uint8_t *zbuf;
         int zlen, zn;
@@ -323,6 +329,10 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
 
         zlen = bytes_per_row * s->rps;
         zbuf = av_malloc(zlen);
+        if (!zbuf) {
+            ret = AVERROR(ENOMEM);
+            goto fail;
+        }
         strip_offsets[0] = ptr - buf;
         zn = 0;
         for (j = 0; j < s->rps; j++) {
@@ -347,12 +357,18 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
     } else
 #endif
     {
-        if(s->compr == TIFF_LZW)
+        if (s->compr == TIFF_LZW) {
             s->lzws = av_malloc(ff_lzw_encode_state_size);
+            if (!s->lzws) {
+                ret = AVERROR(ENOMEM);
+                goto fail;
+            }
+        }
         for (i = 0; i < s->height; i++) {
             if (strip_sizes[i / s->rps] == 0) {
                 if(s->compr == TIFF_LZW){
-                    ff_lzw_encode_init(s->lzws, ptr, s->buf_size - (*s->buf - s->buf_start), 12);
+                    ff_lzw_encode_init(s->lzws, ptr, s->buf_size - (*s->buf - s->buf_start),
+                                       12, FF_LZW_TIFF, put_bits);
                 }
                 strip_offsets[i / s->rps] = ptr - buf;
             }
@@ -372,7 +388,7 @@ static int encode_frame(AVCodecContext * avctx, unsigned char *buf,
             ptr += n;
             if(s->compr == TIFF_LZW && (i==s->height-1 || i%s->rps == s->rps-1)){
                 int ret;
-                ret = ff_lzw_encode_flush(s->lzws);
+                ret = ff_lzw_encode_flush(s->lzws, flush_put_bits);
                 strip_sizes[(i / s->rps )] += ret ;
                 ptr += ret;
             }
@@ -440,9 +456,9 @@ fail:
     return ret;
 }
 
-AVCodec tiff_encoder = {
+AVCodec ff_tiff_encoder = {
     "tiff",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_TIFF,
     sizeof(TiffEncoderContext),
     NULL,
@@ -452,11 +468,11 @@ AVCodec tiff_encoder = {
     0,
     NULL,
     .pix_fmts =
-        (enum PixelFormat[]) {PIX_FMT_RGB24, PIX_FMT_PAL8, PIX_FMT_GRAY8,
+        (const enum PixelFormat[]) {PIX_FMT_RGB24, PIX_FMT_PAL8, PIX_FMT_GRAY8,
                               PIX_FMT_MONOBLACK, PIX_FMT_MONOWHITE,
                               PIX_FMT_YUV420P, PIX_FMT_YUV422P,
                               PIX_FMT_YUV444P, PIX_FMT_YUV410P,
                               PIX_FMT_YUV411P,
                               PIX_FMT_NONE},
-    .long_name = "TIFF image",
+    .long_name = NULL_IF_CONFIG_SMALL("TIFF image"),
 };

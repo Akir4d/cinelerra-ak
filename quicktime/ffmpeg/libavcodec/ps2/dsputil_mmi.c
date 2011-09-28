@@ -1,6 +1,6 @@
 /*
  * MMI optimized DSP utils
- * Copyright (c) 2000, 2001 Fabrice Bellard.
+ * Copyright (c) 2000, 2001 Fabrice Bellard
  *
  * MMI optimization by Leon van Stuivenberg
  * clear_blocks_mmi() by BroadQ
@@ -31,7 +31,7 @@ void ff_mmi_idct(DCTELEM *block);
 
 static void clear_blocks_mmi(DCTELEM * blocks)
 {
-        asm volatile(
+        __asm__ volatile(
         ".set noreorder    \n"
         "addiu $9, %0, 768 \n"
         "nop               \n"
@@ -51,7 +51,7 @@ static void clear_blocks_mmi(DCTELEM * blocks)
 
 static void get_pixels_mmi(DCTELEM *block, const uint8_t *pixels, int line_size)
 {
-        asm volatile(
+        __asm__ volatile(
         ".set   push            \n\t"
         ".set   mips3           \n\t"
         "ld     $8, 0(%0)       \n\t"
@@ -92,7 +92,7 @@ static void get_pixels_mmi(DCTELEM *block, const uint8_t *pixels, int line_size)
 
 static void put_pixels8_mmi(uint8_t *block, const uint8_t *pixels, int line_size, int h)
 {
-        asm volatile(
+        __asm__ volatile(
         ".set   push            \n\t"
         ".set   mips3           \n\t"
         "1:                     \n\t"
@@ -111,7 +111,7 @@ static void put_pixels8_mmi(uint8_t *block, const uint8_t *pixels, int line_size
 
 static void put_pixels16_mmi(uint8_t *block, const uint8_t *pixels, int line_size, int h)
 {
-        asm volatile (
+        __asm__ volatile (
         ".set   push            \n\t"
         ".set   mips3           \n\t"
         "1:                     \n\t"
@@ -142,7 +142,9 @@ static void put_pixels16_mmi(uint8_t *block, const uint8_t *pixels, int line_siz
 void dsputil_init_mmi(DSPContext* c, AVCodecContext *avctx)
 {
     const int idct_algo= avctx->idct_algo;
+    const int high_bit_depth = avctx->codec_id == CODEC_ID_H264 && avctx->bits_per_raw_sample > 8;
 
+    if (!high_bit_depth) {
     c->clear_blocks = clear_blocks_mmi;
 
     c->put_pixels_tab[1][0] = put_pixels8_mmi;
@@ -150,6 +152,7 @@ void dsputil_init_mmi(DSPContext* c, AVCodecContext *avctx)
 
     c->put_pixels_tab[0][0] = put_pixels16_mmi;
     c->put_no_rnd_pixels_tab[0][0] = put_pixels16_mmi;
+    }
 
     c->get_pixels = get_pixels_mmi;
 

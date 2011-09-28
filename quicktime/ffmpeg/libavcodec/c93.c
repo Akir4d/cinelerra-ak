@@ -47,6 +47,10 @@ typedef enum {
 
 static av_cold int decode_init(AVCodecContext *avctx)
 {
+    C93DecoderContext * const c93 = avctx->priv_data;
+
+    avcodec_get_frame_defaults(&c93->pictures[0]);
+    avcodec_get_frame_defaults(&c93->pictures[1]);
     avctx->pix_fmt = PIX_FMT_PAL8;
     return 0;
 }
@@ -113,8 +117,10 @@ static inline void draw_n_color(uint8_t *out, int stride, int width,
 }
 
 static int decode_frame(AVCodecContext *avctx, void *data,
-                            int *data_size, const uint8_t * buf, int buf_size)
+                            int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     C93DecoderContext * const c93 = avctx->priv_data;
     AVFrame * const newpic = &c93->pictures[c93->currentpic];
     AVFrame * const oldpic = &c93->pictures[c93->currentpic^1];
@@ -135,10 +141,10 @@ static int decode_frame(AVCodecContext *avctx, void *data,
     stride = newpic->linesize[0];
 
     if (buf[0] & C93_FIRST_FRAME) {
-        newpic->pict_type = FF_I_TYPE;
+        newpic->pict_type = AV_PICTURE_TYPE_I;
         newpic->key_frame = 1;
     } else {
-        newpic->pict_type = FF_P_TYPE;
+        newpic->pict_type = AV_PICTURE_TYPE_P;
         newpic->key_frame = 0;
     }
 
@@ -240,9 +246,9 @@ static int decode_frame(AVCodecContext *avctx, void *data,
     return buf_size;
 }
 
-AVCodec c93_decoder = {
+AVCodec ff_c93_decoder = {
     "c93",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_C93,
     sizeof(C93DecoderContext),
     decode_init,
@@ -250,5 +256,5 @@ AVCodec c93_decoder = {
     decode_end,
     decode_frame,
     CODEC_CAP_DR1,
-    .long_name = "Interplay C93",
+    .long_name = NULL_IF_CONFIG_SMALL("Interplay C93"),
 };

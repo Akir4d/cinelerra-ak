@@ -20,14 +20,14 @@
  */
 
 /**
- * @file cabac.c
+ * @file
  * Context Adaptive Binary Arithmetic Coder.
  */
 
 #include <string.h>
 
 #include "libavutil/common.h"
-#include "bitstream.h"
+#include "get_bits.h"
 #include "cabac.h"
 
 static const uint8_t lps_range[64][4]= {
@@ -161,27 +161,23 @@ void ff_init_cabac_states(CABACContext *c){
         ff_h264_mps_state[2*i+1]= 2*mps_state[i]+1;
 
         if( i ){
-#ifdef BRANCHLESS_CABAC_DECODER
+            ff_h264_lps_state[2*i+0]=
             ff_h264_mlps_state[128-2*i-1]= 2*lps_state[i]+0;
+            ff_h264_lps_state[2*i+1]=
             ff_h264_mlps_state[128-2*i-2]= 2*lps_state[i]+1;
         }else{
+            ff_h264_lps_state[2*i+0]=
             ff_h264_mlps_state[128-2*i-1]= 1;
+            ff_h264_lps_state[2*i+1]=
             ff_h264_mlps_state[128-2*i-2]= 0;
-#else
-            ff_h264_lps_state[2*i+0]= 2*lps_state[i]+0;
-            ff_h264_lps_state[2*i+1]= 2*lps_state[i]+1;
-        }else{
-            ff_h264_lps_state[2*i+0]= 1;
-            ff_h264_lps_state[2*i+1]= 0;
-#endif
         }
     }
 }
 
 #ifdef TEST
-#undef random
 #define SIZE 10240
 
+#include "libavutil/lfg.h"
 #include "avcodec.h"
 #include "cabac.h"
 
@@ -191,12 +187,15 @@ int main(void){
     uint8_t r[9*SIZE];
     int i;
     uint8_t state[10]= {0};
+    AVLFG prng;
 
+    av_lfg_init(&prng, 1);
     ff_init_cabac_encoder(&c, b, SIZE);
     ff_init_cabac_states(&c);
 
     for(i=0; i<SIZE; i++){
-        r[i]= random()%7;
+        if(2*i<SIZE) r[i] = av_lfg_get(&prng) % 7;
+        else         r[i] = (i>>8)&1;
     }
 
     for(i=0; i<SIZE; i++){
@@ -211,6 +210,7 @@ START_TIMER
 STOP_TIMER("put_cabac")
     }
 
+#if 0
     for(i=0; i<SIZE; i++){
 START_TIMER
         put_cabac_u(&c, state, r[i], 6, 3, i&1);
@@ -222,7 +222,7 @@ START_TIMER
         put_cabac_ueg(&c, state, r[i], 3, 0, 1, 2);
 STOP_TIMER("put_cabac_ueg")
     }
-
+#endif
     put_cabac_terminate(&c, 1);
 
     ff_init_cabac_decoder(&c, b, SIZE);

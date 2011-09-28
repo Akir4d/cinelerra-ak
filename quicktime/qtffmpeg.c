@@ -93,7 +93,9 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 			         ffmpeg_id == CODEC_ID_H263P || 
 			         ffmpeg_id == CODEC_FLAG_H263P_SLICE_STRUCT))
 		{
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
 			avcodec_thread_init(context, cpus);
+#endif
 			context->thread_count = cpus;
 		}
 		if(avcodec_open(context, 
@@ -183,6 +185,9 @@ static int decode_wrapper(quicktime_t *file,
  
 	if(!result) 
 	{ 
+#if LIBAVCODEC_VERSION_INT > ((52<<16)+(0<<8)+0)
+		AVPacket pkt;
+#endif
 
 
 // No way to determine if there was an error based on nonzero status.
@@ -191,11 +196,21 @@ static int decode_wrapper(quicktime_t *file,
 			ffmpeg->decoder_context[current_field]->skip_frame = AVDISCARD_NONREF /* AVDISCARD_BIDIR */;
 		else
 			ffmpeg->decoder_context[current_field]->skip_frame = AVDISCARD_DEFAULT;
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
 		result = avcodec_decode_video(ffmpeg->decoder_context[current_field], 
 			&ffmpeg->picture[current_field], 
 			&got_picture, 
 			ffmpeg->work_buffer, 
 			bytes + header_bytes);
+#else
+		av_init_packet( &pkt );
+		pkt.data = ffmpeg->work_buffer;
+		pkt.size = bytes + header_bytes;
+		result = avcodec_decode_video2(ffmpeg->decoder_context[current_field], 
+ 			&ffmpeg->picture[current_field], 
+ 			&got_picture, 
+			&pkt);
+#endif
 
 
 

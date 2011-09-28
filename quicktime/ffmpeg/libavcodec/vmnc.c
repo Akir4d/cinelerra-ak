@@ -20,7 +20,7 @@
  */
 
 /**
- * @file vmnc.c
+ * @file
  * VMware Screen Codec (VMnc) decoder
  * As Alex Beregszaszi discovered, this is effectively RFB data dump
  */
@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 
 enum EncTypes {
@@ -283,8 +284,10 @@ static int decode_hextile(VmncContext *c, uint8_t* dst, const uint8_t* src, int 
     return src - ssrc;
 }
 
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const uint8_t *buf, int buf_size)
+static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     VmncContext * const c = avctx->priv_data;
     uint8_t *outptr;
     const uint8_t *src = buf;
@@ -298,7 +301,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const
     }
 
     c->pic.key_frame = 0;
-    c->pic.pict_type = FF_P_TYPE;
+    c->pic.pict_type = AV_PICTURE_TYPE_P;
 
     //restore screen after cursor
     if(c->screendta) {
@@ -371,7 +374,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const
             break;
         case MAGIC_WMVi: // ServerInitialization struct
             c->pic.key_frame = 1;
-            c->pic.pict_type = FF_I_TYPE;
+            c->pic.pict_type = AV_PICTURE_TYPE_I;
             depth = *src++;
             if(depth != c->bpp) {
                 av_log(avctx, AV_LOG_INFO, "Depth mismatch. Container %i bpp, Frame data: %i bpp\n", c->bpp, depth);
@@ -462,15 +465,12 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     c->avctx = avctx;
 
-    c->pic.data[0] = NULL;
     c->width = avctx->width;
     c->height = avctx->height;
 
-    if (avcodec_check_dimensions(avctx, avctx->width, avctx->height) < 0) {
-        return 1;
-    }
-    c->bpp = avctx->bits_per_sample;
+    c->bpp = avctx->bits_per_coded_sample;
     c->bpp2 = c->bpp/8;
+    avcodec_get_frame_defaults(&c->pic);
 
     switch(c->bpp){
     case 8:
@@ -484,6 +484,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
         break;
     default:
         av_log(avctx, AV_LOG_ERROR, "Unsupported bitdepth %i\n", c->bpp);
+        return AVERROR_INVALIDDATA;
     }
 
     return 0;
@@ -509,15 +510,16 @@ static av_cold int decode_end(AVCodecContext *avctx)
     return 0;
 }
 
-AVCodec vmnc_decoder = {
+AVCodec ff_vmnc_decoder = {
     "vmnc",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_VMNC,
     sizeof(VmncContext),
     decode_init,
     NULL,
     decode_end,
     decode_frame,
-    .long_name = "VMware Screen Codec / VMware Video",
+    CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("VMware Screen Codec / VMware Video"),
 };
 

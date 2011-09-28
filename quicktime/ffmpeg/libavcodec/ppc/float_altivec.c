@@ -20,20 +20,19 @@
 
 #include "libavcodec/dsputil.h"
 
-#include "gcc_fixes.h"
-
 #include "dsputil_altivec.h"
+#include "util_altivec.h"
 
-static void vector_fmul_altivec(float *dst, const float *src, int len)
+static void vector_fmul_altivec(float *dst, const float *src0, const float *src1, int len)
 {
     int i;
     vector float d0, d1, s, zero = (vector float)vec_splat_u32(0);
     for(i=0; i<len-7; i+=8) {
-        d0 = vec_ld(0, dst+i);
-        s = vec_ld(0, src+i);
-        d1 = vec_ld(16, dst+i);
+        d0 = vec_ld(0, src0+i);
+        s = vec_ld(0, src1+i);
+        d1 = vec_ld(16, src0+i);
         d0 = vec_madd(d0, s, zero);
-        d1 = vec_madd(d1, vec_ld(16,src+i), zero);
+        d1 = vec_madd(d1, vec_ld(16,src1+i), zero);
         vec_st(d0, 0, dst+i);
         vec_st(d1, 16, dst+i);
     }
@@ -67,119 +66,59 @@ static void vector_fmul_reverse_altivec(float *dst, const float *src0,
     }
 }
 
-static void vector_fmul_add_add_altivec(float *dst, const float *src0,
-                                        const float *src1, const float *src2,
-                                        int src3, int len, int step)
+static void vector_fmul_add_altivec(float *dst, const float *src0,
+                                    const float *src1, const float *src2,
+                                    int len)
 {
     int i;
     vector float d, s0, s1, s2, t0, t1, edges;
     vector unsigned char align = vec_lvsr(0,dst),
                          mask = vec_lvsl(0, dst);
 
-#if 0 //FIXME: there is still something wrong
-    if (step == 2) {
-        int y;
-        vector float d0, d1, s3, t2;
-        vector unsigned int sel =
-                vec_mergeh(vec_splat_u32(-1), vec_splat_u32(0));
-        t1 = vec_ld(16, dst);
-        for (i=0,y=0; i<len-3; i+=4,y+=8) {
-
-            s0 = vec_ld(0,src0+i);
-            s1 = vec_ld(0,src1+i);
-            s2 = vec_ld(0,src2+i);
-
-//          t0 = vec_ld(0, dst+y);  //[x x x|a]
-//          t1 = vec_ld(16, dst+y); //[b c d|e]
-            t2 = vec_ld(31, dst+y); //[f g h|x]
-
-            d = vec_madd(s0,s1,s2); // [A B C D]
-
-                                                 // [A A B B]
-
-                                                 // [C C D D]
-
-            d0 = vec_perm(t0, t1, mask); // [a b c d]
-
-            d0 = vec_sel(vec_mergeh(d, d), d0, sel);   // [A b B d]
-
-            edges = vec_perm(t1, t0, mask);
-
-            t0 = vec_perm(edges, d0, align); // [x x x|A]
-
-            t1 = vec_perm(d0, edges, align); // [b B d|e]
-
-            vec_stl(t0, 0, dst+y);
-
-            d1 = vec_perm(t1, t2, mask); // [e f g h]
-
-            d1 = vec_sel(vec_mergel(d, d), d1, sel); // [C f D h]
-
-            edges = vec_perm(t2, t1, mask);
-
-            t1 = vec_perm(edges, d1, align); // [b B d|C]
-
-            t2 = vec_perm(d1, edges, align); // [f D h|x]
-
-            vec_stl(t1, 16, dst+y);
-
-            t0 = t1;
-
-            vec_stl(t2, 31, dst+y);
-
-            t1 = t2;
-        }
-    } else
-    #endif
-    if (step == 1 && src3 == 0)
-        for (i=0; i<len-3; i+=4) {
-            t0 = vec_ld(0, dst+i);
-            t1 = vec_ld(15, dst+i);
-            s0 = vec_ld(0, src0+i);
-            s1 = vec_ld(0, src1+i);
-            s2 = vec_ld(0, src2+i);
-            edges = vec_perm(t1 ,t0, mask);
-            d = vec_madd(s0,s1,s2);
-            t1 = vec_perm(d, edges, align);
-            t0 = vec_perm(edges, d, align);
-            vec_st(t1, 15, dst+i);
-            vec_st(t0, 0, dst+i);
-        }
-    else
-        ff_vector_fmul_add_add_c(dst, src0, src1, src2, src3, len, step);
+    for (i=0; i<len-3; i+=4) {
+        t0 = vec_ld(0, dst+i);
+        t1 = vec_ld(15, dst+i);
+        s0 = vec_ld(0, src0+i);
+        s1 = vec_ld(0, src1+i);
+        s2 = vec_ld(0, src2+i);
+        edges = vec_perm(t1 ,t0, mask);
+        d = vec_madd(s0,s1,s2);
+        t1 = vec_perm(d, edges, align);
+        t0 = vec_perm(edges, d, align);
+        vec_st(t1, 15, dst+i);
+        vec_st(t0, 0, dst+i);
+    }
 }
 
-void float_to_int16_altivec(int16_t *dst, const float *src, int len)
+static void vector_fmul_window_altivec(float *dst, const float *src0, const float *src1, const float *win, int len)
 {
-    int i;
-    vector float s0, s1;
-    vector signed int t0, t1;
-    vector signed short d0, d1, d;
-    vector unsigned char align;
-    if(((long)dst)&15) //FIXME
-    for(i=0; i<len-7; i+=8) {
-        s0 = vec_ld(0, src+i);
-        s1 = vec_ld(16, src+i);
-        t0 = vec_cts(s0, 0);
-        d0 = vec_ld(0, dst+i);
-        t1 = vec_cts(s1, 0);
-        d1 = vec_ld(15, dst+i);
-        d = vec_packs(t0,t1);
-        d1 = vec_perm(d1, d0, vec_lvsl(0,dst+i));
-        align = vec_lvsr(0, dst+i);
-        d0 = vec_perm(d1, d, align);
-        d1 = vec_perm(d, d1, align);
-        vec_st(d0, 0, dst+i);
-        vec_st(d1,15, dst+i);
-    }
-    else
-    for(i=0; i<len-7; i+=8) {
-        s0 = vec_ld(0, src+i);
-        s1 = vec_ld(16, src+i);
-        t0 = vec_cts(s0, 0);
-        t1 = vec_cts(s1, 0);
-        d = vec_packs(t0,t1);
-        vec_st(d, 0, dst+i);
+    vector float zero, t0, t1, s0, s1, wi, wj;
+    const vector unsigned char reverse = vcprm(3,2,1,0);
+    int i,j;
+
+    dst += len;
+    win += len;
+    src0+= len;
+
+    zero = (vector float)vec_splat_u32(0);
+
+    for(i=-len*4, j=len*4-16; i<0; i+=16, j-=16) {
+        s0 = vec_ld(i, src0);
+        s1 = vec_ld(j, src1);
+        wi = vec_ld(i, win);
+        wj = vec_ld(j, win);
+
+        s1 = vec_perm(s1, s1, reverse);
+        wj = vec_perm(wj, wj, reverse);
+
+        t0 = vec_madd(s0, wj, zero);
+        t0 = vec_nmsub(s1, wi, t0);
+        t1 = vec_madd(s0, wi, zero);
+        t1 = vec_madd(s1, wj, t1);
+        t1 = vec_perm(t1, t1, reverse);
+
+        vec_st(t0, i, dst);
+        vec_st(t1, j, dst);
     }
 }
 
@@ -187,7 +126,8 @@ void float_init_altivec(DSPContext* c, AVCodecContext *avctx)
 {
     c->vector_fmul = vector_fmul_altivec;
     c->vector_fmul_reverse = vector_fmul_reverse_altivec;
-    c->vector_fmul_add_add = vector_fmul_add_add_altivec;
-    if(!(avctx->flags & CODEC_FLAG_BITEXACT))
-        c->float_to_int16 = float_to_int16_altivec;
+    c->vector_fmul_add = vector_fmul_add_altivec;
+    if(!(avctx->flags & CODEC_FLAG_BITEXACT)) {
+        c->vector_fmul_window = vector_fmul_window_altivec;
+    }
 }

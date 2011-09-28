@@ -1,7 +1,7 @@
 /*
  * Flash Compatible Streaming Format common header.
- * Copyright (c) 2000 Fabrice Bellard.
- * Copyright (c) 2003 Tinic Uro.
+ * Copyright (c) 2000 Fabrice Bellard
+ * Copyright (c) 2003 Tinic Uro
  *
  * This file is part of FFmpeg.
  *
@@ -20,11 +20,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_SWF_H
-#define FFMPEG_SWF_H
+#ifndef AVFORMAT_SWF_H
+#define AVFORMAT_SWF_H
 
 #include "libavutil/fifo.h"
 #include "avformat.h"
+#include "avio.h"
 #include "riff.h"    /* for CodecTag */
 
 /* should have a generic way to indicate probable size */
@@ -64,24 +65,23 @@
 #include <assert.h>
 
 typedef struct {
-    int audio_stream_index;
-    offset_t duration_pos;
-    offset_t tag_pos;
-
+    int64_t duration_pos;
+    int64_t tag_pos;
+    int64_t vframes_pos;
     int samples_per_frame;
     int sound_samples;
     int swf_frame_number;
     int video_frame_number;
     int frame_rate;
     int tag;
-    AVFifoBuffer audio_fifo;
+    AVFifoBuffer *audio_fifo;
     AVCodecContext *audio_enc, *video_enc;
 } SWFContext;
 
 static const AVCodecTag swf_codec_tags[] = {
     {CODEC_ID_FLV1, 0x02},
     {CODEC_ID_VP6F, 0x04},
-    {0, 0},
+    {CODEC_ID_NONE,    0},
 };
 
 static const AVCodecTag swf_audio_codec_tags[] = {
@@ -90,7 +90,7 @@ static const AVCodecTag swf_audio_codec_tags[] = {
     {CODEC_ID_MP3,        0x02},
     {CODEC_ID_PCM_S16LE,  0x03},
   //{CODEC_ID_NELLYMOSER, 0x06},
-    {0, 0},
+    {CODEC_ID_NONE,          0},
 };
 
-#endif /* FFMPEG_SWF_H */
+#endif /* AVFORMAT_SWF_H */

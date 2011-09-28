@@ -523,9 +523,10 @@ if test "x$with_external_ffmpeg" = "xyes"; then
      FFMPEG_EXTERNALTEXT="External ffmpeg"
 else
      FFMPEG_FOLDER=ffmpeg
-     FFMPEG_CFLAGS="-I\$(top_srcdir)/quicktime/ffmpeg"
+     FFMPEG_CFLAGS="-I\$(top_srcdir)/quicktime/ffmpeg -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
      FFMPEG_LIBS="-L\$(top_builddir)/quicktime/ffmpeg/libavcodec -lavcodec-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerra"
+		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerra \
+		-L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerra"
      FFMPEG_EXTERNALTEXT="Internal ffmpeg"
 fi
 

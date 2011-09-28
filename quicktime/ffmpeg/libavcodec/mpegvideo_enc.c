@@ -1,6 +1,6 @@
 /*
  * The simplest mpeg encoder (well, it was the simplest!)
- * Copyright (c) 2000,2001 Fabrice Bellard.
+ * Copyright (c) 2000,2001 Fabrice Bellard
  * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * 4MV & hq & B-frame encoding stuff by Michael Niedermayer <michaelni@gmx.at>
@@ -23,18 +23,24 @@
  */
 
 /**
- * @file mpegvideo_enc.c
+ * @file
  * The simplest mpeg encoder (well, it was the simplest!).
  */
 
+#include "libavutil/intmath.h"
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
 #include "mpegvideo_common.h"
+#include "h263.h"
 #include "mjpegenc.h"
 #include "msmpeg4.h"
-#include "h263.h"
 #include "faandct.h"
+#include "thread.h"
+#include "aandcttab.h"
+#include "flv.h"
+#include "mpeg4video.h"
+#include "internal.h"
 #include <limits.h>
 
 //#undef NDEBUG
@@ -43,34 +49,13 @@
 static int encode_picture(MpegEncContext *s, int picture_number);
 static int dct_quantize_refine(MpegEncContext *s, DCTELEM *block, int16_t *weight, DCTELEM *orig, int n, int qscale);
 static int sse_mb(MpegEncContext *s);
+static void denoise_dct_c(MpegEncContext *s, DCTELEM *block);
+static int dct_quantize_trellis_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
 
 /* enable all paranoid tests for rounding, overflows, etc... */
 //#define PARANOID
 
 //#define DEBUG
-
-static const uint16_t aanscales[64] = {
-    /* precomputed values scaled up by 14 bits */
-    16384, 22725, 21407, 19266, 16384, 12873,  8867,  4520,
-    22725, 31521, 29692, 26722, 22725, 17855, 12299,  6270,
-    21407, 29692, 27969, 25172, 21407, 16819, 11585,  5906,
-    19266, 26722, 25172, 22654, 19266, 15137, 10426,  5315,
-    16384, 22725, 21407, 19266, 16384, 12873,  8867,  4520,
-    12873, 17855, 16819, 15137, 12873, 10114,  6967,  3552,
-    8867 , 12299, 11585, 10426,  8867,  6967,  4799,  2446,
-    4520 ,  6270,  5906,  5315,  4520,  3552,  2446,  1247
-};
-
-static const uint16_t inv_aanscales[64] = {
-  4096,  2953,  3135,  3483,  4096,  5213,  7568, 14846,
-  2953,  2129,  2260,  2511,  2953,  3759,  5457, 10703,
-  3135,  2260,  2399,  2666,  3135,  3990,  5793, 11363,
-  3483,  2511,  2666,  2962,  3483,  4433,  6436, 12625,
-  4096,  2953,  3135,  3483,  4096,  5213,  7568, 14846,
-  5213,  3759,  3990,  4433,  5213,  6635,  9633, 18895,
-  7568,  5457,  5793,  6436,  7568,  9633, 13985, 27432,
- 14846, 10703, 11363, 12625, 14846, 18895, 27432, 53809,
-};
 
 static uint8_t default_mv_penalty[MAX_FCODE+1][MAX_MV*2+1];
 static uint8_t default_fcode_tab[MAX_MV*2+1];
@@ -91,9 +76,9 @@ void ff_convert_matrix(DSPContext *dsp, int (*qmat)[64], uint16_t (*qmat16)[2][6
             for(i=0;i<64;i++) {
                 const int j= dsp->idct_permutation[i];
                 /* 16 <= qscale * quant_matrix[i] <= 7905 */
-                /* 19952         <= aanscales[i] * qscale * quant_matrix[i]           <= 249205026 */
-                /* (1<<36)/19952 >= (1<<36)/(aanscales[i] * qscale * quant_matrix[i]) >= (1<<36)/249205026 */
-                /* 3444240       >= (1<<36)/(aanscales[i] * qscale * quant_matrix[i]) >= 275 */
+                /* 19952             <= ff_aanscales[i] * qscale * quant_matrix[i]               <= 249205026 */
+                /* (1 << 36) / 19952 >= (1 << 36) / (ff_aanscales[i] * qscale * quant_matrix[i]) >= (1 << 36) / 249205026 */
+                /* 3444240           >= (1 << 36) / (ff_aanscales[i] * qscale * quant_matrix[i]) >= 275 */
 
                 qmat[qscale][i] = (int)((UINT64_C(1) << QMAT_SHIFT) /
                                 (qscale * quant_matrix[j]));
@@ -106,12 +91,12 @@ void ff_convert_matrix(DSPContext *dsp, int (*qmat)[64], uint16_t (*qmat16)[2][6
             for(i=0;i<64;i++) {
                 const int j= dsp->idct_permutation[i];
                 /* 16 <= qscale * quant_matrix[i] <= 7905 */
-                /* 19952         <= aanscales[i] * qscale * quant_matrix[i]           <= 249205026 */
-                /* (1<<36)/19952 >= (1<<36)/(aanscales[i] * qscale * quant_matrix[i]) >= (1<<36)/249205026 */
-                /* 3444240       >= (1<<36)/(aanscales[i] * qscale * quant_matrix[i]) >= 275 */
+                /* 19952             <= ff_aanscales[i] * qscale * quant_matrix[i]               <= 249205026 */
+                /* (1 << 36) / 19952 >= (1 << 36) / (ff_aanscales[i] * qscale * quant_matrix[i]) >= (1<<36)/249205026 */
+                /* 3444240           >= (1 << 36) / (ff_aanscales[i] * qscale * quant_matrix[i]) >= 275 */
 
                 qmat[qscale][i] = (int)((UINT64_C(1) << (QMAT_SHIFT + 14)) /
-                                (aanscales[i] * qscale * quant_matrix[j]));
+                                (ff_aanscales[i] * qscale * quant_matrix[j]));
             }
         } else {
             for(i=0;i<64;i++) {
@@ -137,7 +122,7 @@ void ff_convert_matrix(DSPContext *dsp, int (*qmat)[64], uint16_t (*qmat16)[2][6
                    || dsp->fdct == ff_faandct
 #endif
                    ) {
-                max= (8191LL*aanscales[i]) >> 14;
+                max = (8191LL*ff_aanscales[i]) >> 14;
             }
             while(((max * qmat[qscale][i]) >> shift) > INT_MAX){
                 shift++;
@@ -166,6 +151,20 @@ void ff_write_quant_matrix(PutBitContext *pb, uint16_t *matrix){
         }
     }else
         put_bits(pb, 1, 0);
+}
+
+/**
+ * init s->current_picture.qscale_table from s->lambda_table
+ */
+void ff_init_qscale_tab(MpegEncContext *s){
+    int8_t * const qscale_table= s->current_picture.qscale_table;
+    int i;
+
+    for(i=0; i<s->mb_num; i++){
+        unsigned int lam= s->lambda_table[ s->mb_index2xy[i] ];
+        int qp= (lam*139 + FF_LAMBDA_SCALE*64) >> (FF_LAMBDA_SHIFT + 7);
+        qscale_table[ s->mb_index2xy[i] ]= av_clip(qp, s->avctx->qmin, s->avctx->qmax);
+    }
 }
 
 static void copy_picture_attributes(MpegEncContext *s, AVFrame *dst, AVFrame *src){
@@ -201,7 +200,7 @@ static void copy_picture_attributes(MpegEncContext *s, AVFrame *dst, AVFrame *sr
                 memcpy(dst->motion_val[i], src->motion_val[i], 2*stride*height*sizeof(int16_t));
             }
             if(src->ref_index[i] && src->ref_index[i] != dst->ref_index[i]){
-                memcpy(dst->ref_index[i], src->ref_index[i], s->b8_stride*2*s->mb_height*sizeof(int8_t));
+                memcpy(dst->ref_index[i], src->ref_index[i], s->mb_stride*4*s->mb_height*sizeof(int8_t));
             }
         }
     }
@@ -256,9 +255,15 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         }
         break;
     case CODEC_ID_LJPEG:
+        if(avctx->pix_fmt != PIX_FMT_YUVJ420P && avctx->pix_fmt != PIX_FMT_YUVJ422P && avctx->pix_fmt != PIX_FMT_YUVJ444P && avctx->pix_fmt != PIX_FMT_BGRA &&
+           ((avctx->pix_fmt != PIX_FMT_YUV420P && avctx->pix_fmt != PIX_FMT_YUV422P && avctx->pix_fmt != PIX_FMT_YUV444P) || avctx->strict_std_compliance>FF_COMPLIANCE_UNOFFICIAL)){
+            av_log(avctx, AV_LOG_ERROR, "colorspace not supported in LJPEG\n");
+            return -1;
+        }
+        break;
     case CODEC_ID_MJPEG:
         if(avctx->pix_fmt != PIX_FMT_YUVJ420P && avctx->pix_fmt != PIX_FMT_YUVJ422P &&
-           ((avctx->pix_fmt != PIX_FMT_YUV420P && avctx->pix_fmt != PIX_FMT_YUV422P) || avctx->strict_std_compliance>FF_COMPLIANCE_INOFFICIAL)){
+           ((avctx->pix_fmt != PIX_FMT_YUV420P && avctx->pix_fmt != PIX_FMT_YUV422P) || avctx->strict_std_compliance>FF_COMPLIANCE_UNOFFICIAL)){
             av_log(avctx, AV_LOG_ERROR, "colorspace not supported in jpeg\n");
             return -1;
         }
@@ -347,7 +352,7 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
     }
 
     if(avctx->rc_max_rate && avctx->rc_max_rate < avctx->bit_rate){
-        av_log(avctx, AV_LOG_INFO, "bitrate above max bitrate\n");
+        av_log(avctx, AV_LOG_ERROR, "bitrate above max bitrate\n");
         return -1;
     }
 
@@ -355,12 +360,12 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         av_log(avctx, AV_LOG_INFO, "impossible bitrate constraints, this will fail\n");
     }
 
-    if(avctx->rc_buffer_size && avctx->bit_rate*av_q2d(avctx->time_base) > avctx->rc_buffer_size){
+    if(avctx->rc_buffer_size && avctx->bit_rate*(int64_t)avctx->time_base.num > avctx->rc_buffer_size * (int64_t)avctx->time_base.den){
         av_log(avctx, AV_LOG_ERROR, "VBV buffer too small for bitrate\n");
         return -1;
     }
 
-    if(avctx->bit_rate*av_q2d(avctx->time_base) > avctx->bit_rate_tolerance){
+    if(!s->fixed_qscale && avctx->bit_rate*av_q2d(avctx->time_base) > avctx->bit_rate_tolerance){
         av_log(avctx, AV_LOG_ERROR, "bitrate tolerance too small for bitrate\n");
         return -1;
     }
@@ -403,6 +408,15 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         return -1;
     }
 
+    if ((s->codec_id == CODEC_ID_MPEG4 || s->codec_id == CODEC_ID_H263 ||
+         s->codec_id == CODEC_ID_H263P) &&
+        (avctx->sample_aspect_ratio.num > 255 || avctx->sample_aspect_ratio.den > 255)) {
+        av_log(avctx, AV_LOG_WARNING, "Invalid pixel aspect ratio %i/%i, limit is 255/255 reducing\n",
+               avctx->sample_aspect_ratio.num, avctx->sample_aspect_ratio.den);
+        av_reduce(&avctx->sample_aspect_ratio.num, &avctx->sample_aspect_ratio.den,
+                   avctx->sample_aspect_ratio.num,  avctx->sample_aspect_ratio.den, 255);
+    }
+
     if((s->flags & (CODEC_FLAG_INTERLACED_DCT|CODEC_FLAG_INTERLACED_ME|CODEC_FLAG_ALT_SCAN))
        && s->codec_id != CODEC_ID_MPEG4 && s->codec_id != CODEC_ID_MPEG2VIDEO){
         av_log(avctx, AV_LOG_ERROR, "interlacing not supported by codec\n");
@@ -414,7 +428,7 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         return -1;
     }
 
-    if((s->flags & CODEC_FLAG_CBP_RD) && !(s->flags & CODEC_FLAG_TRELLIS_QUANT)){
+    if((s->flags & CODEC_FLAG_CBP_RD) && !avctx->trellis){
         av_log(avctx, AV_LOG_ERROR, "CBP RD needs trellis quant\n");
         return -1;
     }
@@ -435,8 +449,8 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
     }
 
     if(s->flags & CODEC_FLAG_LOW_DELAY){
-        if (s->codec_id != CODEC_ID_MPEG2VIDEO && s->codec_id != CODEC_ID_MPEG1VIDEO){
-            av_log(avctx, AV_LOG_ERROR, "low delay forcing is only available for mpeg1/2\n");
+        if (s->codec_id != CODEC_ID_MPEG2VIDEO){
+            av_log(avctx, AV_LOG_ERROR, "low delay forcing is only available for mpeg2\n");
             return -1;
         }
         if (s->max_b_frames != 0){
@@ -463,6 +477,11 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         return -1;
     }
 
+    if(s->avctx->thread_count < 1){
+        av_log(avctx, AV_LOG_ERROR, "automatic thread number detection not supported by codec, patch welcome\n");
+        return -1;
+    }
+
     if(s->avctx->thread_count > 1)
         s->rtp_mode= 1;
 
@@ -486,7 +505,7 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         avctx->b_frame_strategy = 0;
     }
 
-    i= ff_gcd(avctx->time_base.den, avctx->time_base.num);
+    i= av_gcd(avctx->time_base.den, avctx->time_base.num);
     if(i > 1){
         av_log(avctx, AV_LOG_INFO, "removing common factors from framerate\n");
         avctx->time_base.den /= i;
@@ -494,10 +513,7 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
 //        return -1;
     }
 
-    if(s->codec_id==CODEC_ID_MJPEG){
-        s->intra_quant_bias= 1<<(QUANT_BIAS_SHIFT-1); //(a + x/2)/x
-        s->inter_quant_bias= 0;
-    }else if(s->mpeg_quant || s->codec_id==CODEC_ID_MPEG1VIDEO || s->codec_id==CODEC_ID_MPEG2VIDEO){
+    if(s->mpeg_quant || s->codec_id==CODEC_ID_MPEG1VIDEO || s->codec_id==CODEC_ID_MPEG2VIDEO || s->codec_id==CODEC_ID_MJPEG){
         s->intra_quant_bias= 3<<(QUANT_BIAS_SHIFT-3); //(a + x*3/8)/x
         s->inter_quant_bias= 0;
     }else{
@@ -513,7 +529,9 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
     avcodec_get_chroma_sub_sample(avctx->pix_fmt, &chroma_h_shift, &chroma_v_shift);
 
     if(avctx->codec_id == CODEC_ID_MPEG4 && s->avctx->time_base.den > (1<<16)-1){
-        av_log(avctx, AV_LOG_ERROR, "timebase not supported by mpeg 4 standard\n");
+        av_log(avctx, AV_LOG_ERROR, "timebase %d/%d not supported by MPEG 4 standard, "
+               "the maximum admitted value for the timebase denominator is %d\n",
+               s->avctx->time_base.num, s->avctx->time_base.den, (1<<16)-1);
         return -1;
     }
     s->time_increment_bits = av_log2(s->avctx->time_base.den - 1) + 1;
@@ -534,20 +552,26 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
     case CODEC_ID_MJPEG:
         s->out_format = FMT_MJPEG;
         s->intra_only = 1; /* force intra only for jpeg */
-        s->mjpeg_vsample[0] = 2;
-        s->mjpeg_vsample[1] = 2>>chroma_v_shift;
-        s->mjpeg_vsample[2] = 2>>chroma_v_shift;
-        s->mjpeg_hsample[0] = 2;
-        s->mjpeg_hsample[1] = 2>>chroma_h_shift;
-        s->mjpeg_hsample[2] = 2>>chroma_h_shift;
-        if (!(ENABLE_MJPEG_ENCODER || ENABLE_LJPEG_ENCODER)
+        if(avctx->codec->id == CODEC_ID_LJPEG && avctx->pix_fmt == PIX_FMT_BGRA){
+            s->mjpeg_vsample[0] = s->mjpeg_hsample[0] =
+            s->mjpeg_vsample[1] = s->mjpeg_hsample[1] =
+            s->mjpeg_vsample[2] = s->mjpeg_hsample[2] = 1;
+        }else{
+            s->mjpeg_vsample[0] = 2;
+            s->mjpeg_vsample[1] = 2>>chroma_v_shift;
+            s->mjpeg_vsample[2] = 2>>chroma_v_shift;
+            s->mjpeg_hsample[0] = 2;
+            s->mjpeg_hsample[1] = 2>>chroma_h_shift;
+            s->mjpeg_hsample[2] = 2>>chroma_h_shift;
+        }
+        if (!(CONFIG_MJPEG_ENCODER || CONFIG_LJPEG_ENCODER)
             || ff_mjpeg_encode_init(s) < 0)
             return -1;
         avctx->delay=0;
         s->low_delay=1;
         break;
     case CODEC_ID_H261:
-        if (!ENABLE_H261_ENCODER)  return -1;
+        if (!CONFIG_H261_ENCODER)  return -1;
         if (ff_h261_get_picture_format(s->width, s->height) < 0) {
             av_log(avctx, AV_LOG_ERROR, "The specified picture size of %dx%d is not valid for the H.261 codec.\nValid sizes are 176x144, 352x288\n", s->width, s->height);
             return -1;
@@ -557,9 +581,9 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         s->low_delay=1;
         break;
     case CODEC_ID_H263:
-        if (!ENABLE_H263_ENCODER)  return -1;
-        if (h263_get_picture_format(s->width, s->height) == 7) {
-            av_log(avctx, AV_LOG_INFO, "The specified picture size of %dx%d is not valid for the H.263 codec.\nValid sizes are 128x96, 176x144, 352x288, 704x576, and 1408x1152. Try H.263+.\n", s->width, s->height);
+        if (!CONFIG_H263_ENCODER)  return -1;
+        if (ff_match_2uint16(ff_h263_format, FF_ARRAY_ELEMS(ff_h263_format), s->width, s->height) == 8) {
+            av_log(avctx, AV_LOG_ERROR, "The specified picture size of %dx%d is not valid for the H.263 codec.\nValid sizes are 128x96, 176x144, 352x288, 704x576, and 1408x1152. Try H.263+.\n", s->width, s->height);
             return -1;
         }
         s->out_format = FMT_H263;
@@ -606,7 +630,7 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         s->h263_aic=1;
         s->h263_plus=1;
         s->loop_filter=1;
-        s->unrestricted_mv= s->obmc || s->loop_filter || s->umvplus;
+        s->unrestricted_mv= 0;
         break;
     case CODEC_ID_MPEG4:
         s->out_format = FMT_H263;
@@ -615,18 +639,8 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         s->low_delay= s->max_b_frames ? 0 : 1;
         avctx->delay= s->low_delay ? 0 : (s->max_b_frames + 1);
         break;
-    case CODEC_ID_MSMPEG4V1:
-        s->out_format = FMT_H263;
-        s->h263_msmpeg4 = 1;
-        s->h263_pred = 1;
-        s->unrestricted_mv = 1;
-        s->msmpeg4_version= 1;
-        avctx->delay=0;
-        s->low_delay=1;
-        break;
     case CODEC_ID_MSMPEG4V2:
         s->out_format = FMT_H263;
-        s->h263_msmpeg4 = 1;
         s->h263_pred = 1;
         s->unrestricted_mv = 1;
         s->msmpeg4_version= 2;
@@ -635,7 +649,6 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         break;
     case CODEC_ID_MSMPEG4V3:
         s->out_format = FMT_H263;
-        s->h263_msmpeg4 = 1;
         s->h263_pred = 1;
         s->unrestricted_mv = 1;
         s->msmpeg4_version= 3;
@@ -645,7 +658,6 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         break;
     case CODEC_ID_WMV1:
         s->out_format = FMT_H263;
-        s->h263_msmpeg4 = 1;
         s->h263_pred = 1;
         s->unrestricted_mv = 1;
         s->msmpeg4_version= 4;
@@ -655,7 +667,6 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
         break;
     case CODEC_ID_WMV2:
         s->out_format = FMT_H263;
-        s->h263_msmpeg4 = 1;
         s->h263_pred = 1;
         s->unrestricted_mv = 1;
         s->msmpeg4_version= 5;
@@ -671,6 +682,9 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
 
     s->encoding = 1;
 
+    s->progressive_frame=
+    s->progressive_sequence= !(avctx->flags & (CODEC_FLAG_INTERLACED_DCT|CODEC_FLAG_INTERLACED_ME|CODEC_FLAG_ALT_SCAN));
+
     /* init */
     if (MPV_common_init(s) < 0)
         return -1;
@@ -680,32 +694,31 @@ av_cold int MPV_encode_init(AVCodecContext *avctx)
     if(!s->denoise_dct)
         s->denoise_dct = denoise_dct_c;
     s->fast_dct_quantize = s->dct_quantize;
-    if(s->flags & CODEC_FLAG_TRELLIS_QUANT)
+    if(avctx->trellis)
         s->dct_quantize = dct_quantize_trellis_c;
 
-    if((ENABLE_H263P_ENCODER || ENABLE_RV20_ENCODER) && s->modified_quant)
+    if((CONFIG_H263P_ENCODER || CONFIG_RV20_ENCODER) && s->modified_quant)
         s->chroma_qscale_table= ff_h263_chroma_qscale_table;
-    s->progressive_frame=
-    s->progressive_sequence= !(avctx->flags & (CODEC_FLAG_INTERLACED_DCT|CODEC_FLAG_INTERLACED_ME|CODEC_FLAG_ALT_SCAN));
+
     s->quant_precision=5;
 
     ff_set_cmp(&s->dsp, s->dsp.ildct_cmp, s->avctx->ildct_cmp);
     ff_set_cmp(&s->dsp, s->dsp.frame_skip_cmp, s->avctx->frame_skip_cmp);
 
-    if (ENABLE_H261_ENCODER && s->out_format == FMT_H261)
+    if (CONFIG_H261_ENCODER && s->out_format == FMT_H261)
         ff_h261_encode_init(s);
-    if (ENABLE_ANY_H263_ENCODER && s->out_format == FMT_H263)
-        h263_encode_init(s);
-    if (ENABLE_MSMPEG4_ENCODER && s->msmpeg4_version)
+    if (CONFIG_H263_ENCODER && s->out_format == FMT_H263)
+        ff_h263_encode_init(s);
+    if (CONFIG_MSMPEG4_ENCODER && s->msmpeg4_version)
         ff_msmpeg4_encode_init(s);
-    if ((ENABLE_MPEG1VIDEO_ENCODER || ENABLE_MPEG2VIDEO_ENCODER)
+    if ((CONFIG_MPEG1VIDEO_ENCODER || CONFIG_MPEG2VIDEO_ENCODER)
         && s->out_format == FMT_MPEG1)
         ff_mpeg1_encode_init(s);
 
     /* init q matrix */
     for(i=0;i<64;i++) {
         int j= s->dsp.idct_permutation[i];
-        if(ENABLE_MPEG4_ENCODER && s->codec_id==CODEC_ID_MPEG4 && s->mpeg_quant){
+        if(CONFIG_MPEG4_ENCODER && s->codec_id==CODEC_ID_MPEG4 && s->mpeg_quant){
             s->intra_matrix[j] = ff_mpeg4_default_intra_matrix[i];
             s->inter_matrix[j] = ff_mpeg4_default_non_intra_matrix[i];
         }else if(s->out_format == FMT_H263 || s->out_format == FMT_H261){
@@ -744,7 +757,7 @@ av_cold int MPV_encode_end(AVCodecContext *avctx)
     ff_rate_control_uninit(s);
 
     MPV_common_end(s);
-    if ((ENABLE_MJPEG_ENCODER || ENABLE_LJPEG_ENCODER) && s->out_format == FMT_MJPEG)
+    if ((CONFIG_MJPEG_ENCODER || CONFIG_LJPEG_ENCODER) && s->out_format == FMT_MJPEG)
         ff_mjpeg_encode_close(s);
 
     av_freep(&avctx->extradata);
@@ -837,14 +850,18 @@ static int load_input_picture(MpegEncContext *s, AVFrame *pic_arg){
             pic->data[i]= pic_arg->data[i];
             pic->linesize[i]= pic_arg->linesize[i];
         }
-        alloc_picture(s, (Picture*)pic, 1);
+        if(ff_alloc_picture(s, (Picture*)pic, 1) < 0){
+            return -1;
+        }
     }else{
         i= ff_find_unused_picture(s, 0);
 
         pic= (AVFrame*)&s->picture[i];
         pic->reference= 3;
 
-        alloc_picture(s, (Picture*)pic, 0);
+        if(ff_alloc_picture(s, (Picture*)pic, 0) < 0){
+            return -1;
+        }
 
         if(   pic->data[0] + INPLACE_OFFSET == pic_arg->data[0]
            && pic->data[1] + INPLACE_OFFSET == pic_arg->data[1]
@@ -939,8 +956,8 @@ static int estimate_best_b_count(MpegEncContext *s){
     assert(scale>=0 && scale <=3);
 
 //    emms_c();
-    p_lambda= s->last_lambda_for[FF_P_TYPE]; //s->next_picture_ptr->quality;
-    b_lambda= s->last_lambda_for[FF_B_TYPE]; //p_lambda *FFABS(s->avctx->b_quant_factor) + s->avctx->b_quant_offset;
+    p_lambda= s->last_lambda_for[AV_PICTURE_TYPE_P]; //s->next_picture_ptr->quality;
+    b_lambda= s->last_lambda_for[AV_PICTURE_TYPE_B]; //p_lambda *FFABS(s->avctx->b_quant_factor) + s->avctx->b_quant_offset;
     if(!b_lambda) b_lambda= p_lambda; //FIXME we should do this somewhere else
     lambda2= (b_lambda*b_lambda + (1<<FF_LAMBDA_SHIFT)/2 ) >> FF_LAMBDA_SHIFT;
 
@@ -956,7 +973,7 @@ static int estimate_best_b_count(MpegEncContext *s){
     c->time_base= s->avctx->time_base;
     c->max_b_frames= s->max_b_frames;
 
-    if (avcodec_open(c, codec) < 0)
+    if (avcodec_open2(c, codec, NULL) < 0)
         return -1;
 
     for(i=0; i<s->max_b_frames+2; i++){
@@ -995,7 +1012,7 @@ static int estimate_best_b_count(MpegEncContext *s){
 
         c->error[0]= c->error[1]= c->error[2]= 0;
 
-        input[0].pict_type= FF_I_TYPE;
+        input[0].pict_type= AV_PICTURE_TYPE_I;
         input[0].quality= 1 * FF_QP2LAMBDA;
         out_size = avcodec_encode_video(c, outbuf, outbuf_size, &input[0]);
 //        rd += (out_size * lambda2) >> FF_LAMBDA_SHIFT;
@@ -1003,7 +1020,7 @@ static int estimate_best_b_count(MpegEncContext *s){
         for(i=0; i<s->max_b_frames+1; i++){
             int is_p= i % (j+1) == j || i==s->max_b_frames;
 
-            input[i+1].pict_type= is_p ? FF_P_TYPE : FF_B_TYPE;
+            input[i+1].pict_type= is_p ? AV_PICTURE_TYPE_P : AV_PICTURE_TYPE_B;
             input[i+1].quality= is_p ? p_lambda : b_lambda;
             out_size = avcodec_encode_video(c, outbuf, outbuf_size, &input[i+1]);
             rd += (out_size * lambda2) >> (FF_LAMBDA_SHIFT - 3);
@@ -1034,7 +1051,7 @@ static int estimate_best_b_count(MpegEncContext *s){
     return best_b_count;
 }
 
-static void select_input_picture(MpegEncContext *s){
+static int select_input_picture(MpegEncContext *s){
     int i;
 
     for(i=1; i<MAX_PICTURE_COUNT; i++)
@@ -1045,7 +1062,7 @@ static void select_input_picture(MpegEncContext *s){
     if(s->reordered_input_picture[0]==NULL && s->input_picture[0]){
         if(/*s->picture_in_gop_number >= s->gop_size ||*/ s->next_picture_ptr==NULL || s->intra_only){
             s->reordered_input_picture[0]= s->input_picture[0];
-            s->reordered_input_picture[0]->pict_type= FF_I_TYPE;
+            s->reordered_input_picture[0]->pict_type= AV_PICTURE_TYPE_I;
             s->reordered_input_picture[0]->coded_picture_number= s->coded_picture_number++;
         }else{
             int b_frames;
@@ -1080,7 +1097,7 @@ static void select_input_picture(MpegEncContext *s){
                     if(pict_num >= s->rc_context.num_entries)
                         break;
                     if(!s->input_picture[i]){
-                        s->rc_context.entry[pict_num-1].new_pict_type = FF_P_TYPE;
+                        s->rc_context.entry[pict_num-1].new_pict_type = AV_PICTURE_TYPE_P;
                         break;
                     }
 
@@ -1124,10 +1141,10 @@ static void select_input_picture(MpegEncContext *s){
 
             for(i= b_frames - 1; i>=0; i--){
                 int type= s->input_picture[i]->pict_type;
-                if(type && type != FF_B_TYPE)
+                if(type && type != AV_PICTURE_TYPE_B)
                     b_frames= i;
             }
-            if(s->input_picture[b_frames]->pict_type == FF_B_TYPE && b_frames == s->max_b_frames){
+            if(s->input_picture[b_frames]->pict_type == AV_PICTURE_TYPE_B && b_frames == s->max_b_frames){
                 av_log(s->avctx, AV_LOG_ERROR, "warning, too many b frames in a row\n");
             }
 
@@ -1137,31 +1154,31 @@ static void select_input_picture(MpegEncContext *s){
               }else{
                 if(s->flags & CODEC_FLAG_CLOSED_GOP)
                     b_frames=0;
-                s->input_picture[b_frames]->pict_type= FF_I_TYPE;
+                s->input_picture[b_frames]->pict_type= AV_PICTURE_TYPE_I;
               }
             }
 
             if(   (s->flags & CODEC_FLAG_CLOSED_GOP)
                && b_frames
-               && s->input_picture[b_frames]->pict_type== FF_I_TYPE)
+               && s->input_picture[b_frames]->pict_type== AV_PICTURE_TYPE_I)
                 b_frames--;
 
             s->reordered_input_picture[0]= s->input_picture[b_frames];
-            if(s->reordered_input_picture[0]->pict_type != FF_I_TYPE)
-                s->reordered_input_picture[0]->pict_type= FF_P_TYPE;
+            if(s->reordered_input_picture[0]->pict_type != AV_PICTURE_TYPE_I)
+                s->reordered_input_picture[0]->pict_type= AV_PICTURE_TYPE_P;
             s->reordered_input_picture[0]->coded_picture_number= s->coded_picture_number++;
             for(i=0; i<b_frames; i++){
                 s->reordered_input_picture[i+1]= s->input_picture[i];
-                s->reordered_input_picture[i+1]->pict_type= FF_B_TYPE;
+                s->reordered_input_picture[i+1]->pict_type= AV_PICTURE_TYPE_B;
                 s->reordered_input_picture[i+1]->coded_picture_number= s->coded_picture_number++;
             }
         }
     }
 no_output_pic:
     if(s->reordered_input_picture[0]){
-        s->reordered_input_picture[0]->reference= s->reordered_input_picture[0]->pict_type!=FF_B_TYPE ? 3 : 0;
+        s->reordered_input_picture[0]->reference= s->reordered_input_picture[0]->pict_type!=AV_PICTURE_TYPE_B ? 3 : 0;
 
-        copy_picture(&s->new_picture, s->reordered_input_picture[0]);
+        ff_copy_picture(&s->new_picture, s->reordered_input_picture[0]);
 
         if(s->reordered_input_picture[0]->type == FF_BUFFER_TYPE_SHARED || s->avctx->rc_buffer_size){
             // input is a shared pix, so we can't modifiy it -> alloc a new one & ensure that the shared one is reuseable
@@ -1170,7 +1187,9 @@ no_output_pic:
             Picture *pic= &s->picture[i];
 
             pic->reference              = s->reordered_input_picture[0]->reference;
-            alloc_picture(s, pic, 0);
+            if(ff_alloc_picture(s, pic, 0) < 0){
+                return -1;
+            }
 
             /* mark us unused / free shared pic */
             if(s->reordered_input_picture[0]->type == FF_BUFFER_TYPE_INTERNAL)
@@ -1193,13 +1212,14 @@ no_output_pic:
                 s->new_picture.data[i]+= INPLACE_OFFSET;
             }
         }
-        copy_picture(&s->current_picture, s->current_picture_ptr);
+        ff_copy_picture(&s->current_picture, s->current_picture_ptr);
 
         s->picture_number= s->new_picture.display_picture_number;
 //printf("dpn:%d\n", s->picture_number);
     }else{
        memset(&s->new_picture, 0, sizeof(Picture));
     }
+    return 0;
 }
 
 int MPV_encode_picture(AVCodecContext *avctx,
@@ -1207,9 +1227,9 @@ int MPV_encode_picture(AVCodecContext *avctx,
 {
     MpegEncContext *s = avctx->priv_data;
     AVFrame *pic_arg = data;
-    int i, stuffing_count;
+    int i, stuffing_count, context_count = avctx->thread_count;
 
-    for(i=0; i<avctx->thread_count; i++){
+    for(i=0; i<context_count; i++){
         int start_y= s->thread_context[i]->start_mb_y;
         int   end_y= s->thread_context[i]->  end_mb_y;
         int h= s->mb_height;
@@ -1224,7 +1244,9 @@ int MPV_encode_picture(AVCodecContext *avctx,
     if(load_input_picture(s, pic_arg) < 0)
         return -1;
 
-    select_input_picture(s);
+    if(select_input_picture(s) < 0){
+        return -1;
+    }
 
     /* output? */
     if(s->new_picture.data[0]){
@@ -1236,7 +1258,6 @@ vbv_retry:
         if (encode_picture(s, s->picture_number) < 0)
             return -1;
 
-        avctx->real_pict_num  = s->picture_number;
         avctx->header_bits = s->header_bits;
         avctx->mv_bits     = s->mv_bits;
         avctx->misc_bits   = s->misc_bits;
@@ -1248,12 +1269,12 @@ vbv_retry:
 
         MPV_frame_end(s);
 
-        if (ENABLE_MJPEG_ENCODER && s->out_format == FMT_MJPEG)
+        if (CONFIG_MJPEG_ENCODER && s->out_format == FMT_MJPEG)
             ff_mjpeg_encode_picture_trailer(s);
 
         if(avctx->rc_buffer_size){
             RateControlContext *rcc= &s->rc_context;
-            int max_size= rcc->buffer_index/3;
+            int max_size= rcc->buffer_index * avctx->rc_max_available_vbv_use;
 
             if(put_bits_count(&s->pb) > max_size && s->lambda < s->avctx->lmax){
                 s->next_lambda= FFMAX(s->lambda+1, s->lambda*(s->qscale+1) / s->qscale);
@@ -1263,16 +1284,16 @@ vbv_retry:
                         s->lambda_table[i]= FFMAX(s->lambda_table[i]+1, s->lambda_table[i]*(s->qscale+1) / s->qscale);
                 }
                 s->mb_skipped = 0;        //done in MPV_frame_start()
-                if(s->pict_type==FF_P_TYPE){ //done in encode_picture() so we must undo it
+                if(s->pict_type==AV_PICTURE_TYPE_P){ //done in encode_picture() so we must undo it
                     if(s->flipflop_rounding || s->codec_id == CODEC_ID_H263P || s->codec_id == CODEC_ID_MPEG4)
                         s->no_rounding ^= 1;
                 }
-                if(s->pict_type!=FF_B_TYPE){
+                if(s->pict_type!=AV_PICTURE_TYPE_B){
                     s->time_base= s->last_time_base;
                     s->last_non_b_time= s->time - s->pp_time;
                 }
 //                av_log(NULL, AV_LOG_ERROR, "R:%d ", s->next_lambda);
-                for(i=0; i<avctx->thread_count; i++){
+                for(i=0; i<context_count; i++){
                     PutBitContext *pb= &s->thread_context[i]->pb;
                     init_put_bits(pb, pb->buf, pb->buf_end - pb->buf);
                 }
@@ -1327,11 +1348,21 @@ vbv_retry:
         /* update mpeg1/2 vbv_delay for CBR */
         if(s->avctx->rc_max_rate && s->avctx->rc_min_rate == s->avctx->rc_max_rate && s->out_format == FMT_MPEG1
            && 90000LL * (avctx->rc_buffer_size-1) <= s->avctx->rc_max_rate*0xFFFFLL){
-            int vbv_delay;
+            int vbv_delay, min_delay;
+            double inbits = s->avctx->rc_max_rate*av_q2d(s->avctx->time_base);
+            int    minbits= s->frame_bits - 8*(s->vbv_delay_ptr - s->pb.buf - 1);
+            double bits   = s->rc_context.buffer_index + minbits - inbits;
+
+            if(bits<0)
+                av_log(s->avctx, AV_LOG_ERROR, "Internal error, negative bits\n");
 
             assert(s->repeat_first_field==0);
 
-            vbv_delay= lrintf(90000 * s->rc_context.buffer_index / s->avctx->rc_max_rate);
+            vbv_delay=     bits * 90000                               / s->avctx->rc_max_rate;
+            min_delay= (minbits * 90000LL + s->avctx->rc_max_rate - 1)/ s->avctx->rc_max_rate;
+
+            vbv_delay= FFMAX(vbv_delay, min_delay);
+
             assert(vbv_delay < 0xFFFF);
 
             s->vbv_delay_ptr[0] &= 0xF8;
@@ -1339,11 +1370,12 @@ vbv_retry:
             s->vbv_delay_ptr[1]  = vbv_delay>>5;
             s->vbv_delay_ptr[2] &= 0x07;
             s->vbv_delay_ptr[2] |= vbv_delay<<3;
+            avctx->vbv_delay = vbv_delay*300;
         }
         s->total_bits += s->frame_bits;
         avctx->frame_bits  = s->frame_bits;
     }else{
-        assert((pbBufPtr(&s->pb) == s->pb.buf));
+        assert((put_bits_ptr(&s->pb) == s->pb.buf));
         s->frame_bits=0;
     }
     assert((s->frame_bits&7)==0);
@@ -1484,7 +1516,7 @@ static av_always_inline void encode_mb_internal(MpegEncContext *s, int motion_x,
 
                 if(s->codec_id==CODEC_ID_MPEG4){
                     if(!s->mb_intra){
-                        if(s->pict_type == FF_B_TYPE){
+                        if(s->pict_type == AV_PICTURE_TYPE_B){
                             if(s->dquant&1 || s->mv_dir&MV_DIRECT)
                                 s->dquant= 0;
                         }
@@ -1506,11 +1538,11 @@ static av_always_inline void encode_mb_internal(MpegEncContext *s, int motion_x,
 
     if(mb_x*16+16 > s->width || mb_y*16+16 > s->height){
         uint8_t *ebuf= s->edge_emu_buffer + 32;
-        ff_emulated_edge_mc(ebuf            , ptr_y , wrap_y,16,16,mb_x*16,mb_y*16, s->width   , s->height);
+        s->dsp.emulated_edge_mc(ebuf            , ptr_y , wrap_y,16,16,mb_x*16,mb_y*16, s->width   , s->height);
         ptr_y= ebuf;
-        ff_emulated_edge_mc(ebuf+18*wrap_y  , ptr_cb, wrap_c, 8, mb_block_height, mb_x*8, mb_y*8, s->width>>1, s->height>>1);
+        s->dsp.emulated_edge_mc(ebuf+18*wrap_y  , ptr_cb, wrap_c, 8, mb_block_height, mb_x*8, mb_y*8, s->width>>1, s->height>>1);
         ptr_cb= ebuf+18*wrap_y;
-        ff_emulated_edge_mc(ebuf+18*wrap_y+8, ptr_cr, wrap_c, 8, mb_block_height, mb_x*8, mb_y*8, s->width>>1, s->height>>1);
+        s->dsp.emulated_edge_mc(ebuf+18*wrap_y+8, ptr_cr, wrap_c, 8, mb_block_height, mb_x*8, mb_y*8, s->width>>1, s->height>>1);
         ptr_cr= ebuf+18*wrap_y+8;
     }
 
@@ -1561,7 +1593,7 @@ static av_always_inline void encode_mb_internal(MpegEncContext *s, int motion_x,
         dest_cb = s->dest[1];
         dest_cr = s->dest[2];
 
-        if ((!s->no_rounding) || s->pict_type==FF_B_TYPE){
+        if ((!s->no_rounding) || s->pict_type==AV_PICTURE_TYPE_B){
             op_pix = s->dsp.put_pixels_tab;
             op_qpix= s->dsp.put_qpel_pixels_tab;
         }else{
@@ -1709,25 +1741,25 @@ static av_always_inline void encode_mb_internal(MpegEncContext *s, int motion_x,
     switch(s->codec_id){ //FIXME funct ptr could be slightly faster
     case CODEC_ID_MPEG1VIDEO:
     case CODEC_ID_MPEG2VIDEO:
-        if (ENABLE_MPEG1VIDEO_ENCODER || ENABLE_MPEG2VIDEO_ENCODER)
+        if (CONFIG_MPEG1VIDEO_ENCODER || CONFIG_MPEG2VIDEO_ENCODER)
             mpeg1_encode_mb(s, s->block, motion_x, motion_y);
         break;
     case CODEC_ID_MPEG4:
-        if (ENABLE_MPEG4_ENCODER)
+        if (CONFIG_MPEG4_ENCODER)
             mpeg4_encode_mb(s, s->block, motion_x, motion_y);
         break;
     case CODEC_ID_MSMPEG4V2:
     case CODEC_ID_MSMPEG4V3:
     case CODEC_ID_WMV1:
-        if (ENABLE_MSMPEG4_ENCODER)
+        if (CONFIG_MSMPEG4_ENCODER)
             msmpeg4_encode_mb(s, s->block, motion_x, motion_y);
         break;
     case CODEC_ID_WMV2:
-        if (ENABLE_WMV2_ENCODER)
+        if (CONFIG_WMV2_ENCODER)
             ff_wmv2_encode_mb(s, s->block, motion_x, motion_y);
         break;
     case CODEC_ID_H261:
-        if (ENABLE_H261_ENCODER)
+        if (CONFIG_H261_ENCODER)
             ff_h261_encode_mb(s, s->block, motion_x, motion_y);
         break;
     case CODEC_ID_H263:
@@ -1735,12 +1767,11 @@ static av_always_inline void encode_mb_internal(MpegEncContext *s, int motion_x,
     case CODEC_ID_FLV1:
     case CODEC_ID_RV10:
     case CODEC_ID_RV20:
-        if (ENABLE_H263_ENCODER || ENABLE_H263P_ENCODER ||
-            ENABLE_FLV_ENCODER  || ENABLE_RV10_ENCODER  || ENABLE_RV20_ENCODER)
-            h263_encode_mb(s, s->block, motion_x, motion_y);
+        if (CONFIG_H263_ENCODER)
+            ff_h263_encode_mb(s, s->block, motion_x, motion_y);
         break;
     case CODEC_ID_MJPEG:
-        if (ENABLE_MJPEG_ENCODER)
+        if (CONFIG_MJPEG_ENCODER)
             ff_mjpeg_encode_mb(s, s->block);
         break;
     default:
@@ -1917,7 +1948,7 @@ static int sse_mb(MpegEncContext *s){
 }
 
 static int pre_estimate_motion_thread(AVCodecContext *c, void *arg){
-    MpegEncContext *s= arg;
+    MpegEncContext *s= *(void**)arg;
 
 
     s->me.pre_pass=1;
@@ -1936,7 +1967,7 @@ static int pre_estimate_motion_thread(AVCodecContext *c, void *arg){
 }
 
 static int estimate_motion_thread(AVCodecContext *c, void *arg){
-    MpegEncContext *s= arg;
+    MpegEncContext *s= *(void**)arg;
 
     ff_check_alignment();
 
@@ -1952,7 +1983,7 @@ static int estimate_motion_thread(AVCodecContext *c, void *arg){
             s->block_index[3]+=2;
 
             /* compute motion vector & mb_type and store in context */
-            if(s->pict_type==FF_B_TYPE)
+            if(s->pict_type==AV_PICTURE_TYPE_B)
                 ff_estimate_b_frame_motion(s, s->mb_x, s->mb_y);
             else
                 ff_estimate_p_frame_motion(s, s->mb_x, s->mb_y);
@@ -1963,7 +1994,7 @@ static int estimate_motion_thread(AVCodecContext *c, void *arg){
 }
 
 static int mb_var_thread(AVCodecContext *c, void *arg){
-    MpegEncContext *s= arg;
+    MpegEncContext *s= *(void**)arg;
     int mb_x, mb_y;
 
     ff_check_alignment();
@@ -1976,7 +2007,7 @@ static int mb_var_thread(AVCodecContext *c, void *arg){
             int varc;
             int sum = s->dsp.pix_sum(pix, s->linesize);
 
-            varc = (s->dsp.pix_norm1(pix, s->linesize) - (((unsigned)(sum*sum))>>8) + 500 + 128)>>8;
+            varc = (s->dsp.pix_norm1(pix, s->linesize) - (((unsigned)sum*sum)>>8) + 500 + 128)>>8;
 
             s->current_picture.mb_var [s->mb_stride * mb_y + mb_x] = varc;
             s->current_picture.mb_mean[s->mb_stride * mb_y + mb_x] = (sum+128)>>8;
@@ -1987,13 +2018,13 @@ static int mb_var_thread(AVCodecContext *c, void *arg){
 }
 
 static void write_slice_end(MpegEncContext *s){
-    if(ENABLE_MPEG4_ENCODER && s->codec_id==CODEC_ID_MPEG4){
+    if(CONFIG_MPEG4_ENCODER && s->codec_id==CODEC_ID_MPEG4){
         if(s->partitioned_frame){
             ff_mpeg4_merge_partitions(s);
         }
 
         ff_mpeg4_stuffing(&s->pb);
-    }else if(ENABLE_MJPEG_ENCODER && s->out_format == FMT_MJPEG){
+    }else if(CONFIG_MJPEG_ENCODER && s->out_format == FMT_MJPEG){
         ff_mjpeg_encode_stuffing(&s->pb);
     }
 
@@ -2005,8 +2036,9 @@ static void write_slice_end(MpegEncContext *s){
 }
 
 static int encode_thread(AVCodecContext *c, void *arg){
-    MpegEncContext *s= arg;
+    MpegEncContext *s= *(void**)arg;
     int mb_x, mb_y, pdif = 0;
+    int chr_h= 16>>s->chroma_y_shift;
     int i, j;
     MpegEncContext best_s, backup_s;
     uint8_t bit_buf[2][MAX_MB_BYTES];
@@ -2049,11 +2081,11 @@ static int encode_thread(AVCodecContext *c, void *arg){
     case CODEC_ID_H263:
     case CODEC_ID_H263P:
     case CODEC_ID_FLV1:
-        if (ENABLE_H263_ENCODER || ENABLE_H263P_ENCODER || ENABLE_FLV_ENCODER)
+        if (CONFIG_H263_ENCODER)
             s->gob_index = ff_h263_get_gob_height(s);
         break;
     case CODEC_ID_MPEG4:
-        if(ENABLE_MPEG4_ENCODER && s->partitioned_frame)
+        if(CONFIG_MPEG4_ENCODER && s->partitioned_frame)
             ff_mpeg4_init_partitions(s);
         break;
     }
@@ -2093,7 +2125,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
             s->mb_y = mb_y;  // moved into loop, can get changed by H.261
             ff_update_block_index(s);
 
-            if(ENABLE_H261_ENCODER && s->codec_id == CODEC_ID_H261){
+            if(CONFIG_H261_ENCODER && s->codec_id == CODEC_ID_H261){
                 ff_h261_reorder_mb_index(s);
                 xy= s->mb_y*s->mb_stride + s->mb_x;
                 mb_type= s->mb_type[xy];
@@ -2126,13 +2158,13 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     if(s->start_mb_y != mb_y || mb_x!=0){
                         write_slice_end(s);
 
-                        if(ENABLE_MPEG4_ENCODER && s->codec_id==CODEC_ID_MPEG4 && s->partitioned_frame){
+                        if(CONFIG_MPEG4_ENCODER && s->codec_id==CODEC_ID_MPEG4 && s->partitioned_frame){
                             ff_mpeg4_init_partitions(s);
                         }
                     }
 
                     assert((put_bits_count(&s->pb)&7) == 0);
-                    current_packet_size= pbBufPtr(&s->pb) - s->ptr_lastgob;
+                    current_packet_size= put_bits_ptr(&s->pb) - s->ptr_lastgob;
 
                     if(s->avctx->error_rate && s->resync_mb_x + s->resync_mb_y > 0){
                         int r= put_bits_count(&s->pb)/8 + s->picture_number + 16 + s->mb_x + s->mb_y;
@@ -2142,7 +2174,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
 #ifndef ALT_BITSTREAM_WRITER
                             s->pb.buf_ptr= s->ptr_lastgob;
 #endif
-                            assert(pbBufPtr(&s->pb) == s->ptr_lastgob);
+                            assert(put_bits_ptr(&s->pb) == s->ptr_lastgob);
                         }
                     }
 
@@ -2153,22 +2185,22 @@ static int encode_thread(AVCodecContext *c, void *arg){
 
                     switch(s->codec_id){
                     case CODEC_ID_MPEG4:
-                        if (ENABLE_MPEG4_ENCODER) {
+                        if (CONFIG_MPEG4_ENCODER) {
                             ff_mpeg4_encode_video_packet_header(s);
                             ff_mpeg4_clean_buffers(s);
                         }
                     break;
                     case CODEC_ID_MPEG1VIDEO:
                     case CODEC_ID_MPEG2VIDEO:
-                        if (ENABLE_MPEG1VIDEO_ENCODER || ENABLE_MPEG2VIDEO_ENCODER) {
+                        if (CONFIG_MPEG1VIDEO_ENCODER || CONFIG_MPEG2VIDEO_ENCODER) {
                             ff_mpeg1_encode_slice_header(s);
                             ff_mpeg1_clean_buffers(s);
                         }
                     break;
                     case CODEC_ID_H263:
                     case CODEC_ID_H263P:
-                        if (ENABLE_H263_ENCODER || ENABLE_H263P_ENCODER)
-                            h263_encode_gob_header(s, mb_y);
+                        if (CONFIG_H263_ENCODER)
+                            ff_h263_encode_gob_header(s, mb_y);
                     break;
                     }
 
@@ -2349,7 +2381,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                         s->mv[1][0][0] = best_s.mv[1][0][0];
                         s->mv[1][0][1] = best_s.mv[1][0][1];
 
-                        qpi = s->pict_type == FF_B_TYPE ? 2 : 0;
+                        qpi = s->pict_type == AV_PICTURE_TYPE_B ? 2 : 0;
                         for(; qpi<4; qpi++){
                             int dquant= dquant_tab[qpi];
                             qp= last_qp + dquant;
@@ -2376,7 +2408,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                         }
                     }
                 }
-                if(ENABLE_MPEG4_ENCODER && mb_type&CANDIDATE_MB_TYPE_DIRECT){
+                if(CONFIG_MPEG4_ENCODER && mb_type&CANDIDATE_MB_TYPE_DIRECT){
                     int mx= s->b_direct_mv_table[xy][0];
                     int my= s->b_direct_mv_table[xy][1];
 
@@ -2387,7 +2419,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     encode_mb_hq(s, &backup_s, &best_s, CANDIDATE_MB_TYPE_DIRECT, pb, pb2, tex_pb,
                                  &dmin, &next_block, mx, my);
                 }
-                if(ENABLE_MPEG4_ENCODER && mb_type&CANDIDATE_MB_TYPE_DIRECT0){
+                if(CONFIG_MPEG4_ENCODER && mb_type&CANDIDATE_MB_TYPE_DIRECT0){
                     backup_s.dquant = 0;
                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                     s->mb_intra= 0;
@@ -2402,7 +2434,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     if(coded){
                         int mx,my;
                         memcpy(s->mv, best_s.mv, sizeof(s->mv));
-                        if(ENABLE_MPEG4_ENCODER && best_s.mv_dir & MV_DIRECT){
+                        if(CONFIG_MPEG4_ENCODER && best_s.mv_dir & MV_DIRECT){
                             mx=my=0; //FIXME find the one we actually used
                             ff_mpeg4_set_direct_mv(s, mx, my);
                         }else if(best_s.mv_dir&MV_DIR_BACKWARD){
@@ -2450,8 +2482,8 @@ static int encode_thread(AVCodecContext *c, void *arg){
                 }
                 s->last_bits= put_bits_count(&s->pb);
 
-                if (ENABLE_ANY_H263_ENCODER &&
-                    s->out_format == FMT_H263 && s->pict_type!=FF_B_TYPE)
+                if (CONFIG_H263_ENCODER &&
+                    s->out_format == FMT_H263 && s->pict_type!=AV_PICTURE_TYPE_B)
                     ff_h263_update_motion_val(s);
 
                 if(next_block==0){ //FIXME 16 vs linesize16
@@ -2500,7 +2532,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     }
                     break;
                 case CANDIDATE_MB_TYPE_DIRECT:
-                    if (ENABLE_MPEG4_ENCODER) {
+                    if (CONFIG_MPEG4_ENCODER) {
                         s->mv_dir = MV_DIR_FORWARD|MV_DIR_BACKWARD|MV_DIRECT;
                         s->mb_intra= 0;
                         motion_x=s->b_direct_mv_table[xy][0];
@@ -2509,7 +2541,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     }
                     break;
                 case CANDIDATE_MB_TYPE_DIRECT0:
-                    if (ENABLE_MPEG4_ENCODER) {
+                    if (CONFIG_MPEG4_ENCODER) {
                         s->mv_dir = MV_DIR_FORWARD|MV_DIR_BACKWARD|MV_DIRECT;
                         s->mb_intra= 0;
                         ff_mpeg4_set_direct_mv(s, 0, 0);
@@ -2577,8 +2609,8 @@ static int encode_thread(AVCodecContext *c, void *arg){
                 // RAL: Update last macroblock type
                 s->last_mv_dir = s->mv_dir;
 
-                if (ENABLE_ANY_H263_ENCODER &&
-                    s->out_format == FMT_H263 && s->pict_type!=FF_B_TYPE)
+                if (CONFIG_H263_ENCODER &&
+                    s->out_format == FMT_H263 && s->pict_type!=AV_PICTURE_TYPE_B)
                     ff_h263_update_motion_val(s);
 
                 MPV_decode_mb(s, s->block);
@@ -2601,14 +2633,14 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     s, s->new_picture.data[0] + s->mb_x*16 + s->mb_y*s->linesize*16,
                     s->dest[0], w, h, s->linesize);
                 s->current_picture.error[1] += sse(
-                    s, s->new_picture.data[1] + s->mb_x*8  + s->mb_y*s->uvlinesize*8,
-                    s->dest[1], w>>1, h>>1, s->uvlinesize);
+                    s, s->new_picture.data[1] + s->mb_x*8  + s->mb_y*s->uvlinesize*chr_h,
+                    s->dest[1], w>>1, h>>s->chroma_y_shift, s->uvlinesize);
                 s->current_picture.error[2] += sse(
-                    s, s->new_picture    .data[2] + s->mb_x*8  + s->mb_y*s->uvlinesize*8,
-                    s->dest[2], w>>1, h>>1, s->uvlinesize);
+                    s, s->new_picture.data[2] + s->mb_x*8  + s->mb_y*s->uvlinesize*chr_h,
+                    s->dest[2], w>>1, h>>s->chroma_y_shift, s->uvlinesize);
             }
             if(s->loop_filter){
-                if(ENABLE_ANY_H263_ENCODER && s->out_format == FMT_H263)
+                if(CONFIG_H263_ENCODER && s->out_format == FMT_H263)
                     ff_h263_loop_filter(s);
             }
 //printf("MB %d %d bits\n", s->mb_x+s->mb_y*s->mb_stride, put_bits_count(&s->pb));
@@ -2616,7 +2648,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
     }
 
     //not beautiful here but we must write it before flushing so it has to be here
-    if (ENABLE_MSMPEG4_ENCODER && s->msmpeg4_version && s->msmpeg4_version<4 && s->pict_type == FF_I_TYPE)
+    if (CONFIG_MSMPEG4_ENCODER && s->msmpeg4_version && s->msmpeg4_version<4 && s->pict_type == AV_PICTURE_TYPE_I)
         msmpeg4_encode_ext_header(s);
 
     write_slice_end(s);
@@ -2624,7 +2656,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
     /* Send the last GOB if RTP */
     if (s->avctx->rtp_callback) {
         int number_mb = (mb_y - s->resync_mb_y)*s->mb_width - s->resync_mb_x;
-        pdif = pbBufPtr(&s->pb) - s->ptr_lastgob;
+        pdif = put_bits_ptr(&s->pb) - s->ptr_lastgob;
         /* Call the RTP callback to send the last GOB */
         emms_c();
         s->avctx->rtp_callback(s->avctx, s->ptr_lastgob, pdif, number_mb);
@@ -2687,15 +2719,17 @@ static int estimate_qp(MpegEncContext *s, int dry_run){
     if(s->adaptive_quant){
         switch(s->codec_id){
         case CODEC_ID_MPEG4:
-            if (ENABLE_MPEG4_ENCODER)
+            if (CONFIG_MPEG4_ENCODER)
                 ff_clean_mpeg4_qscales(s);
             break;
         case CODEC_ID_H263:
         case CODEC_ID_H263P:
         case CODEC_ID_FLV1:
-            if (ENABLE_H263_ENCODER||ENABLE_H263P_ENCODER||ENABLE_FLV_ENCODER)
+            if (CONFIG_H263_ENCODER)
                 ff_clean_h263_qscales(s);
             break;
+        default:
+            ff_init_qscale_tab(s);
         }
 
         s->lambda= s->lambda_table[0];
@@ -2712,7 +2746,7 @@ static void set_frame_distances(MpegEncContext * s){
     assert(s->current_picture_ptr->pts != AV_NOPTS_VALUE);
     s->time= s->current_picture_ptr->pts*s->avctx->time_base.num;
 
-    if(s->pict_type==FF_B_TYPE){
+    if(s->pict_type==AV_PICTURE_TYPE_B){
         s->pb_time= s->pp_time - (s->last_non_b_time - s->time);
         assert(s->pb_time > 0 && s->pb_time < s->pp_time);
     }else{
@@ -2726,6 +2760,7 @@ static int encode_picture(MpegEncContext *s, int picture_number)
 {
     int i;
     int bits;
+    int context_count = s->avctx->thread_count;
 
     s->picture_number = picture_number;
 
@@ -2735,19 +2770,19 @@ static int encode_picture(MpegEncContext *s, int picture_number)
 
     /* we need to initialize some time vars before we can encode b-frames */
     // RAL: Condition added for MPEG1VIDEO
-    if (s->codec_id == CODEC_ID_MPEG1VIDEO || s->codec_id == CODEC_ID_MPEG2VIDEO || (s->h263_pred && !s->h263_msmpeg4))
+    if (s->codec_id == CODEC_ID_MPEG1VIDEO || s->codec_id == CODEC_ID_MPEG2VIDEO || (s->h263_pred && !s->msmpeg4_version))
         set_frame_distances(s);
-    if(ENABLE_MPEG4_ENCODER && s->codec_id == CODEC_ID_MPEG4)
+    if(CONFIG_MPEG4_ENCODER && s->codec_id == CODEC_ID_MPEG4)
         ff_set_mpeg4_time(s);
 
     s->me.scene_change_score=0;
 
 //    s->lambda= s->current_picture_ptr->quality; //FIXME qscale / ... stuff for ME rate distortion
 
-    if(s->pict_type==FF_I_TYPE){
+    if(s->pict_type==AV_PICTURE_TYPE_I){
         if(s->msmpeg4_version >= 3) s->no_rounding=1;
         else                        s->no_rounding=0;
-    }else if(s->pict_type!=FF_B_TYPE){
+    }else if(s->pict_type!=AV_PICTURE_TYPE_B){
         if(s->flipflop_rounding || s->codec_id == CODEC_ID_H263P || s->codec_id == CODEC_ID_MPEG4)
             s->no_rounding ^= 1;
     }
@@ -2757,7 +2792,7 @@ static int encode_picture(MpegEncContext *s, int picture_number)
             return -1;
         ff_get_2pass_fcode(s);
     }else if(!(s->flags & CODEC_FLAG_QSCALE)){
-        if(s->pict_type==FF_B_TYPE)
+        if(s->pict_type==AV_PICTURE_TYPE_B)
             s->lambda= s->last_lambda_for[s->pict_type];
         else
             s->lambda= s->last_lambda_for[s->last_non_b_pict_type];
@@ -2765,49 +2800,50 @@ static int encode_picture(MpegEncContext *s, int picture_number)
     }
 
     s->mb_intra=0; //for the rate distortion & bit compare functions
-    for(i=1; i<s->avctx->thread_count; i++){
+    for(i=1; i<context_count; i++){
         ff_update_duplicate_context(s->thread_context[i], s);
     }
 
-    ff_init_me(s);
+    if(ff_init_me(s)<0)
+        return -1;
 
     /* Estimate motion for every MB */
-    if(s->pict_type != FF_I_TYPE){
+    if(s->pict_type != AV_PICTURE_TYPE_I){
         s->lambda = (s->lambda * s->avctx->me_penalty_compensation + 128)>>8;
         s->lambda2= (s->lambda2* (int64_t)s->avctx->me_penalty_compensation + 128)>>8;
-        if(s->pict_type != FF_B_TYPE && s->avctx->me_threshold==0){
-            if((s->avctx->pre_me && s->last_non_b_pict_type==FF_I_TYPE) || s->avctx->pre_me==2){
-                s->avctx->execute(s->avctx, pre_estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
+        if(s->pict_type != AV_PICTURE_TYPE_B && s->avctx->me_threshold==0){
+            if((s->avctx->pre_me && s->last_non_b_pict_type==AV_PICTURE_TYPE_I) || s->avctx->pre_me==2){
+                s->avctx->execute(s->avctx, pre_estimate_motion_thread, &s->thread_context[0], NULL, context_count, sizeof(void*));
             }
         }
 
-        s->avctx->execute(s->avctx, estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
-    }else /* if(s->pict_type == FF_I_TYPE) */{
+        s->avctx->execute(s->avctx, estimate_motion_thread, &s->thread_context[0], NULL, context_count, sizeof(void*));
+    }else /* if(s->pict_type == AV_PICTURE_TYPE_I) */{
         /* I-Frame */
         for(i=0; i<s->mb_stride*s->mb_height; i++)
             s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
 
         if(!s->fixed_qscale){
             /* finding spatial complexity for I-frame rate control */
-            s->avctx->execute(s->avctx, mb_var_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
+            s->avctx->execute(s->avctx, mb_var_thread, &s->thread_context[0], NULL, context_count, sizeof(void*));
         }
     }
-    for(i=1; i<s->avctx->thread_count; i++){
+    for(i=1; i<context_count; i++){
         merge_context_after_me(s, s->thread_context[i]);
     }
     s->current_picture.mc_mb_var_sum= s->current_picture_ptr->mc_mb_var_sum= s->me.mc_mb_var_sum_temp;
     s->current_picture.   mb_var_sum= s->current_picture_ptr->   mb_var_sum= s->me.   mb_var_sum_temp;
     emms_c();
 
-    if(s->me.scene_change_score > s->avctx->scenechange_threshold && s->pict_type == FF_P_TYPE){
-        s->pict_type= FF_I_TYPE;
+    if(s->me.scene_change_score > s->avctx->scenechange_threshold && s->pict_type == AV_PICTURE_TYPE_P){
+        s->pict_type= AV_PICTURE_TYPE_I;
         for(i=0; i<s->mb_stride*s->mb_height; i++)
             s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
 //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
     }
 
     if(!s->umvplus){
-        if(s->pict_type==FF_P_TYPE || s->pict_type==FF_S_TYPE) {
+        if(s->pict_type==AV_PICTURE_TYPE_P || s->pict_type==AV_PICTURE_TYPE_S) {
             s->f_code= ff_get_best_fcode(s, s->p_mv_table, CANDIDATE_MB_TYPE_INTER);
 
             if(s->flags & CODEC_FLAG_INTERLACED_ME){
@@ -2829,7 +2865,7 @@ static int encode_picture(MpegEncContext *s, int picture_number)
             }
         }
 
-        if(s->pict_type==FF_B_TYPE){
+        if(s->pict_type==AV_PICTURE_TYPE_B){
             int a, b;
 
             a = ff_get_best_fcode(s, s->b_forw_mv_table, CANDIDATE_MB_TYPE_FORWARD);
@@ -2863,17 +2899,19 @@ static int encode_picture(MpegEncContext *s, int picture_number)
     if (estimate_qp(s, 0) < 0)
         return -1;
 
-    if(s->qscale < 3 && s->max_qcoeff<=128 && s->pict_type==FF_I_TYPE && !(s->flags & CODEC_FLAG_QSCALE))
+    if(s->qscale < 3 && s->max_qcoeff<=128 && s->pict_type==AV_PICTURE_TYPE_I && !(s->flags & CODEC_FLAG_QSCALE))
         s->qscale= 3; //reduce clipping problems
 
     if (s->out_format == FMT_MJPEG) {
         /* for mjpeg, we do include qscale in the matrix */
-        s->intra_matrix[0] = ff_mpeg1_default_intra_matrix[0];
         for(i=1;i<64;i++){
             int j= s->dsp.idct_permutation[i];
 
             s->intra_matrix[j] = av_clip_uint8((ff_mpeg1_default_intra_matrix[i] * s->qscale) >> 3);
         }
+        s->y_dc_scale_table=
+        s->c_dc_scale_table= ff_mpeg2_dc_scale_table[s->intra_dc_precision];
+        s->intra_matrix[0] = ff_mpeg2_dc_scale_table[s->intra_dc_precision][8];
         ff_convert_matrix(&s->dsp, s->q_intra_matrix, s->q_intra_matrix16,
                        s->intra_matrix, s->intra_quant_bias, 8, 8, 1);
         s->qscale= 8;
@@ -2881,7 +2919,7 @@ static int encode_picture(MpegEncContext *s, int picture_number)
 
     //FIXME var duplication
     s->current_picture_ptr->key_frame=
-    s->current_picture.key_frame= s->pict_type == FF_I_TYPE; //FIXME pic_ptr
+    s->current_picture.key_frame= s->pict_type == AV_PICTURE_TYPE_I; //FIXME pic_ptr
     s->current_picture_ptr->pict_type=
     s->current_picture.pict_type= s->pict_type;
 
@@ -2891,31 +2929,31 @@ static int encode_picture(MpegEncContext *s, int picture_number)
     s->last_bits= put_bits_count(&s->pb);
     switch(s->out_format) {
     case FMT_MJPEG:
-        if (ENABLE_MJPEG_ENCODER)
+        if (CONFIG_MJPEG_ENCODER)
             ff_mjpeg_encode_picture_header(s);
         break;
     case FMT_H261:
-        if (ENABLE_H261_ENCODER)
+        if (CONFIG_H261_ENCODER)
             ff_h261_encode_picture_header(s, picture_number);
         break;
     case FMT_H263:
-        if (ENABLE_WMV2_ENCODER && s->codec_id == CODEC_ID_WMV2)
+        if (CONFIG_WMV2_ENCODER && s->codec_id == CODEC_ID_WMV2)
             ff_wmv2_encode_picture_header(s, picture_number);
-        else if (ENABLE_MSMPEG4_ENCODER && s->h263_msmpeg4)
+        else if (CONFIG_MSMPEG4_ENCODER && s->msmpeg4_version)
             msmpeg4_encode_picture_header(s, picture_number);
-        else if (ENABLE_MPEG4_ENCODER && s->h263_pred)
+        else if (CONFIG_MPEG4_ENCODER && s->h263_pred)
             mpeg4_encode_picture_header(s, picture_number);
-        else if (ENABLE_RV10_ENCODER && s->codec_id == CODEC_ID_RV10)
+        else if (CONFIG_RV10_ENCODER && s->codec_id == CODEC_ID_RV10)
             rv10_encode_picture_header(s, picture_number);
-        else if (ENABLE_RV20_ENCODER && s->codec_id == CODEC_ID_RV20)
+        else if (CONFIG_RV20_ENCODER && s->codec_id == CODEC_ID_RV20)
             rv20_encode_picture_header(s, picture_number);
-        else if (ENABLE_FLV_ENCODER && s->codec_id == CODEC_ID_FLV1)
+        else if (CONFIG_FLV_ENCODER && s->codec_id == CODEC_ID_FLV1)
             ff_flv_encode_picture_header(s, picture_number);
-        else if (ENABLE_ANY_H263_ENCODER)
-            h263_encode_picture_header(s, picture_number);
+        else if (CONFIG_H263_ENCODER)
+            ff_h263_encode_picture_header(s, picture_number);
         break;
     case FMT_MPEG1:
-        if (ENABLE_MPEG1VIDEO_ENCODER || ENABLE_MPEG2VIDEO_ENCODER)
+        if (CONFIG_MPEG1VIDEO_ENCODER || CONFIG_MPEG2VIDEO_ENCODER)
             mpeg1_encode_picture_header(s, picture_number);
         break;
     case FMT_H264:
@@ -2926,18 +2964,18 @@ static int encode_picture(MpegEncContext *s, int picture_number)
     bits= put_bits_count(&s->pb);
     s->header_bits= bits - s->last_bits;
 
-    for(i=1; i<s->avctx->thread_count; i++){
+    for(i=1; i<context_count; i++){
         update_duplicate_context_after_me(s->thread_context[i], s);
     }
-    s->avctx->execute(s->avctx, encode_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
-    for(i=1; i<s->avctx->thread_count; i++){
+    s->avctx->execute(s->avctx, encode_thread, &s->thread_context[0], NULL, context_count, sizeof(void*));
+    for(i=1; i<context_count; i++){
         merge_context_after_encode(s, s->thread_context[i]);
     }
     emms_c();
     return 0;
 }
 
-void  denoise_dct_c(MpegEncContext *s, DCTELEM *block){
+static void denoise_dct_c(MpegEncContext *s, DCTELEM *block){
     const int intra= s->mb_intra;
     int i;
 
@@ -2961,9 +2999,9 @@ void  denoise_dct_c(MpegEncContext *s, DCTELEM *block){
     }
 }
 
-int dct_quantize_trellis_c(MpegEncContext *s,
-                        DCTELEM *block, int n,
-                        int qscale, int *overflow){
+static int dct_quantize_trellis_c(MpegEncContext *s,
+                                  DCTELEM *block, int n,
+                                  int qscale, int *overflow){
     const int *qmat;
     const uint8_t *scantable= s->intra_scantable.scantable;
     const uint8_t *perm_scantable= s->intra_scantable.permutated;
@@ -3087,7 +3125,7 @@ int dct_quantize_trellis_c(MpegEncContext *s,
             || s->dsp.fdct == ff_faandct
 #endif
            )
-            dct_coeff= (dct_coeff*inv_aanscales[ scantable[i] ]) >> 12;
+            dct_coeff= (dct_coeff*ff_inv_aanscales[ scantable[i] ]) >> 12;
         zero_distortion= dct_coeff*dct_coeff;
 
         for(level_index=0; level_index < coeff_count[i]; level_index++){
@@ -3283,8 +3321,7 @@ static int dct_quantize_refine(MpegEncContext *s, //FIXME breaks denoise?
                         DCTELEM *block, int16_t *weight, DCTELEM *orig,
                         int n, int qscale){
     int16_t rem[64];
-    DECLARE_ALIGNED_16(DCTELEM, d1[64]);
-    const int *qmat;
+    LOCAL_ALIGNED_16(DCTELEM, d1, [64]);
     const uint8_t *scantable= s->intra_scantable.scantable;
     const uint8_t *perm_scantable= s->intra_scantable.permutated;
 //    unsigned int threshold1, threshold2;
@@ -3328,7 +3365,6 @@ static int messed_sign=0;
         dc= block[0]*q;
 //        block[0] = (block[0] + (q >> 1)) / q;
         start_i = 1;
-        qmat = s->q_intra_matrix[qscale];
 //        if(s->mpeg_quant || s->out_format == FMT_MPEG1)
 //            bias= 1<<(QMAT_SHIFT-1);
         length     = s->intra_ac_vlc_length;
@@ -3336,7 +3372,6 @@ static int messed_sign=0;
     } else {
         dc= 0;
         start_i = 0;
-        qmat = s->q_inter_matrix[qscale];
         length     = s->inter_ac_vlc_length;
         last_length= s->inter_ac_vlc_last_length;
     }
@@ -3735,123 +3770,63 @@ int dct_quantize_c(MpegEncContext *s,
     return last_non_zero;
 }
 
-AVCodec h263_encoder = {
+AVCodec ff_h263_encoder = {
     "h263",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_H263,
     sizeof(MpegEncContext),
     MPV_encode_init,
     MPV_encode_picture,
     MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "H.263",
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
+    .long_name= NULL_IF_CONFIG_SMALL("H.263 / H.263-1996"),
 };
 
-AVCodec h263p_encoder = {
+AVCodec ff_h263p_encoder = {
     "h263p",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_H263P,
     sizeof(MpegEncContext),
     MPV_encode_init,
     MPV_encode_picture,
     MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "H.263+ / H.263 version 2",
+    .capabilities = CODEC_CAP_SLICE_THREADS,
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
+    .long_name= NULL_IF_CONFIG_SMALL("H.263+ / H.263-1998 / H.263 version 2"),
 };
 
-AVCodec flv_encoder = {
-    "flv",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_FLV1,
-    sizeof(MpegEncContext),
-    MPV_encode_init,
-    MPV_encode_picture,
-    MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "Flash Video",
-};
-
-AVCodec rv10_encoder = {
-    "rv10",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_RV10,
-    sizeof(MpegEncContext),
-    MPV_encode_init,
-    MPV_encode_picture,
-    MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "RealVideo 1.0",
-};
-
-AVCodec rv20_encoder = {
-    "rv20",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_RV20,
-    sizeof(MpegEncContext),
-    MPV_encode_init,
-    MPV_encode_picture,
-    MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "RealVideo 2.0",
-};
-
-AVCodec mpeg4_encoder = {
-    "mpeg4",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_MPEG4,
-    sizeof(MpegEncContext),
-    MPV_encode_init,
-    MPV_encode_picture,
-    MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .capabilities= CODEC_CAP_DELAY,
-    .long_name= "MPEG-4 part 2",
-};
-
-AVCodec msmpeg4v1_encoder = {
-    "msmpeg4v1",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_MSMPEG4V1,
-    sizeof(MpegEncContext),
-    MPV_encode_init,
-    MPV_encode_picture,
-    MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "MPEG-4 part 2 Microsoft variant version 1",
-};
-
-AVCodec msmpeg4v2_encoder = {
+AVCodec ff_msmpeg4v2_encoder = {
     "msmpeg4v2",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_MSMPEG4V2,
     sizeof(MpegEncContext),
     MPV_encode_init,
     MPV_encode_picture,
     MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "MPEG-4 part 2 Microsoft variant version 2",
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
+    .long_name= NULL_IF_CONFIG_SMALL("MPEG-4 part 2 Microsoft variant version 2"),
 };
 
-AVCodec msmpeg4v3_encoder = {
+AVCodec ff_msmpeg4v3_encoder = {
     "msmpeg4",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_MSMPEG4V3,
     sizeof(MpegEncContext),
     MPV_encode_init,
     MPV_encode_picture,
     MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "MPEG-4 part 2 Microsoft variant version 3",
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
+    .long_name= NULL_IF_CONFIG_SMALL("MPEG-4 part 2 Microsoft variant version 3"),
 };
 
-AVCodec wmv1_encoder = {
+AVCodec ff_wmv1_encoder = {
     "wmv1",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_WMV1,
     sizeof(MpegEncContext),
     MPV_encode_init,
     MPV_encode_picture,
     MPV_encode_end,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= "Windows Media Video 7",
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
+    .long_name= NULL_IF_CONFIG_SMALL("Windows Media Video 7"),
 };

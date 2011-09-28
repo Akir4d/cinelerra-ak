@@ -2,95 +2,90 @@
 # common bits used by all libraries
 #
 
-all: # make "all" default target
+# first so "all" becomes default target
+all: all-yes
 
 ifndef SUBDIR
-vpath %.c $(SRC_DIR)
-vpath %.h $(SRC_DIR)
-vpath %.S $(SRC_DIR)
 
-ALLFFLIBS = avcodec avdevice avfilter avformat avutil postproc swscale
-
-CFLAGS = -DHAVE_AV_CONFIG_H -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE \
-         -D_ISOC9X_SOURCE -I$(BUILD_ROOT) -I$(SRC_PATH) $(OPTFLAGS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) $(LIBOBJFLAGS) -c -o $@ $<
-
-%.o: %.S
-	$(CC) $(CFLAGS) $(LIBOBJFLAGS) -c -o $@ $<
-
-%.ho: %.h
-	$(CC) $(CFLAGS) $(LIBOBJFLAGS) -Wno-unused -c -o $@ -x c $<
-
-%.d: %.c
-	$(DEPEND_CMD) > $@
-
-%.d: %.S
-	$(DEPEND_CMD) > $@
-
-%.d: %.cpp
-	$(DEPEND_CMD) > $@
-
-%$(EXESUF): %.c
-
-install: install-libs
-
-uninstall: uninstall-libs
-
-.PHONY: all depend dep clean distclean install* uninstall* tests
+ifndef V
+Q      = @
+ECHO   = printf "$(1)\t%s\n" $(2)
+BRIEF  = CC AS YASM AR LD HOSTCC STRIP CP
+SILENT = DEPCC YASMDEP RM RANLIB
+MSG    = $@
+M      = @$(call ECHO,$(TAG),$@);
+$(foreach VAR,$(BRIEF), \
+    $(eval override $(VAR) = @$$(call ECHO,$(VAR),$$(MSG)); $($(VAR))))
+$(foreach VAR,$(SILENT),$(eval override $(VAR) = @$($(VAR))))
+$(eval INSTALL = @$(call ECHO,INSTALL,$$(^:$(SRC_DIR)/%=%)); $(INSTALL))
 endif
 
-CFLAGS   += $(CFLAGS-yes)
-OBJS     += $(OBJS-yes)
-ASM_OBJS += $(ASM_OBJS-yes)
-CPP_OBJS += $(CPP_OBJS-yes)
-FFLIBS   := $(FFLIBS-yes) $(FFLIBS)
-TESTS    += $(TESTS-yes)
+IFLAGS   := -I. -I$(SRC_PATH)
+CPPFLAGS := $(IFLAGS) $(CPPFLAGS)
+CFLAGS   += $(ECFLAGS)
+YASMFLAGS += $(IFLAGS) -Pconfig.asm
+
+HOSTCFLAGS += $(IFLAGS)
+
+%.o: %.c
+	$(CCDEP)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(CC_DEPFLAGS) -c $(CC_O) $<
+
+%.o: %.S
+	$(ASDEP)
+	$(AS) $(CPPFLAGS) $(ASFLAGS) $(AS_DEPFLAGS) -c -o $@ $<
+
+%.ho: %.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -Wno-unused -c -o $@ -x c $<
+
+%.ver: %.v
+	$(Q)sed 's/$$MAJOR/$($(basename $(@F))_VERSION_MAJOR)/' $^ > $@
+
+%.c %.h: TAG = GEN
+
+# Dummy rule to stop make trying to rebuild removed or renamed headers
+%.h:
+	@:
+
+# Disable suffix rules.  Most of the builtin rules are suffix rules,
+# so this saves some time on slow systems.
+.SUFFIXES:
+
+# Do not delete intermediate files from chains of implicit rules
+$(OBJS):
+endif
+
+OBJS-$(HAVE_MMX) +=  $(MMX-OBJS-yes)
+
+OBJS      += $(OBJS-yes)
+FFLIBS    := $(FFLIBS-yes) $(FFLIBS)
+TESTPROGS += $(TESTPROGS-yes)
 
 FFEXTRALIBS := $(addprefix -l,$(addsuffix $(BUILDSUF),$(FFLIBS))) $(EXTRALIBS)
-FFLDFLAGS   := $(addprefix -L$(BUILD_ROOT)/lib,$(FFLIBS)) $(LDFLAGS)
+FFLDFLAGS   := $(addprefix -Llib,$(ALLFFLIBS)) $(LDFLAGS)
 
-SRCS := $(OBJS:.o=.c) $(ASM_OBJS:.o=.S) $(CPP_OBJS:.o=.cpp)
-OBJS := $(OBJS) $(ASM_OBJS) $(CPP_OBJS)
+EXAMPLES  := $(addprefix $(SUBDIR),$(addsuffix -example$(EXESUF),$(EXAMPLES)))
+OBJS      := $(addprefix $(SUBDIR),$(sort $(OBJS)))
+TESTOBJS  := $(addprefix $(SUBDIR),$(TESTOBJS) $(TESTPROGS:%=%-test.o))
+TESTPROGS := $(addprefix $(SUBDIR),$(addsuffix -test$(EXESUF),$(TESTPROGS)))
+HOSTOBJS  := $(addprefix $(SUBDIR),$(addsuffix .o,$(HOSTPROGS)))
+HOSTPROGS := $(addprefix $(SUBDIR),$(addsuffix $(HOSTEXESUF),$(HOSTPROGS)))
 
-SRCS  := $(addprefix $(SUBDIR),$(SRCS))
-OBJS  := $(addprefix $(SUBDIR),$(OBJS))
-TESTS := $(addprefix $(SUBDIR),$(TESTS))
+DEP_LIBS := $(foreach NAME,$(FFLIBS),lib$(NAME)/$($(CONFIG_SHARED:yes=S)LIBNAME))
 
-DEP_LIBS:=$(foreach NAME,$(FFLIBS),lib$(NAME)/$($(BUILD_SHARED:yes=S)LIBNAME))
+ALLHEADERS := $(subst $(SRC_DIR)/,$(SUBDIR),$(wildcard $(SRC_DIR)/*.h $(SRC_DIR)/$(ARCH)/*.h))
+SKIPHEADERS += $(addprefix $(ARCH)/,$(ARCH_HEADERS))
+SKIPHEADERS := $(addprefix $(SUBDIR),$(SKIPHEADERS-) $(SKIPHEADERS))
+checkheaders: $(filter-out $(SKIPHEADERS:.h=.ho),$(ALLHEADERS:.h=.ho))
 
-ALLHEADERS := $(subst $(SRC_DIR)/,$(SUBDIR),$(wildcard $(SRC_DIR)/*.h))
-checkheaders: $(filter-out %_template.ho,$(ALLHEADERS:.h=.ho))
+$(HOSTOBJS): %.o: %.c
+	$(HOSTCC) $(HOSTCFLAGS) -c -o $@ $<
 
-DEPS := $(OBJS:.o=.d)
-depend dep: $(DEPS)
+$(HOSTPROGS): %$(HOSTEXESUF): %.o
+	$(HOSTCC) $(HOSTLDFLAGS) -o $@ $< $(HOSTLIBS)
 
-CLEANSUFFIXES = *.o *~ *.ho
-LIBSUFFIXES   = *.a *.lib *.so *.so.* *.dylib *.dll *.def *.dll.a *.exp *.map
-DISTCLEANSUFFIXES = *.d
+CLEANSUFFIXES     = *.d *.o *~ *.ho *.map *.ver
+DISTCLEANSUFFIXES = *.pc
+LIBSUFFIXES       = *.a *.lib *.so *.so.* *.dylib *.dll *.def *.dll.a *.exp
 
-define RULES
-$(SUBDIR)%$(EXESUF): $(SUBDIR)%.o
-	$(CC) $(FFLDFLAGS) -o $$@ $$^ $(SUBDIR)$(LIBNAME) $(FFEXTRALIBS)
-
-$(SUBDIR)%-test.o: $(SUBDIR)%.c
-	$(CC) $(CFLAGS) -DTEST -c -o $$@ $$^
-
-$(SUBDIR)%-test.o: $(SUBDIR)%-test.c
-	$(CC) $(CFLAGS) -DTEST -c -o $$@ $$^
-
-clean::
-	rm -f $(TESTS) $(addprefix $(SUBDIR),$(CLEANFILES) $(CLEANSUFFIXES) $(LIBSUFFIXES)) \
-	    $(addprefix $(SUBDIR), $(foreach suffix,$(CLEANSUFFIXES),$(addsuffix /$(suffix),$(DIRS))))
-
-distclean:: clean
-	rm -f  $(addprefix $(SUBDIR),$(DISTCLEANSUFFIXES)) \
-            $(addprefix $(SUBDIR), $(foreach suffix,$(DISTCLEANSUFFIXES),$(addsuffix /$(suffix),$(DIRS))))
-endef
-
-$(eval $(RULES))
-
-tests: $(TESTS)
-
--include $(DEPS)
+-include $(wildcard $(OBJS:.o=.d) $(TESTOBJS:.o=.d))

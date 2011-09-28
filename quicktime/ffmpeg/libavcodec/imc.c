@@ -22,7 +22,8 @@
  */
 
 /**
- *  @file imc.c IMC - Intel Music Coder
+ *  @file
+ *  IMC - Intel Music Coder
  *  A mdct based codec using a 256 points large transform
  *  divied into 32 bands with some mix of scale factors.
  *  Only mono is supported.
@@ -36,8 +37,11 @@
 
 #define ALT_BITSTREAM_READER
 #include "avcodec.h"
-#include "bitstream.h"
+#include "get_bits.h"
 #include "dsputil.h"
+#include "fft.h"
+#include "libavutil/audioconvert.h"
+#include "sinewin.h"
 
 #include "imcdata.h"
 
@@ -79,22 +83,35 @@ typedef struct {
     int codewords[COEFFS];     ///< raw codewords read from bitstream
     float sqrt_tab[30];
     GetBitContext gb;
-    VLC huffman_vlc[4][4];
     int decoder_reset;
     float one_div_log2;
 
     DSPContext dsp;
     FFTContext fft;
-    DECLARE_ALIGNED_16(FFTComplex, samples[COEFFS/2]);
-    DECLARE_ALIGNED_16(float, out_samples[COEFFS]);
+    DECLARE_ALIGNED(32, FFTComplex, samples)[COEFFS/2];
+    float *out_samples;
 } IMCContext;
 
+static VLC huffman_vlc[4][4];
+
+#define VLC_TABLES_SIZE 9512
+
+static const int vlc_offsets[17] = {
+    0,     640, 1156, 1732, 2308, 2852, 3396, 3924,
+    4452, 5220, 5860, 6628, 7268, 7908, 8424, 8936, VLC_TABLES_SIZE};
+
+static VLC_TYPE vlc_tables[VLC_TABLES_SIZE][2];
 
 static av_cold int imc_decode_init(AVCodecContext * avctx)
 {
-    int i, j;
+    int i, j, ret;
     IMCContext *q = avctx->priv_data;
     double r1, r2;
+
+    if (avctx->channels != 1) {
+        av_log_ask_for_sample(avctx, "Number of channels is not supported\n");
+        return AVERROR_PATCHWELCOME;
+    }
 
     q->decoder_reset = 1;
 
@@ -102,11 +119,12 @@ static av_cold int imc_decode_init(AVCodecContext * avctx)
         q->old_floor[i] = 1.0;
 
     /* Build mdct window, a simple sine window normalized with sqrt(2) */
+    ff_sine_window_init(q->mdct_sine_window, COEFFS);
     for(i = 0; i < COEFFS; i++)
-        q->mdct_sine_window[i] = sin((i + 0.5) / 512.0 * M_PI) * sqrt(2.0);
+        q->mdct_sine_window[i] *= sqrt(2.0);
     for(i = 0; i < COEFFS/2; i++){
-        q->post_cos[i] = cos(i / 256.0 * M_PI);
-        q->post_sin[i] = sin(i / 256.0 * M_PI);
+        q->post_cos[i] = (1.0f / 32768) * cos(i / 256.0 * M_PI);
+        q->post_sin[i] = (1.0f / 32768) * sin(i / 256.0 * M_PI);
 
         r1 = sin((i * 4.0 + 1.0) / 1024.0 * M_PI);
         r2 = cos((i * 4.0 + 1.0) / 1024.0 * M_PI);
@@ -134,15 +152,22 @@ static av_cold int imc_decode_init(AVCodecContext * avctx)
     /* initialize the VLC tables */
     for(i = 0; i < 4 ; i++) {
         for(j = 0; j < 4; j++) {
-            init_vlc (&q->huffman_vlc[i][j], 9, imc_huffman_sizes[i],
+            huffman_vlc[i][j].table = &vlc_tables[vlc_offsets[i * 4 + j]];
+            huffman_vlc[i][j].table_allocated = vlc_offsets[i * 4 + j + 1] - vlc_offsets[i * 4 + j];
+            init_vlc(&huffman_vlc[i][j], 9, imc_huffman_sizes[i],
                      imc_huffman_lens[i][j], 1, 1,
-                     imc_huffman_bits[i][j], 2, 2, 1);
+                     imc_huffman_bits[i][j], 2, 2, INIT_VLC_USE_NEW_STATIC);
         }
     }
     q->one_div_log2 = 1/log(2);
 
-    ff_fft_init(&q->fft, 7, 1);
+    if ((ret = ff_fft_init(&q->fft, 7, 1))) {
+        av_log(avctx, AV_LOG_INFO, "FFT init failed\n");
+        return ret;
+    }
     dsputil_init(&q->dsp, avctx);
+    avctx->sample_fmt = AV_SAMPLE_FMT_FLT;
+    avctx->channel_layout = (avctx->channels==2) ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO;
     return 0;
 }
 
@@ -209,10 +234,10 @@ static void imc_read_level_coeffs(IMCContext* q, int stream_format_code, int* le
     int s;
 
     s = stream_format_code >> 1;
-    hufftab[0] = &q->huffman_vlc[s][0];
-    hufftab[1] = &q->huffman_vlc[s][1];
-    hufftab[2] = &q->huffman_vlc[s][2];
-    hufftab[3] = &q->huffman_vlc[s][3];
+    hufftab[0] = &huffman_vlc[s][0];
+    hufftab[1] = &huffman_vlc[s][1];
+    hufftab[2] = &huffman_vlc[s][2];
+    hufftab[3] = &huffman_vlc[s][3];
     cb_sel = imc_cb_select[s];
 
     if(stream_format_code & 4)
@@ -347,7 +372,7 @@ static int bit_allocation (IMCContext* q, int stream_format_code, int freebits, 
         iacc = 0;
 
         for(j = (stream_format_code & 0x2)?4:0; j < BANDS; j++) {
-            cwlen = av_clip((int)((q->flcoeffs4[j] * 0.5) - summa + 0.5), 0, 6);
+            cwlen = av_clipf(((q->flcoeffs4[j] * 0.5) - summa + 0.5), 0, 6);
 
             q->bitsBandT[j] = cwlen;
             summer += q->bandWidthT[j] * cwlen;
@@ -548,8 +573,8 @@ static void imc_imdct256(IMCContext *q) {
     }
 
     /* FFT */
-    ff_fft_permute(&q->fft, q->samples);
-    ff_fft_calc (&q->fft, q->samples);
+    q->fft.fft_permute(&q->fft, q->samples);
+    q->fft.fft_calc   (&q->fft, q->samples);
 
     /* postrotation, window and reorder */
     for(i = 0; i < COEFFS/2; i++){
@@ -626,8 +651,10 @@ static int imc_get_coeffs (IMCContext* q) {
 
 static int imc_decode_frame(AVCodecContext * avctx,
                             void *data, int *data_size,
-                            const uint8_t * buf, int buf_size)
+                            AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
 
     IMCContext *q = avctx->priv_data;
 
@@ -643,8 +670,9 @@ static int imc_decode_frame(AVCodecContext * avctx,
         return -1;
     }
     for(i = 0; i < IMC_BLOCK_SIZE / 2; i++)
-        buf16[i] = bswap_16(((const uint16_t*)buf)[i]);
+        buf16[i] = av_bswap16(((const uint16_t*)buf)[i]);
 
+    q->out_samples = data;
     init_get_bits(&q->gb, (const uint8_t*)buf16, IMC_BLOCK_SIZE * 8);
 
     /* Check the frame header */
@@ -788,9 +816,7 @@ static int imc_decode_frame(AVCodecContext * avctx,
 
     imc_imdct256(q);
 
-    q->dsp.float_to_int16(data, q->out_samples, COEFFS);
-
-    *data_size = COEFFS * sizeof(int16_t);
+    *data_size = COEFFS * sizeof(float);
 
     return IMC_BLOCK_SIZE;
 }
@@ -805,13 +831,13 @@ static av_cold int imc_decode_close(AVCodecContext * avctx)
 }
 
 
-AVCodec imc_decoder = {
+AVCodec ff_imc_decoder = {
     .name = "imc",
-    .type = CODEC_TYPE_AUDIO,
+    .type = AVMEDIA_TYPE_AUDIO,
     .id = CODEC_ID_IMC,
     .priv_data_size = sizeof(IMCContext),
     .init = imc_decode_init,
     .close = imc_decode_close,
     .decode = imc_decode_frame,
-    .long_name = "IMC (Intel Music Coder)",
+    .long_name = NULL_IF_CONFIG_SMALL("IMC (Intel Music Coder)"),
 };

@@ -21,12 +21,12 @@
  */
 
 /**
- * @file jpegls.h
+ * @file
  * JPEG-LS common code.
  */
 
-#ifndef FFMPEG_JPEGLS_H
-#define FFMPEG_JPEGLS_H
+#ifndef AVCODEC_JPEGLS_H
+#define AVCODEC_JPEGLS_H
 
 #include "avcodec.h"
 
@@ -86,6 +86,8 @@ static inline void ff_jpegls_downscale_state(JLSState *state, int Q){
 }
 
 static inline int ff_jpegls_update_state_regular(JLSState *state, int Q, int err){
+    if(FFABS(err) > 0xFFFF)
+        return -0x10000;
     state->A[Q] += FFABS(err);
     err *= state->twonear;
     state->B[Q] += err;
@@ -108,4 +110,4 @@ static inline int ff_jpegls_update_state_regular(JLSState *state, int Q, int err
 #define R(a, i   ) (bits == 8 ?  ((uint8_t*)(a))[i]    :  ((uint16_t*)(a))[i]  )
 #define W(a, i, v) (bits == 8 ? (((uint8_t*)(a))[i]=v) : (((uint16_t*)(a))[i]=v))
 
-#endif /* FFMPEG_JPEGLS_H */
+#endif /* AVCODEC_JPEGLS_H */

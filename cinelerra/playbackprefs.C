@@ -154,6 +154,12 @@ SET_TRACE
 SET_TRACE
  	add_subwindow(new BC_Title(x, y, _("Scaling equation:")));
 	y += 20;
+	add_subwindow(lanczos_lanczos = new PlaybackLanczosLanczos(pwindow, 
+		this, 
+		pwindow->thread->edl->session->interpolation_type == LANCZOS_LANCZOS, 
+		10, 
+		y));
+	y += 20;
 	add_subwindow(nearest_neighbor = new PlaybackNearest(pwindow, 
 		this, 
 		pwindow->thread->edl->session->interpolation_type == NEAREST_NEIGHBOR, 
@@ -260,7 +266,7 @@ void PlaybackPrefs::update(int interpolation)
 {
 	pwindow->thread->edl->session->interpolation_type = interpolation;
 	nearest_neighbor->update(interpolation == NEAREST_NEIGHBOR);
-//	cubic_cubic->update(interpolation == CUBIC_CUBIC);
+        lanczos_lanczos->update(interpolation == LANCZOS_LANCZOS);
 	cubic_linear->update(interpolation == CUBIC_LINEAR);
 	linear_linear->update(interpolation == LINEAR_LINEAR);
 }
@@ -371,6 +377,22 @@ PlaybackNearest::PlaybackNearest(PreferencesWindow *pwindow, PlaybackPrefs *pref
 int PlaybackNearest::handle_event()
 {
 	prefs->update(NEAREST_NEIGHBOR);
+	return 1;
+}
+
+
+
+
+
+PlaybackLanczosLanczos::PlaybackLanczosLanczos(PreferencesWindow *pwindow, PlaybackPrefs *prefs, int value, int x, int y)
+ : BC_Radial(x, y, value, _("Lanczos enlarge and reduce"))
+{
+	this->pwindow = pwindow;
+	this->prefs = prefs;
+}
+int PlaybackLanczosLanczos::handle_event()
+{
+	prefs->update(LANCZOS_LANCZOS);
 	return 1;
 }
 

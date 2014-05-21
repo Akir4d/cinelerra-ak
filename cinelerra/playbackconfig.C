@@ -30,7 +30,11 @@ AudioOutConfig::AudioOutConfig(int duplex)
 	this->duplex = duplex;
 
 	fragment_size = 16384;
+#ifdef HAVE_ALSA
+	driver = AUDIO_ALSA;
+#else
 	driver = AUDIO_OSS;
+#endif
 
 	audio_offset = 0.0;
 
@@ -41,7 +45,7 @@ AudioOutConfig::AudioOutConfig(int duplex)
 		sprintf(oss_out_device[i], "/dev/dsp");
 	}
 
-	sprintf(esound_out_server, "");
+	esound_out_server[0] = 0;
 	esound_out_port = 0;
 
 	sprintf(alsa_out_device, "default");
@@ -260,7 +264,7 @@ VideoOutConfig::VideoOutConfig()
 	driver = PLAYBACK_X11_XV;
 	buz_out_channel = 0;
 	buz_swap_fields = 0;
-	sprintf(x11_host, "");
+	x11_host[0] = 0;
 	x11_use_fields = USE_NO_FIELDS;
 
 	firewire_channel = 63;

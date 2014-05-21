@@ -195,7 +195,7 @@ noinst_HEADERS = \
 	workarounds.h \
 	condition.h
 
-INCLUDES = -I$(top_srcdir)/quicktime
+AM_CPPFLAGS = -I$(top_srcdir)/quicktime
 AM_CXXFLAGS = $(LARGEFILE_CFLAGS) $(X_CFLAGS)
 LIBTOOL = $(SHELL) $(top_builddir)/libtool $(LTCXX_FLAGS)
 
@@ -209,7 +209,3 @@ bootstrap.$(OBJEXT): bootstrap.c
 	$(CC) $(BOOTSTRAP_CFLAGS) -c $<
 
 EXTRA_DIST = images pngtoh.c
-
-dist-hook:
-	-rm -rf $(distdir)/images/CVS
-	-rm -rf $(distdir)/images/7seg_small/CVS

@@ -1136,7 +1136,7 @@ TitleMain::~TitleMain()
 	if(translate) delete translate;
 }
 
-char* TitleMain::plugin_title() { return N_("Title"); }
+const char* TitleMain::plugin_title() { return N_("Title"); }
 int TitleMain::is_realtime() { return 1; }
 int TitleMain::is_synthesis() { return 1; }
 

@@ -567,7 +567,7 @@ XIC ic;		/* Used for retaining the state, properties, and semantics of communica
 private:
 // Create a window
 	virtual int create_window(BC_WindowBase *parent_window,
-				char *title, 
+				const char *title, 
 				int x,
 				int y,
 				int w, 

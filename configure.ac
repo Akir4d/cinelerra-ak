@@ -1,14 +1,16 @@
-AC_INIT(Cinelerra, 2.1.5)
+AC_INIT(Cinelerra, 2.2CV)
 
 AC_CANONICAL_SYSTEM
 
 # Test for minimal version of autoconf
 AC_PREREQ(2.57)
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADER(config.h)
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION(0.12.1)
+AC_CONFIG_MACRO_DIR([m4])
 AM_PROG_AS
 
 AC_LANG_CPLUSPLUS
@@ -25,6 +27,11 @@ LTCXX_FLAGS="--tag=CXX"
 AC_SUBST(LTC_FLAGS)
 AC_SUBST(LTCXX_FLAGS)
 
+dnl Check for nasm
+AC_CHECK_PROG(HAVE_NASM, nasm, yes)
+if test x$HAVE_NASM != "xyes"; then
+    AC_MSG_ERROR(nasm is missing. Please install it.)
+fi
 
 # hack for using nasm for .S files
 CCAS="\$(top_srcdir)/admin/nasm"
@@ -35,9 +42,8 @@ dnl Check for Video4Linux2
 AH_TEMPLATE(HAVE_VIDEO4LINUX2, [Define to 1 if Video4Linux2 is available.])
 AC_CHECK_HEADER([linux/videodev2.h], 
 	[AC_CHECK_MEMBER(struct v4l2_buffer.index, [AC_DEFINE(HAVE_VIDEO4LINUX2)], [],
-  		[#include <linux/time.h>
-#include <linux/videodev2.h>])],
-	[],[#include <linux/time.h>] )
+		[#include <linux/videodev2.h>])],
+	[],[] )
 
 ############## SPECIAL DIRECTORIES
 AC_ARG_WITH(plugindir,
@@ -458,8 +464,8 @@ AC_ARG_ENABLE(opengl,
 	AC_HELP_STRING([--disable-opengl],
 		[disables hardware accelerated rendering (default=autodetect, requires OpenGL 2.0)]),
 	[ enable_opengl=$enableval ],
-	[ enable_opengl=yes ])
-if test "x$enableval" = "xyes"; then
+	[ enable_opengl=auto ])
+if test "x$enable_opengl" = "xauto"; then
 	AC_CHECK_LIB([GL], [glUseProgram],
 		[OPENGL_LIBS="-lGL"; libGL=yes],
 # On SUSE/OpenSUSE, NVidia places the OpenGL 2.0 capable library in /usr/X11R6/lib
@@ -476,11 +482,18 @@ if test "x$enableval" = "xyes"; then
 		done
 		LIBS="$save_LIBS"
 	)
-fi
-if test "x$libGL" = "xyes"; then
-	enable_opengl=ok
-	OPENGL_LIBS="-lGLU $OPENGL_LIBS"
-	AC_DEFINE(HAVE_GL)
+	if test "x$libGL" = "xyes"; then
+		enable_opengl=ok
+		OPENGL_LIBS="-lGLU $OPENGL_LIBS"
+		AC_DEFINE(HAVE_GL)
+	fi
+else
+	if test "x$enable_opengl" = "xyes"; then
+		enable_opengl=ok
+		libGL=skip
+		OPENGL_LIBS="-lGLU -lGL"
+		AC_DEFINE(HAVE_GL)
+	fi
 fi
 AC_SUBST(OPENGL_LIBS)
 # END OpenGL
@@ -525,7 +538,8 @@ AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 					plugins/720to480/Makefile \
 					plugins/bandslide/Makefile \
 					plugins/bandwipe/Makefile 
-					plugins/blur/Makefile 
+					plugins/blur/Makefile \
+					plugins/bluebanana/Makefile \
 					plugins/brightness/Makefile \
 					plugins/burn/Makefile plugins/parametric/Makefile plugins/aging/Makefile \
 					plugins/cdripper/Makefile \
@@ -595,7 +609,10 @@ AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 					image/Makefile)
 
 succeeded=yes
-AC_DEFUN([RPT],[if test "x$$1" = "xyes"; then status=found; else status=missing; succeeded=no; fi
+AC_DEFUN([RPT],[if test "x$$1" = "xskip"; then status="not probed"
+elif test "x$$1" = "xyes"; then status=found
+else status=missing; succeeded=no
+fi
 echo "AC_HELP_STRING($2,$status)"])
 
 echo

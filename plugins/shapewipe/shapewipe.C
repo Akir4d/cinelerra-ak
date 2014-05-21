@@ -256,7 +256,7 @@ ShapeWipeMain::ShapeWipeMain(PluginServer *server)
 	strcpy(filename, DEFAULT_SHAPE);	// is defined by a -D compiler instruction
 	last_read_filename[0] = '\0';
 	pattern_image = NULL;
-	min_value = 256;
+	min_value = 255;
 	max_value = 0;
 	antialias = 0;
 	preserve_aspect = 0;
@@ -270,7 +270,7 @@ ShapeWipeMain::~ShapeWipeMain()
 	PLUGIN_DESTRUCTOR_MACRO
 }
 
-char* ShapeWipeMain::plugin_title() { return N_("Shape Wipe"); }
+const char* ShapeWipeMain::plugin_title() { return N_("Shape Wipe"); }
 int ShapeWipeMain::is_video() { return 1; }
 int ShapeWipeMain::is_transition() { return 1; }
 int ShapeWipeMain::uses_gui() { return 1; }
@@ -514,7 +514,7 @@ void ShapeWipeMain::reset_pattern_image()
 		}
 		free (pattern_image);
 		pattern_image = NULL;
-		min_value = 256, max_value = 0;	// are recalc'd in read_pattern_image
+		min_value = 255, max_value = 0;	// are recalc'd in read_pattern_image
 	}
 }
 

@@ -15,34 +15,26 @@ aboutprefs.o: versioninfo.h
 
 versioninfo.h:
 endif
-	echo '#define BUILDDATE "$(BUILDDATE)"' > versioninfo.h
+	echo >versioninfo.h
+	echo '#define CINELERRA_VERSION "$(VERSION)"' >> versioninfo.h
+	echo >> versioninfo.h
+	echo '#define BUILDDATE "$(BUILDDATE)"' >> versioninfo.h
 
 if BUILDINFO_GIT
 GITVERSION=$(shell if [ -d $(top_srcdir)/.git ]; then cd $(top_srcdir); git rev-parse HEAD; else echo "unknown"; fi)
-	echo '#define REPOMAINTXT " GIT::$(GITVERSION) $(BUILDINFO_NONRC_S) (C) 2010 Heroine Virtual Ltd.\n@FFMPEG_EXTERNALTEXT@\nCompiled on $(BUILDDATE)"' >> versioninfo.h
-	echo '#define REPOABOUTPREFTXT "Git SHA-1: $(GITVERSION)"' >> versioninfo.h
-else
-
-if BUILDINFO_SVN
-SVNVERSION=$(shell if [ -d $(top_srcdir)/.svn ]; then svnversion $(top_srcdir); else echo "unknown"; fi)
-	echo '#define REPOMAINTXT      " SVN $(SVNVERSION) $(BUILDINFO_NONRC_S) (C) 2010 Heroine Virtual Ltd.\n@FFMPEG_EXTERNALTEXT@\nCompiled on $(BUILDDATE)"' >> versioninfo.h
-	echo '#define REPOABOUTPREFTXT "SVN Version: $(SVNVERSION) $(BUILDINFO_NONRC_S)"' >> versioninfo.h
+	echo '#define REPOMAINTXT "GIT::$(GITVERSION) $(BUILDINFO_NONRC_S)"' >> versioninfo.h
 
 else
+
 if BUILDINFO_CUST
 
-	echo '#define REPOMAINTXT      " $(BUILDINFO_CUSTOM_TAG) (C) 2010 Heroine Virtual Ltd.\n@FFMPEG_EXTERNALTEXT@\nCompiled on $(BUILDDATE)"' >> versioninfo.h
-	echo '#define REPOABOUTPREFTXT "$(BUILDINFO_CUSTOM_TAG)"' >> versioninfo.h
+	echo '#define REPOMAINTXT      "$(BUILDINFO_CUSTOM_TAG)"' >> versioninfo.h
 
-
-else # (no repository)
-
-
-	echo '#define REPOMAINTXT      "(C) 2010 Heroine Virtual Ltd.\nCompiled on $(BUILDDATE)"' >> versioninfo.h
-	echo '#define REPOABOUTPREFTXT ""' >> versioninfo.h
 endif
 endif
-endif
+	echo '#define COPYRIGHTTEXT1 "(C) 2006 Heroine Virtual Ltd."' >> versioninfo.h
+	echo '#define COPYRIGHTTEXT2 "(C) 2006-2013 The CinelerraCV Community"' >> versioninfo.h
+	echo '#define COMPILEDATE "Compiled on $(BUILDDATE)"' >> versioninfo.h
 	echo '#define FFMPEG_EXTERNALTEXT "@FFMPEG_EXTERNALTEXT@"' >> versioninfo.h
 
 SUBDIRS = data
@@ -123,6 +115,7 @@ cinelerra_SOURCES = aattachmentpoint.C \
 		    cwindowgui.C \
 		    cwindowtool.C \
 		    dcoffset.C \
+		    defaultformats.h \
 		    dcraw.c \
 		    deleteallindexes.C \
 		    devicedvbinput.C \
@@ -342,7 +335,7 @@ cinelerra_SOURCES = aattachmentpoint.C \
 	$(firewire_SOURCES)
 
 # guicast must come first, to pick up correct workarounds.h
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_srcdir)/guicast \
 	-I$(top_srcdir)/quicktime \
 	-I$(top_srcdir)/libmpeg3
@@ -534,6 +527,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 newfolder.h \
 		 new.h \
 		 newpresets.h \
+		 ntsczones.h \
 		 overlayframe.h \
 		 packagedispatcher.h \
 		 packagerenderer.h \
@@ -644,6 +638,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 vedits.h \
 		 video1394.h \
 		 videoconfig.h \
+		 videodev.h \
 		 videodevfix.h \
 		 videodevice.h \
 		 videowindowgui.h \
@@ -685,7 +680,9 @@ cinelerra_LDADD = \
 	$(XIPH_LIBS) \
 	$(A52DEC_LIBS) \
 	$(OPENEXR_LIBS) \
+	$(OPENGL_LIBS) \
 	-lsndfile \
+	-lmp3lame \
 	-lpng -ljpeg -ltiff -lz \
 	$(SOUND_LDFLAGS) \
 	$(FIREWIRE_LDFLAGS) \
@@ -694,3 +691,6 @@ cinelerra_LDADD = \
 	$(MJPEG_LIBS)
 
 EXTRA_DIST = gen-feather-h
+
+clean-local:
+	$(RM) versioninfo.h

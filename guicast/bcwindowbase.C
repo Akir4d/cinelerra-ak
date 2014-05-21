@@ -153,6 +153,12 @@ BC_WindowBase::~BC_WindowBase()
 		if(smallfont_xft) 
 			XftFontClose (display, (XftFont*)smallfont_xft);
 #endif
+		if(smallfont)
+			XFreeFont(display, smallfont);
+		if(mediumfont)
+			XFreeFont(display, mediumfont);
+		if(largefont)
+			XFreeFont(display, largefont);
 		flush();
 // Can't close display if another thread is waiting for events.
 // Synchronous thread must delete display if gl_context exists.
@@ -270,7 +276,7 @@ int BC_WindowBase::initialize()
 			
 
 int BC_WindowBase::create_window(BC_WindowBase *parent_window,
-				char *title, 
+				const char *title, 
 				int x,
 				int y,
 				int w, 
@@ -355,7 +361,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		vis = DefaultVisual(display, screen);
 		default_depth = DefaultDepth(display, screen);
 
-		client_byte_order = (*(u_int32_t*)"a   ") & 0x00000001;
+		client_byte_order = (*(const u_int32_t*)"a   ") & 0x00000001;
 		server_byte_order = (XImageByteOrder(display) == MSBFirst) ? 0 : 1;
 
 

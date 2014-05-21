@@ -68,6 +68,7 @@ COMPILE_S = $(call COMPILE,AS)
 
 # Do not delete intermediate files from chains of implicit rules
 $(OBJS):
+
 endif
 
 OBJS-$(HAVE_MMX) +=  $(MMX-OBJS-yes)

@@ -36,6 +36,7 @@
 #include "language.h"
 #include "mainerror.h"
 #include "mwindow.inc"
+#include "pipe.h"
 #include "preferences.h"
 #include "vframe.h"
 #include "videodevice.inc"
@@ -48,7 +49,7 @@
 #define MPEG_YUV422 1
 
 
-#define MJPEG_EXE PLUGIN_DIR "/mpeg2enc.plugin"
+#define MJPEG_EXE "mpeg2enc"
 
 
 
@@ -321,6 +322,12 @@ SET_TRACE
 			char string[BCTEXTLEN];
 			sprintf(mjpeg_command, MJPEG_EXE);
 
+			if(Pipe::search_executable(MJPEG_EXE, mjpeg_command) == 0)
+			{
+				eprintf("Could not find encoder " MJPEG_EXE);
+				return 1;
+			}
+
 // Must disable interlacing if MPEG-1
 			switch (asset->vmpeg_preset)
 			{
@@ -329,7 +336,8 @@ SET_TRACE
 				case 2: asset->vmpeg_progressive = 1; break;
 			}
 
-
+// Be quiet
+			strcat(mjpeg_command, " -v0");
 
 // The current usage of mpeg2enc requires bitrate of 0 when quantization is fixed and
 // quantization of 1 when bitrate is fixed.  Perfectly intuitive.
@@ -434,6 +442,7 @@ SET_TRACE
 			if(!(mjpeg_out = popen(mjpeg_command, "w")))
 			{
 				eprintf("Error while opening \"%s\" for writing. \n%m\n", mjpeg_command);
+				return 1;
 			}
 
 			video_out = new FileMPEGVideo(this);
@@ -1119,6 +1128,57 @@ int FileMPEG::write_frames(VFrame ***frames, int len)
 	return result;
 }
 
+int FileMPEG::from_mpeg_colormodel(int cmodel)
+{
+	switch(cmodel)
+	{
+	case MPEG3_RGB565:
+		return BC_RGB565;
+	case MPEG3_BGR888:
+		return BC_BGR888;
+	case MPEG3_BGRA8888:
+		return BC_BGR8888;
+	case MPEG3_RGB888:
+		return BC_RGB888;
+	case MPEG3_RGBA8888:
+		return BC_RGBA8888;
+	case MPEG3_RGBA16161616:
+		return BC_RGBA16161616;
+	case MPEG3_YUV420P:
+		return BC_YUV420P;
+	case MPEG3_YUV422P:
+		return BC_YUV422P;
+	default:
+		return 0;
+	}
+}
+
+int FileMPEG::to_mpeg_colormodel(int cmodel)
+{
+	switch(cmodel)
+	{
+	case BC_RGB565:
+		return MPEG3_RGB565;
+	case BC_BGR888:
+		return MPEG3_BGR888;
+	case BC_BGR8888:
+		return MPEG3_BGRA8888;
+	case BC_RGB888:
+		return MPEG3_RGB888;
+	case BC_RGBA8888:
+		return MPEG3_RGBA8888;
+	case BC_RGBA16161616:
+		return MPEG3_RGBA16161616;
+	case BC_YUV420P:
+		return MPEG3_YUV420P;
+	case BC_YUV422P:
+		return MPEG3_YUV422P;
+	default:
+		return 0;
+	}
+}
+
+
 int FileMPEG::read_frame(VFrame *frame)
 {
 	if(!fd) return 1;
@@ -1137,12 +1197,12 @@ int FileMPEG::read_frame(VFrame *frame)
 
 	switch(frame->get_color_model())
 	{
-		case MPEG3_RGB565:
-		case MPEG3_BGR888:
-		case MPEG3_BGRA8888:
-		case MPEG3_RGB888:
-		case MPEG3_RGBA8888:
-		case MPEG3_RGBA16161616:
+		case BC_RGB565:
+		case BC_BGR888:
+		case BC_BGR8888:
+		case BC_RGB888:
+		case BC_RGBA8888:
+		case BC_RGBA16161616:
 SET_TRACE
 			mpeg3_read_frame(fd, 
 					frame->get_rows(), /* Array of pointers to the start of each output row */
@@ -1152,7 +1212,7 @@ SET_TRACE
 					asset->height, 
 					asset->width,                   /* Dimensions of output_rows */
 					asset->height, 
-					frame->get_color_model(),             /* One of the color model #defines */
+					to_mpeg_colormodel(frame->get_color_model()),
 					file->current_layer);
 SET_TRACE
 			break;

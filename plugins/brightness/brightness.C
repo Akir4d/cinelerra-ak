@@ -68,7 +68,7 @@ void BrightnessConfig::interpolate(BrightnessConfig &prev,
 
 	this->brightness = prev.brightness * prev_scale + next.brightness * next_scale;
 	this->contrast = prev.contrast * prev_scale + next.contrast * next_scale;
-	this->luma = (int)(prev.luma * prev_scale + next.luma * next_scale);
+	this->luma = prev.luma;
 }
 
 
@@ -95,7 +95,7 @@ BrightnessMain::~BrightnessMain()
 	if(engine) delete engine;
 }
 
-char* BrightnessMain::plugin_title() { return N_("Brightness/Contrast"); }
+const char* BrightnessMain::plugin_title() { return N_("Brightness/Contrast"); }
 int BrightnessMain::is_realtime() { return 1; }
 
 NEW_PICON_MACRO(BrightnessMain)	

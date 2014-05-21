@@ -30,8 +30,8 @@
 class StringFile
 {
 public:
-	StringFile(long length = 0);
-	StringFile(char *filename);
+	StringFile(size_t length = 0);
+	StringFile(const char *filename);
 	virtual ~StringFile();
 
 	int readline();   // read next line from string
@@ -53,13 +53,13 @@ public:
 	int writeline(char *arg1, Freq arg2, int indent);   // write next line to string
 	int backupline();       // move back one line
 
-	long get_length();
-	long get_pointer();
-	int write_to_file(char *filename);
-	int read_from_string(char *string);
+	size_t get_length();
+	size_t get_pointer();
+	int write_to_file(const char *filename);
+	int read_from_string(const char *string);
 
 	char *string;
-	long pointer, length, available;
+	size_t pointer, length, available;
 	char string1[1024];      // general purpose strings
 };
 

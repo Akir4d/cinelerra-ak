@@ -489,6 +489,7 @@ SET_TRACE
 		delete [] source_replacement;
 SET_TRACE
 	}
+	va_end(list);
 
 // Add main() function which calls all the unique main replacements in order
 	char main_function[BCTEXTLEN];
@@ -550,7 +551,8 @@ SET_TRACE
 	}
 
 //printf("VFrame::make_shader\n%s\n", complete_program);
-	delete [] complete_program;
+	free(complete_program);
+	complete_program = NULL;
 
 #endif
 	return result;

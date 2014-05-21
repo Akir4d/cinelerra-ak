@@ -161,3 +161,6 @@ $(sort $(OBJDIRS)):
 
 .PHONY: all all-yes alltools *clean config examples install*
 .PHONY: testprogs uninstall*
+=======
+-include $(VHOOK_DEPS)
+

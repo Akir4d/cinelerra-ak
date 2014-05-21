@@ -456,11 +456,7 @@ int FileSystem::update(char *new_dir)
 			else
 			{
 //printf("FileSystem::update 3 %s\n", full_path);
-				printf("FileSystem::update %s: %s\n",
-					full_path,
-					strerror(errno));
 				include_this = 0;
-				result = 1;
 			}
 
 // add to list
@@ -704,7 +700,7 @@ int FileSystem::extract_name(char *out, const char *in, int test_dir)
 	int i;
 
 	if(test_dir && is_dir(in))
-		sprintf(out, "");    // complete string is directory
+		string[0] = 0;    // complete string is directory
 	else
 	{
 		for(i = strlen(in)-1; i > 0 && in[i] != '/'; i--)

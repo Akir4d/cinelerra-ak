@@ -1,0 +1,27 @@
+If you cinecutie suv theme and you want to make also new theme easly:
+
+http://www.tuttoainternet.it/kit/cinelerra-theme-helper.tar.gz
+it needs inkscape to works. It's tested an cinelerra 2.1.5 and works
+It's easy to use:
+unpack cinelerra-theme-helper.tar.gz on cinelerra root source
+than cd on cinelerra-theme-helper
+there is two scripts
+./global_updater.sh
+
+that changes folder and files icons on source and
+./buildtheme.sh
+that makes theme from model on (model/MODEL)
+the theme compiling from svg source placed on model named MODEL
+on exemple there are suv.dtheme new like cinecutie but with cinelerra logo
+
+if you want to change colors only edit .dtheme on themes/ but if you 
+want to change appearance you must edit svg model/MODEL make new theme. ...
+example on theme/suv.dtheme
+after installing a new theme must be edited check if Makefile.am on ./plugins and configure.in contain your theme name
+./build_theme also install plugins theme on ./plugins
+
+compile cinelerra!
+
+that's all!
+
+Paolo Rampino

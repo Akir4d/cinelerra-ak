@@ -1,0 +1,40 @@
+#!/bin/bash
+#THEME name you can use to owerwrite default theme 
+# must be lo-case (use only latin letters, without spaces, dot, comma etc)
+THEME=suv
+# this is diplayed on preference, and used to call theme by cinelerra (use only latin letters, without spaces)
+THEMENAME=S.U.V.
+# best upper-case (use only latin letters, without spaces, dot, comma etc)
+THFUNC=SUV
+
+#Where is your model?
+MODEL=model/MODEL
+
+# Input theme colors of your theme
+INBGCOLOR=4d4d4d
+INBBCOLOR=333333
+INTEXT=bfbfbf
+
+# Output theme colors of your theme
+BGCOLOR=4d4d4d
+BBCOLOR=333333
+TEXT=bfbfbf
+
+#SVG INPUT COLORS when you make new theme keep this informations
+INBASE=ff0000
+INBORDER=666666
+INCHECKED=ff6600
+INDBUTTON=989898
+INICON=cccccc
+INMISC=803300
+
+
+#SVG OUTPUT COLORS this change your theme colors to make variant
+#like green, pink, diamond, yellow etc...
+OUTBASE=ff0000
+OUTBORDER=666666
+OUTCHECKED=ff6600
+OUTDBUTTON=989898
+OUTICON=cccccc
+OUTMISC=803300
+

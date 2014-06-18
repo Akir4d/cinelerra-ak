@@ -1,0 +1,32 @@
+#!/bin/bash
+# 2007 by Franco Iacomella <yaco-at-gnu.org>
+# This script converts all plugins icons in .h. It also can convert SVGs into png in a specific size.
+#
+# To use this you must have bin2cinecutie_header installed. If you want to use the SVG to PNG conversion function, install Imagemagick
+# Run this script inside the plusins folder of your Cinelerra-CV source code.
+
+FOLDERS=`ls --group-directories-first`
+SIZE="50x50"
+echo
+echo "Cinelerra PNG converter has begin!"
+
+for current in $FOLDERS
+do
+	if test -f $current/picon.png.svg ; then
+		cd $current 
+		convert -resize $SIZE -background transparent picon.png.svg picon.png
+		echo "$current icon in SVG have been converted to a PNG version of $SIZE"
+		cp picon.png.svg ../SVG/$current.svg
+		convert -resize 96x96 -background transparent picon.png.svg ../PNG/$current.png
+		cd ..
+	fi
+	if test -f $current/picon.png ; then
+		cd $current 
+		bin2cinecutie_header picon.png picon_png.h
+		echo "$current plugin icon is converted!"
+		cd ..
+	fi
+done  
+echo
+echo "***************** FINISHED! ******************"
+exit 0

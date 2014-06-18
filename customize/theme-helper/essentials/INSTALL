@@ -1,0 +1,7 @@
+Bin2Cinelerra_header 1.2
+
+To install it just make as root:
+
+#  gcc bin2cinecutie_header.c -o /usr/bin/bin2cinecutie_header
+
+In the scripts folder you will find some usefull scripts. 

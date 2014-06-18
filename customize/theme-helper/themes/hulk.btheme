@@ -1,0 +1,42 @@
+#!/bin/bash
+#THEME name you can use to owerwrite default theme 
+# must be lo-case (use only latin letters, without spaces, dot, comma etc)
+THEME=hulktheme
+# this is diplayed on preference, and used to call theme by cinelerra (use only latin letters, without spaces)
+THEMENAME=Hulk-theme
+# best upper-case (use only latin letters, without spaces, dot, comma etc)
+THFUNC=HULKTHEME
+
+#Where is your model?
+MODEL=model/MODEL
+
+# Input theme colors of your theme, when you make new theme keep in mind this informations
+INBGCOLOR=4d4d4d
+INBBCOLOR=333333
+INTEXT=bfbfbf
+
+# Output theme colors of your theme, this change your theme colors to make variant
+#like green, pink, diamond, yellow etc..
+BGCOLOR=00d464
+BBCOLOR=27ff97
+TEXT=eefff7
+
+#SVG INPUT COLORS when you make new theme keep in mind this informations
+INBASE=ff0000
+INBORDER=666666
+INCHECKED=ff6600
+INDBUTTON=989898
+INICON=cccccc
+INMISC=803300
+
+
+#SVG OUTPUT COLORS this change your theme colors to make variant
+#like green, pink, diamond, yellow etc..
+OUTBASE=ce00ff
+OUTBORDER=560070
+OUTCHECKED=41be79
+OUTDBUTTON=217842
+OUTICON=d5ffe7
+OUTMISC=660080
+
+

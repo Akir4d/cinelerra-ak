@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2983"
+   version="1.1"
+   inkscape:version="0.48.1 r9760"
+   sodipodi:docname="Nuovo documento 1">
+  <defs
+     id="defs2985" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35"
+     inkscape:cx="-195"
+     inkscape:cy="385.80357"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1316"
+     inkscape:window-height="744"
+     inkscape:window-x="50"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata2988">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Livello 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:32px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:FreeSans;-inkscape-font-specification:FreeSans"
+       x="48.57143"
+       y="63.790752"
+       id="text3072"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3074"
+         x="48.57143"
+         y="63.790752"># Input theme colors</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="103.79076"
+         id="tspan3076">INBGCOLOR=4d4d4d</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="143.79076"
+         id="tspan3078">INBBCOLOR=333333</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="183.79076"
+         id="tspan3080">INTEXT=bfbfbf</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="223.79076"
+         id="tspan3082"></tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="263.79074"
+         id="tspan3084">#SVG INPUT COLORS</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="303.79074"
+         id="tspan3086">INBASE=ff0000</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="343.79074"
+         id="tspan3088">INBORDER=666666</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="383.79074"
+         id="tspan3090">INCHECKED=ff6600</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="423.79074"
+         id="tspan3092">INDBUTTON=989898</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="463.79074"
+         id="tspan3094">INICON=cccccc</tspan><tspan
+         sodipodi:role="line"
+         x="48.57143"
+         y="503.79074"
+         id="tspan3096">INMISC=803300</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:32px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:FreeSans;-inkscape-font-specification:FreeSans"
+       x="39.999996"
+       y="560.93365"
+       id="text3098"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3100"
+         x="39.999996"
+         y="560.93365"># Output theme colors</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="600.93365"
+         id="tspan3102">BGCOLOR=4d4d4d</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="640.93365"
+         id="tspan3104">BBCOLOR=333333</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="680.93365"
+         id="tspan3106">TEXT=bfbfbf</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="720.93365"
+         id="tspan3108"></tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="760.93365"
+         id="tspan3110">#SVG OUTPUT COLORS</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="800.93365"
+         id="tspan3112">OUTBASE=ff0000</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="840.93365"
+         id="tspan3114">OUTBORDER=666666</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="880.93365"
+         id="tspan3116">OUTCHECKED=ff6600</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="920.93365"
+         id="tspan3118">OUTDBUTTON=989898</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="960.93372"
+         id="tspan3120">OUTICON=cccccc</tspan><tspan
+         sodipodi:role="line"
+         x="39.999996"
+         y="1000.9337"
+         id="tspan3122">OUTMISC=803300</tspan></text>
+    <rect
+       style="fill:#4d4d4d;fill-opacity:1;stroke:none"
+       id="rect3124"
+       width="134.28572"
+       height="25.714285"
+       x="371.42856"
+       y="80.933617" />
+    <rect
+       y="120.57646"
+       x="371.42856"
+       height="25.714285"
+       width="134.28572"
+       id="rect3894"
+       style="fill:#333333;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#bfbfbf;fill-opacity:1;stroke:none"
+       id="rect3896"
+       width="134.28572"
+       height="25.714285"
+       x="371.42856"
+       y="160.21935" />
+    <rect
+       y="281.29074"
+       x="367.14285"
+       height="25.714285"
+       width="134.28572"
+       id="rect3898"
+       style="fill:#ff0000;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#666666;fill-opacity:1;stroke:none"
+       id="rect3900"
+       width="134.28572"
+       height="25.714285"
+       x="367.14285"
+       y="320.64789" />
+    <rect
+       y="360.005"
+       x="367.14285"
+       height="25.714285"
+       width="134.28572"
+       id="rect3902"
+       style="fill:#ff6600;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#989898;fill-opacity:1;stroke:none"
+       id="rect3904"
+       width="134.28572"
+       height="25.714285"
+       x="367.14285"
+       y="399.36215" />
+    <rect
+       y="438.71936"
+       x="367.14285"
+       height="25.714285"
+       width="134.28572"
+       id="rect3906"
+       style="fill:#cccccc;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#803300;fill-opacity:1;stroke:none"
+       id="rect3908"
+       width="134.28572"
+       height="25.714285"
+       x="367.14285"
+       y="478.07648" />
+    <rect
+       style="fill:#ff0000;fill-opacity:1;stroke:none"
+       id="rect3910"
+       width="134.28572"
+       height="25.714285"
+       x="398.57141"
+       y="781.29077" />
+    <rect
+       y="820.64789"
+       x="398.57141"
+       height="25.714285"
+       width="134.28572"
+       id="rect3912"
+       style="fill:#666666;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#ff6600;fill-opacity:1;stroke:none"
+       id="rect3914"
+       width="134.28572"
+       height="25.714285"
+       x="398.57141"
+       y="860.005" />
+    <rect
+       y="899.36218"
+       x="398.57141"
+       height="25.714285"
+       width="134.28572"
+       id="rect3916"
+       style="fill:#989898;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#cccccc;fill-opacity:1;stroke:none"
+       id="rect3918"
+       width="134.28572"
+       height="25.714285"
+       x="398.57141"
+       y="938.71936" />
+    <rect
+       y="978.07648"
+       x="398.57141"
+       height="25.714285"
+       width="134.28572"
+       id="rect3920"
+       style="fill:#803300;fill-opacity:1;stroke:none" />
+    <rect
+       y="572.36218"
+       x="371.42856"
+       height="25.714285"
+       width="134.28572"
+       id="rect3935"
+       style="fill:#4d4d4d;fill-opacity:1;stroke:none" />
+    <rect
+       style="fill:#333333;fill-opacity:1;stroke:none"
+       id="rect3937"
+       width="134.28572"
+       height="25.714285"
+       x="371.42856"
+       y="612.005" />
+    <rect
+       y="651.64789"
+       x="371.42856"
+       height="25.714285"
+       width="134.28572"
+       id="rect3939"
+       style="fill:#bfbfbf;fill-opacity:1;stroke:none" />
+  </g>
+</svg>

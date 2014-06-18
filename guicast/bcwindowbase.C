@@ -942,7 +942,9 @@ int BC_WindowBase::dispatch_event()
 // event->xkey.state);
 // block out control keys
 			if(keysym > 0xffe0 && keysym < 0xffff) break;
-
+// block out Alt_GR key			
+			if(keysym == 0xfe03) break;
+			
 			if(test_keypress) printf("BC_WindowBase::dispatch_event %lx\n", (long int)keysym);
 #ifdef X_HAVE_UTF8_STRING
 			//It's Ascii or UTF8?

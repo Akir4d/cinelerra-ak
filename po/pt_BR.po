@@ -9,10 +9,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cinelerra 2.1\n"
 "Report-Msgid-Bugs-To: cinelerra@lists.cinelerra-cv.org\n"
-"POT-Creation-Date: 2014-05-24 20:21-0300\n"
+"POT-Creation-Date: 2014-06-21 18:26+0200\n"
 "PO-Revision-Date: 2014-05-24 20:21-0300\n"
 "Last-Translator: Rafael Diniz <rafael@riseup.net>\n"
-"Language-Team: Cinelerra-CV Core Developers <cinelerra@lists.cinelerra-cv.org>\n"
+"Language-Team: Cinelerra-CV Core Developers <cinelerra@lists.cinelerra-cv."
+"org>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -27,7 +28,7 @@ msgstr ""
 "Quicktime versão %d.%d.%d (%s)\n"
 "Libmpeg3 versão %d.%d.%d\n"
 
-#: cinelerra/aboutprefs.C:151
+#: cinelerra/aboutprefs.C:159
 #, c-format
 msgid ""
 "This program is free software; you can redistribute it and/or modify it "
@@ -307,7 +308,7 @@ msgid "Jump to end ( End )"
 msgstr "Pular para o final ( End )"
 
 #: cinelerra/awindowgui.C:376 cinelerra/awindowgui.C:973
-#: cinelerra/awindowgui.C:1000 plugins/titler/title.C:1070
+#: cinelerra/awindowgui.C:1000 plugins/titler/title.C:1139
 msgid "Title"
 msgstr "Título"
 
@@ -465,7 +466,7 @@ msgid "New"
 msgstr "Novo"
 
 #: cinelerra/batchrender.C:1012 cinelerra/channeledit.C:599
-#: cinelerra/cwindowtool.C:1592 cinelerra/recordgui.C:1026
+#: cinelerra/cwindowtool.C:1607 cinelerra/recordgui.C:1026
 #: plugins/synthesizer/synthesizer.C:909
 msgid "Delete"
 msgstr "Apagar"
@@ -774,39 +775,43 @@ msgstr "Cancelar"
 msgid "The following files exist.  Overwrite them?"
 msgstr "Os seguintes arquivos existem. Sobrescrevê-los?"
 
-#: cinelerra/cpanel.C:130
+#: cinelerra/cpanel.C:132
 msgid "Protect video from changes"
 msgstr "Proteger vídeo de mudanças"
 
-#: cinelerra/cpanel.C:154
+#: cinelerra/cpanel.C:156
 msgid "Edit mask"
 msgstr "Editar máscara"
 
-#: cinelerra/cpanel.C:174
+#: cinelerra/cpanel.C:178
+msgid "Ruler"
+msgstr ""
+
+#: cinelerra/cpanel.C:200
 msgid "Zoom view"
 msgstr "Aproximar"
 
-#: cinelerra/cpanel.C:194
+#: cinelerra/cpanel.C:220
 msgid "Adjust camera automation"
 msgstr "Ajustar automação de câmera"
 
-#: cinelerra/cpanel.C:214
+#: cinelerra/cpanel.C:240
 msgid "Adjust projector automation"
 msgstr "Ajustar automação de projetor"
 
-#: cinelerra/cpanel.C:234
+#: cinelerra/cpanel.C:260
 msgid "Crop a layer or output"
 msgstr "Cortar uma camada ou uma saída"
 
-#: cinelerra/cpanel.C:258
+#: cinelerra/cpanel.C:284
 msgid "Get color"
 msgstr "Obter cor"
 
-#: cinelerra/cpanel.C:282
+#: cinelerra/cpanel.C:308
 msgid "Show tool info"
 msgstr "Mostrar informação da ferramenta"
 
-#: cinelerra/cpanel.C:313
+#: cinelerra/cpanel.C:339
 msgid "Show safe regions"
 msgstr "Mostrar margens de segurança"
 
@@ -814,135 +819,147 @@ msgstr "Mostrar margens de segurança"
 msgid "insert assets"
 msgstr "inserir recursos"
 
-#: cinelerra/cwindowgui.C:1530 cinelerra/cwindowgui.C:2705
+#: cinelerra/cwindowgui.C:1806 cinelerra/cwindowgui.C:3000
 msgid "mask point"
 msgstr "ponto da máscara"
 
-#: cinelerra/cwindowgui.C:2694
+#: cinelerra/cwindowgui.C:2989
 msgid "camera"
 msgstr "câmera"
 
-#: cinelerra/cwindowgui.C:2698
+#: cinelerra/cwindowgui.C:2993
 msgid "projector"
 msgstr "projetor"
 
-#: cinelerra/cwindowtool.C:321
+#: cinelerra/cwindowtool.C:336
 msgid "Do it"
 msgstr "Fazer"
 
-#: cinelerra/cwindowtool.C:372
+#: cinelerra/cwindowtool.C:387
 msgid "X1:"
 msgstr "X1:"
 
-#: cinelerra/cwindowtool.C:375
+#: cinelerra/cwindowtool.C:390
 msgid "W:"
 msgstr "L:"
 
-#: cinelerra/cwindowtool.C:396
+#: cinelerra/cwindowtool.C:411
 msgid "Y1:"
 msgstr "Y1:"
 
-#: cinelerra/cwindowtool.C:399
+#: cinelerra/cwindowtool.C:414
 msgid "H:"
 msgstr "A:"
 
-#: cinelerra/cwindowtool.C:527
+#: cinelerra/cwindowtool.C:542
 msgid "\"smooth\" Tangent on current Camera Keyframes"
 msgstr "\"suavizar\" Tangente nos quadros-chave da câmera atual"
 
-#: cinelerra/cwindowtool.C:533
+#: cinelerra/cwindowtool.C:548
 msgid "\"linear\" Tangent on current Camera Keyframes"
 msgstr "\"linear\" Tangente nos quadros-chave da câmera atual"
 
-#: cinelerra/cwindowtool.C:539
+#: cinelerra/cwindowtool.C:554
 msgid "\"smooth\" Tangent on current Projector Keyframes"
 msgstr "\"suavizar\" Tangente nos quadros-chave do Projetor atual"
 
-#: cinelerra/cwindowtool.C:545
+#: cinelerra/cwindowtool.C:560
 msgid "\"linear\" Tangent on current Projector Keyframes"
 msgstr "\"linear\" Tangente nos quadros-chave do Projetor atual"
 
-#: cinelerra/cwindowtool.C:650 cinelerra/cwindowtool.C:1103
-#: cinelerra/cwindowtool.C:1949 cinelerra/zoombar.C:487
+#: cinelerra/cwindowtool.C:665 cinelerra/cwindowtool.C:1118
+#: cinelerra/cwindowtool.C:1964 cinelerra/zoombar.C:487
 #: plugins/radialblur/radialblur.C:282 plugins/titler/titlewindow.C:224
 #: plugins/zoomblur/zoomblur.C:297
 msgid "X:"
 msgstr "X:"
 
-#: cinelerra/cwindowtool.C:659 cinelerra/cwindowtool.C:1112
-#: cinelerra/cwindowtool.C:1957 cinelerra/zoombar.C:489
+#: cinelerra/cwindowtool.C:674 cinelerra/cwindowtool.C:1127
+#: cinelerra/cwindowtool.C:1972 cinelerra/zoombar.C:489
 #: plugins/perspective/perspective.C:158 plugins/radialblur/radialblur.C:286
 #: plugins/titler/titlewindow.C:229 plugins/yuv/yuv.C:193
 #: plugins/zoomblur/zoomblur.C:301
 msgid "Y:"
 msgstr "Y:"
 
-#: cinelerra/cwindowtool.C:668 cinelerra/cwindowtool.C:1121
+#: cinelerra/cwindowtool.C:683 cinelerra/cwindowtool.C:1136
 msgid "Z:"
 msgstr "Z:"
 
-#: cinelerra/cwindowtool.C:826 cinelerra/cwindowtool.C:1313
+#: cinelerra/cwindowtool.C:841 cinelerra/cwindowtool.C:1328
 msgid "Left justify"
 msgstr "Justificar à esquerda"
 
-#: cinelerra/cwindowtool.C:872 cinelerra/cwindowtool.C:1348
+#: cinelerra/cwindowtool.C:887 cinelerra/cwindowtool.C:1363
 msgid "Center horizontal"
 msgstr "Centralizar horizontalmente"
 
-#: cinelerra/cwindowtool.C:899 cinelerra/cwindowtool.C:1375
+#: cinelerra/cwindowtool.C:914 cinelerra/cwindowtool.C:1390
 msgid "Right justify"
 msgstr "Justificar à direita"
 
-#: cinelerra/cwindowtool.C:944 cinelerra/cwindowtool.C:1411
+#: cinelerra/cwindowtool.C:959 cinelerra/cwindowtool.C:1426
 msgid "Top justify"
 msgstr "Justificar acima"
 
-#: cinelerra/cwindowtool.C:989 cinelerra/cwindowtool.C:1447
+#: cinelerra/cwindowtool.C:1004 cinelerra/cwindowtool.C:1462
 msgid "Center vertical"
 msgstr "Centralizar verticalmente"
 
-#: cinelerra/cwindowtool.C:1015 cinelerra/cwindowtool.C:1473
+#: cinelerra/cwindowtool.C:1030 cinelerra/cwindowtool.C:1488
 msgid "Bottom justify"
 msgstr "Justificar abaixo"
 
-#: cinelerra/cwindowtool.C:1536 cinelerra/cwindowtool.C:1549
+#: cinelerra/cwindowtool.C:1551 cinelerra/cwindowtool.C:1564
 msgid "Multiply alpha"
 msgstr "Multiplicar alfa"
 
-#: cinelerra/cwindowtool.C:1540 cinelerra/cwindowtool.C:1544
-#: cinelerra/cwindowtool.C:1552
+#: cinelerra/cwindowtool.C:1555 cinelerra/cwindowtool.C:1559
+#: cinelerra/cwindowtool.C:1567
 msgid "Subtract alpha"
 msgstr "Subtrair alfa"
 
-#: cinelerra/cwindowtool.C:1679
+#: cinelerra/cwindowtool.C:1694
 msgid "Cycle next"
 msgstr "Ciclo seguinte"
 
-#: cinelerra/cwindowtool.C:1721
+#: cinelerra/cwindowtool.C:1736
 msgid "Cycle prev"
 msgstr "Ciclo anterior"
 
-#: cinelerra/cwindowtool.C:1866
+#: cinelerra/cwindowtool.C:1881
 msgid "Apply mask before plugins"
 msgstr "Aplicar máscara antes dos plugins"
 
-#: cinelerra/cwindowtool.C:1922 cinelerra/recordgui.C:178
+#: cinelerra/cwindowtool.C:1937 cinelerra/recordgui.C:178
 #: plugins/denoisemjpeg/denoisemjpeg.C:413 plugins/overlay/overlay.C:267
 msgid "Mode:"
 msgstr "Modo:"
 
-#: cinelerra/cwindowtool.C:1930 cinelerra/fileavi.C:941
+#: cinelerra/cwindowtool.C:1945 cinelerra/fileavi.C:941
 #: plugins/huesaturation/huesaturation.C:336
 msgid "Value:"
 msgstr "Valor:"
 
-#: cinelerra/cwindowtool.C:1935
+#: cinelerra/cwindowtool.C:1950
 msgid "Mask number:"
 msgstr "Número de máscara:"
 
-#: cinelerra/cwindowtool.C:1942
+#: cinelerra/cwindowtool.C:1957
 msgid "Feather:"
 msgstr "Suavização:"
+
+#: cinelerra/cwindowtool.C:2137
+#, c-format
+msgid ""
+"Press Ctrl to lock ruler to the\n"
+"nearest 45%c angle."
+msgstr ""
+
+#: cinelerra/cwindowtool.C:2142
+#, c-format
+msgid "Press Alt to translate the ruler."
+msgstr ""
 
 #: cinelerra/dcoffset.C:61
 msgid "DC Offset"
@@ -2006,7 +2023,7 @@ msgstr "Somente criar novos recursos"
 msgid "Insertion strategy:"
 msgstr "Estratégia de inserção:"
 
-#: cinelerra/main.C:227
+#: cinelerra/main.C:198
 #, c-format
 msgid ""
 "\n"
@@ -2015,7 +2032,7 @@ msgstr ""
 "\n"
 "Uso:\n"
 
-#: cinelerra/main.C:228
+#: cinelerra/main.C:199
 #, c-format
 msgid ""
 "%s [-f] [-c configuration] [-d port] [-n nice] [-r batch file] [filenames]\n"
@@ -2024,7 +2041,7 @@ msgstr ""
 "%s [-f] [-c configuration] [-d port] [-n nice] [-r batch file] [filenames]\n"
 "\n"
 
-#: cinelerra/main.C:229
+#: cinelerra/main.C:200
 #, c-format
 msgid ""
 "-d = Run in the background as renderfarm client.  The port (400) is "
@@ -2033,25 +2050,25 @@ msgstr ""
 "-d = Rodar ao fundo como cliente da fazenda de renderização. A porta (400) é "
 "opcional.\n"
 
-#: cinelerra/main.C:230
+#: cinelerra/main.C:201
 #, c-format
 msgid "-f = Run in the foreground as renderfarm client.  Substitute for -d.\n"
 msgstr ""
 "-f = Rodar à frente como cliente da faz. de renderização. Substituto para -"
 "d.\n"
 
-#: cinelerra/main.C:231
+#: cinelerra/main.C:202
 #, c-format
 msgid "-n = Nice value if running as renderfarm client. (20)\n"
 msgstr ""
 "-n = Valor do nice se rodando como cliente da fazenda de renderização. (20)\n"
 
-#: cinelerra/main.C:232
+#: cinelerra/main.C:203
 #, c-format
 msgid "-c = Configuration file to use instead of %s%s.\n"
 msgstr "-c = Arquivo de configuração a ser usado ao invés de %s%s.\n"
 
-#: cinelerra/main.C:235
+#: cinelerra/main.C:206
 #, c-format
 msgid ""
 "-r = batch render the contents of the batch file (%s%s) with no GUI.  batch "
@@ -2060,7 +2077,7 @@ msgstr ""
 "-r = renderiza em grupo os conteúdos do arquivo de grupo (%s%s) sem GUI. o "
 "arquivo de grupo é opcional.\n"
 
-#: cinelerra/main.C:238
+#: cinelerra/main.C:209
 #, c-format
 msgid ""
 "filenames = files to load\n"
@@ -2416,43 +2433,43 @@ msgstr "Abra o painel de efeitos e pressione \"OK\""
 msgid "Show meters"
 msgstr "Mostrar medidores"
 
-#: cinelerra/mwindow.C:413 cinelerra/mwindow.C:451
+#: cinelerra/mwindow.C:403 cinelerra/mwindow.C:441
 #, c-format
 msgid "MWindow::init_plugins: couldn't open %s directory\n"
 msgstr "MWindow::init_plugins: Não pôde abrir diretorio %s\n"
 
-#: cinelerra/mwindow.C:687
+#: cinelerra/mwindow.C:691
 #, c-format
 msgid "MWindow::init_theme: theme %s not found.\n"
 msgstr "MWindow::init_theme: tema %s não encontrado.\n"
 
-#: cinelerra/mwindow.C:1020
+#: cinelerra/mwindow.C:1025
 #, c-format
 msgid "Failed to open %s"
 msgstr "Erro ao abrir %s"
 
-#: cinelerra/mwindow.C:1068
+#: cinelerra/mwindow.C:1073
 msgid "'s format couldn't be determined."
 msgstr ": formato não pôde ser determinado."
 
-#: cinelerra/mwindow.C:1249
+#: cinelerra/mwindow.C:1254
 msgid "load"
 msgstr "carregar"
 
-#: cinelerra/mwindow.C:1394
+#: cinelerra/mwindow.C:1399
 msgid "Initializing GUI"
 msgstr "Iniciando GUI"
 
-#: cinelerra/mwindow.C:2032
+#: cinelerra/mwindow.C:2037
 #, c-format
 msgid "Couldn't open %s for writing."
 msgstr "Não se pode abrir %s para escrita."
 
-#: cinelerra/mwindow.C:2121
+#: cinelerra/mwindow.C:2126
 msgid "remove assets"
 msgstr "remover recursos"
 
-#: cinelerra/mwindow.C:2279
+#: cinelerra/mwindow.C:2284
 #, c-format
 msgid "Using %s."
 msgstr "Usando %s."
@@ -3966,20 +3983,20 @@ msgid "-*-helvetica-bold-r-normal-*-20-*"
 msgstr "-*-helvetica-bold-r-normal-*-20-*"
 
 #: guicast/bcresources.C:75
-msgid "-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*"
-msgstr "-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*"
+msgid "Sans-8"
+msgstr ""
 
 #: guicast/bcresources.C:76 guicast/bcresources.C:78 guicast/bcresources.C:80
 msgid "-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*"
 msgstr "-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*"
 
 #: guicast/bcresources.C:77
-msgid "-*-luxi sans-*-r-*-*-16-*-*-*-*-*-*-*"
-msgstr "-*-luxi sans-*-r-*-*-16-*-*-*-*-*-*-*"
+msgid "Sans-10"
+msgstr ""
 
 #: guicast/bcresources.C:79
-msgid "-*-luxi sans-bold-r-*-*-20-*-*-*-*-*-*-*"
-msgstr "-*-luxi sans-bold-r-*-*-20-*-*-*-*-*-*-*"
+msgid "Sans-16"
+msgstr ""
 
 #: guicast/bctheme.C:471
 #, c-format
@@ -4098,7 +4115,7 @@ msgstr "Desfocar verde"
 msgid "Blur blue"
 msgstr "Desfocar azul"
 
-#: plugins/brightness/brightness.C:98 plugins/brightness/brightnesswindow.C:53
+#: plugins/brightness/brightness.C:96 plugins/brightness/brightnesswindow.C:53
 msgid "Brightness/Contrast"
 msgstr "Brilho/Contraste"
 
@@ -4270,7 +4287,7 @@ msgstr "Mostrar Máscara"
 msgid "Chroma key (HSV)"
 msgstr "Chroma key (HSV)"
 
-#: plugins/colorbalance/colorbalance.C:375
+#: plugins/colorbalance/colorbalance.C:374
 #: plugins/colorbalance/colorbalancewindow.C:57
 msgid "Color Balance"
 msgstr "Balanço de Cores"
@@ -5792,43 +5809,43 @@ msgstr "Esticamento de tempo"
 msgid "hello world"
 msgstr "descrição"
 
-#: plugins/titler/title.C:295
+#: plugins/titler/title.C:360
 #, c-format
 msgid "GlyphUnit::process_package FT_New_Face failed.\n"
 msgstr "GlyphUnit::process_package FT_New_Face falhou.\n"
 
-#: plugins/titler/title.C:314
-#, c-format
-msgid "GlyphUnit::process_package FT_Load_Char failed - char: %i.\n"
+#: plugins/titler/title.C:379
+#, fuzzy, c-format
+msgid "GlyphUnit::process_package FT_Load_Char failed - char: %li.\n"
 msgstr "GlyphUnit::process_package FT_Load_Char falhou - char: %i.\n"
 
-#: plugins/titler/title.C:1385
+#: plugins/titler/title.C:1454
 #, c-format
 msgid "TitleMain::load_freetype_face %s failed.\n"
 msgstr "TitleMain::load_freetype_face %s falhou.\n"
 
-#: plugins/titler/title.C:1506
+#: plugins/titler/title.C:1585
 #, c-format
 msgid "Iconv conversion from %s to Unicode UCS-4 not available\n"
 msgstr "Conversão Iconv de %s para Unicode UCS-4 não disponível\n"
 
-#: plugins/titler/title.C:1947
+#: plugins/titler/title.C:2031
 msgid "No motion"
 msgstr "Sem movimento"
 
-#: plugins/titler/title.C:1948
+#: plugins/titler/title.C:2032
 msgid "Bottom to top"
 msgstr "Base para topo"
 
-#: plugins/titler/title.C:1949
+#: plugins/titler/title.C:2033
 msgid "Top to bottom"
 msgstr "Topo para base"
 
-#: plugins/titler/title.C:1950
+#: plugins/titler/title.C:2034
 msgid "Right to left"
 msgstr "Direita para esquerda"
 
-#: plugins/titler/title.C:1951
+#: plugins/titler/title.C:2035
 msgid "Left to right"
 msgstr "Esquerda para direita"
 
@@ -6024,3 +6041,11 @@ msgstr "Video ao Vivo"
 msgid "Motion Blur"
 msgstr "Desfocar Movimentação"
 
+#~ msgid "-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*"
+#~ msgstr "-*-luxi sans-*-r-*-*-12-*-*-*-*-*-*-*"
+
+#~ msgid "-*-luxi sans-*-r-*-*-16-*-*-*-*-*-*-*"
+#~ msgstr "-*-luxi sans-*-r-*-*-16-*-*-*-*-*-*-*"
+
+#~ msgid "-*-luxi sans-bold-r-*-*-20-*-*-*-*-*-*-*"
+#~ msgstr "-*-luxi sans-bold-r-*-*-20-*-*-*-*-*-*-*"

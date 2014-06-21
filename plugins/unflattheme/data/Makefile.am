@@ -258,6 +258,8 @@ PNGS = \
 	 statusbar.png \
 	 stop.png \
 	 swap_extents.png \
+	 tan_linear.png \
+	 tan_smooth.png \
 	 text_highlight.png \
 	 text.png \
 	 timebar_bg_flat.png \

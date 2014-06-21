@@ -59,6 +59,7 @@ cinelerra_SOURCES = aattachmentpoint.C \
 		    adeviceprefs.C \
 		    aedit.C \
 		    aedits.C \
+		    affine.C \
 		    amodule.C \
 		    apatchgui.C \
 		    apluginarray.C \
@@ -97,6 +98,7 @@ cinelerra_SOURCES = aattachmentpoint.C \
 		    cachebase.C \
 		    canvas.C \
 		    canvastools.C \
+		    cicolors.C \
 		    channel.C \
 		    channeldb.C \
 		    channeledit.C \
@@ -359,6 +361,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 adeviceprefs.h \
 		 aedit.h \
 		 aedits.h \
+		 affine.h \
 		 amodule.h \
 		 apatchgui.h \
 		 apluginarray.h \
@@ -403,6 +406,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 cameraauto.h \
 		 canvas.h \
 		 canvastools.h \
+		 cicolors.h \
 		 channeledit.h \
 		 channel.h \
 		 channeldb.h \

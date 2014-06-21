@@ -39,6 +39,7 @@ SUBDIRS= \
 	dot \
 	downsample \
 	fieldframe \
+	findobject \
 	flash \
 	flip \
 	framefield \

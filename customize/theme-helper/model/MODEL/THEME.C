@@ -1,7 +1,9 @@
 
 /*
- * CINELERRA
+ * CINELERRA THEME
+ * Based on S.U.V. theme
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
+ * by Paolo Rampino <akir4d at gmail dot com>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -100,19 +102,19 @@ void THFUNC::initialize()
 	BC_Resources *resources = BC_WindowBase::get_resources();
 
 
-	resources->text_default = TEXT;
-	resources->text_background = BBCOLOR;
+	resources->text_default = 0xbfbfbf;
+	resources->text_background = 0x333333;
 	resources->text_border1 = 0x202020;
-	resources->text_border2 = BBCOLOR;
-	resources->text_border3 = BBCOLOR;
+	resources->text_border2 = 0x333333;
+	resources->text_border3 = 0x333333;
 	resources->text_border4 = 0x969696;
 	resources->text_inactive_highlight = 0x707070;
 
-	resources->bg_color = BGCOLOR;
-	resources->default_text_color = TEXT;
-	resources->menu_title_text = TEXT;
-	resources->popup_title_text = TEXT;
-	resources->menu_item_text = TEXT;
+	resources->bg_color = 0x4d4d4d;
+	resources->default_text_color = 0xbfbfbf;
+	resources->menu_title_text = 0xbfbfbf;
+	resources->popup_title_text = 0xbfbfbf;
+	resources->menu_item_text = 0xbfbfbf;
 	resources->menu_highlighted_fontcolor = WHITE;
 	resources->generic_button_margin = 30;
 	resources->pot_needle_color = resources->text_default;
@@ -128,21 +130,21 @@ void THFUNC::initialize()
 	resources->popupmenu_margin = 10;
 	resources->popupmenu_triangle_margin = 15;
 
-	resources->listbox_title_color = TEXT;
+	resources->listbox_title_color = 0xbfbfbf;
 
 	resources->listbox_title_margin = 20;
 	resources->listbox_title_hotspot = 20;
 	resources->listbox_border1 = 0x1a1a1a;
-	resources->listbox_border2 = BBCOLOR;
-	resources->listbox_border3 = BBCOLOR;
+	resources->listbox_border2 = 0x333333;
+	resources->listbox_border3 = 0x333333;
 	resources->listbox_border4 = 0x646464;
 	resources->listbox_highlighted = 0x505050;
-	resources->listbox_inactive = BBCOLOR;
+	resources->listbox_inactive = 0x333333;
 	resources->listbox_bg = 0;
-	resources->listbox_text = TEXT;
+	resources->listbox_text = 0xbfbfbf;
 
 	resources->filebox_margin = 130;
-	resources->file_color = TEXT;
+	resources->file_color = 0xbfbfbf;
 	resources->directory_color = 0xa0a0ff;
 
 
@@ -426,19 +428,19 @@ void THFUNC::initialize()
 
 
 	new_toggle("playpatch.png", 
-		"patch_up.png",
-		"patch_hi.png",
-		"patch_checked.png",
-		"patch_dn.png",
-		"patch_checkedhi.png",
+		"playpatch_up.png",
+		"playpatch_hi.png",
+		"playpatch_checked.png",
+		"playpatch_dn.png",
+		"playpatch_checkedhi.png",
 		"playpatch_data");
 
 	new_toggle("recordpatch.png", 
-		"patch_up.png",
-		"patch_hi.png",
-		"patch_checked.png",
-		"patch_dn.png",
-		"patch_checkedhi.png",
+		"recordpatch_up.png",
+		"recordpatch_hi.png",
+		"recordpatch_checked.png",
+		"recordpatch_dn.png",
+		"recordpatch_checkedhi.png",
 		"recordpatch_data");
 
 	new_toggle("gangpatch.png", 
@@ -627,22 +629,28 @@ void THFUNC::initialize()
 	new_toggle("eyedrop.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "eyedrop");
 	new_toggle("magnify.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "magnify");
 	new_toggle("mask.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "mask");
+	new_toggle("ruler.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "ruler");
 	new_toggle("projector.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "projector");
 	new_toggle("protect.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "protect");
 	new_toggle("titlesafe.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "titlesafe");
 	new_toggle("toolwindow.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "tool");
+	
+	// toggle for tangent mode (compositor/tool window)
+	new_toggle("tan_smooth.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "tan_smooth");
+	new_toggle("tan_linear.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "tan_linear");
 
 
 
 	flush_images();
 
 	title_font = MEDIUMFONT_3D;
-	title_color = TEXT;
+	title_color = 0xbfbfbf;
 	recordgui_fixed_color = YELLOW;
 	recordgui_variable_color = RED;
 
 	channel_position_color = MEYELLOW;
 	resources->meter_title_w = 25;
+	edit_font_color = YELLOW;
 }
 
 #define CWINDOW_METER_MARGIN 5
@@ -1005,7 +1013,7 @@ void THFUNC::draw_mwindow_bg(MWindowGUI *gui)
 		get_image("timebar_bg"));
 
 // Zoombar
-	gui->set_color(BBCOLOR);
+	gui->set_color(0x333333);
 	gui->draw_box(mzoom_x, 
 		mzoom_y,
 		mwindow->session->mwindow_w,

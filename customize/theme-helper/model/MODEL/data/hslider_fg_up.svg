@@ -12,7 +12,7 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.47pre4 r22446"
+   inkscape:version="0.48.1 r9760"
    width="12"
    height="20"
    sodipodi:docname="hslider_fg_up.svg">
@@ -72,23 +72,23 @@
        gradientTransform="matrix(1,0,0,1.2713258,0,-0.33390835)" />
   </defs>
   <sodipodi:namedview
-     pagecolor="#ffffff"
+     pagecolor="#4d4d4d"
      bordercolor="#666666"
      borderopacity="1"
      objecttolerance="10"
      gridtolerance="10"
      guidetolerance="10"
-     inkscape:pageopacity="0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:window-width="1280"
-     inkscape:window-height="773"
+     inkscape:window-width="1316"
+     inkscape:window-height="744"
      id="namedview4"
      showgrid="false"
      inkscape:zoom="5.25"
      inkscape:cx="0.079805981"
      inkscape:cy="10.347465"
-     inkscape:window-x="0"
-     inkscape:window-y="1"
+     inkscape:window-x="50"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
   <rect
@@ -99,17 +99,13 @@
      x="3.825433"
      y="-0.011873573" />
   <rect
-     style="fill:#4d4d4d;stroke:#000000;stroke-width:0.95871598000000002;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     style="fill:#4d4d4d;stroke:#1a1a1a;stroke-width:0.95871598000000002;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
      id="rect2820"
      width="11.041284"
      height="19.041285"
      x="0.47935799"
      y="0.47935799"
      ry="1.8557184" />
-  <path
-     style="opacity:0.3;fill:url(#linearGradient3605);fill-opacity:1;stroke:none"
-     d="m 2.784428,1.2306548 c -0.9041577,0 -1.6490113,0.7675127 -1.6490113,1.6991759 l 0,5.663919 C 2.6262008,6.6676034 4.957119,5.4219551 7.5665607,5.4219551 c 1.1700094,0 2.2924148,0.2597039 3.2980233,0.70799 l 0,-3.2001144 c 0,-0.9316632 -0.744854,-1.6991759 -1.6490119,-1.6991759 l -6.4311441,0 z"
-     id="rect2821" />
   <rect
      style="fill:#000000;fill-opacity:1;stroke:none"
      id="rect3607"

@@ -26,38 +26,34 @@ if ! which gcc &> /dev/null
 	exit 0
 fi
 
-# check for cinelerra
-if ! cat $BASE/../../configure.ac | grep -i Cinelerra &> /dev/null
- 	then
-	echo "This Script must be unpacked and launched from cinelerraroot/cinelerra-theme-helper!"
-	exit 0
-fi
-
 #Set Log file and starting LOG
 LOG="$BASE"/log.txt
 echo BUILDING... > "$LOG"
 
 #Set Global var
 BACKUP="$BASE"/backup/plugins
-DST="$BASE"../../plugins
+DST="$BASE"/build
 SRC="$BASE"/themes
 
 # Inizialize backup folder
 [ ! -e $BACKUP ] && mkdir -p $BACKUP
+[ ! -e $DST ] && mkdir -p $DST
+[ ! -e $SRC ] && mkdir -p $SRC
+
 
 # Read all .btheme  from themes folder
-for T in `ls "$BASE"/themes | grep \.btheme`;
+for T in `ls "$SRC" | grep \.btheme`;
 		do
 		#Read VARS from .btheme files
-		source "$BASE"/themes/$T
+		source "$SRC"/$T
 		#Back to base folder
 		cd "$BASE"
 		#Remove previous builds
-		rm -rf "$BASE"/themes/$THEME
+		rm -rf "$SRC"/$THEME
 		#Copy theme model
-		cp -a "$BASE"/$MODEL "$BASE"/themes/$THEME
+		cp -a "$BASE"/$MODEL "$SRC"/$THEME
 		#Start Theme building
-		cd "$BASE"/themes/$THEME
+		cd "$SRC"/$THEME
 		#Some rename and basecolors change
 		for i in THEME.C THEME.h Makefile.am data/Makefile.am;
 			do
@@ -70,6 +66,7 @@ for T in `ls "$BASE"/themes | grep \.btheme`;
 		done
 		mv THEME.C $THEME.C
 		mv THEME.h $THEME.h
+		mkdir Source
 		# Compile pngs files from svg
 		cd data
 		for i in `ls | grep svg`
@@ -86,40 +83,13 @@ for T in `ls "$BASE"/themes | grep \.btheme`;
 			[ "$INBASE" != "$OUTBASE" ] && sed -i /\#/s/$INBASE/$OUTBASE/g $i
 			#Inkscape SVG > PNG
 			inkscape -e $(basename $i .svg).png $i
+			mv $i Source
 		done
-		#Backup old theme
-		if [ -e $BACKUP/$THEME ]
-			then
-			echo $THEME Already Backuped! >> "$LOG"
-			else
-			mv $BASE/../plugins/$THEME $BACKUP/
-		fi
-		[ -e $BASE/../plugins/$THEME ] && rm -rf $BASE/../plugins/$THEME
+		[ -e "$DST"/$THEME ] && rm -rf "$DST"/$THEME
 		# Install
-		cp -a "$BASE"/themes/$THEME $DST/
-		#IF theme not exists on configure.in then add it
-		if ! cat $BASE/../configure.in | grep $THEME &> /dev/null
-			then
-			sed -i /"suv\/data"/s/Makefile/"Makefile "\\\\"\\n\tplugins\/$THEME\/Makefile"\\\\"\\n\tplugins\/$THEME\/data\/Makefile "/ $BASE/../configure.in
+		mv "$SRC"/$THEME $DST/
 
-		fi
-		#IF theme not exists on plugins Makefile.am then add it
-		if ! cat $BASE/../plugins/Makefile.am | grep $THEME  &> /dev/null
-			then
-			sed -i s/suv/"suv "\\\\"\\n\t$THEME"/ $BASE/../plugins/Makefile.am
-		fi
-
-echo "building and installing $THEME done." >> "$LOG"
+echo "the new $THEMES are on $DST"
 done
-# Finish
-echo Log is on $LOG
-
-cat "$LOG"
-
-cd $BASE/..
-# this rebuild all makefiles
-./autogen.sh
-
-cd $BASE
 
 

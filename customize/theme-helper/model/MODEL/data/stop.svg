@@ -12,7 +12,7 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.47pre4 r22446"
+   inkscape:version="0.48.1 r9760"
    width="24"
    height="24"
    sodipodi:docname="stop.svg">
@@ -429,22 +429,22 @@
     <linearGradient
        id="linearGradient2679">
       <stop
-         style="stop-color:#ff2a2a;stop-opacity:1;"
+         style="stop-color:#c8c8c8;stop-opacity:1;"
          offset="0"
          id="stop2681" />
       <stop
-         style="stop-color:#800000;stop-opacity:1;"
+         style="stop-color:#d4d4d4;stop-opacity:1;"
          offset="1"
          id="stop2683" />
     </linearGradient>
     <linearGradient
        id="linearGradient2697">
       <stop
-         style="stop-color:#550000;stop-opacity:1;"
+         style="stop-color:#2b2b2b;stop-opacity:1;"
          offset="0"
          id="stop2699" />
       <stop
-         style="stop-color:#aa0000;stop-opacity:1;"
+         style="stop-color:#555555;stop-opacity:1;"
          offset="1"
          id="stop2701" />
     </linearGradient>
@@ -548,6 +548,15 @@
        y1="15.291994"
        x2="14"
        y2="52.510574" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient2679"
+       id="linearGradient3827"
+       x1="-461.8692"
+       y1="-143.97981"
+       x2="-382.63202"
+       y2="-143.97981"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -558,17 +567,17 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1280"
-     inkscape:window-height="749"
+     inkscape:window-width="1316"
+     inkscape:window-height="744"
      id="namedview4"
      showgrid="false"
-     inkscape:zoom="9.8333333"
-     inkscape:cx="6.8238909"
+     inkscape:zoom="0.86915209"
+     inkscape:cx="-243.62442"
      inkscape:cy="12"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
+     inkscape:window-x="50"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg2" />
+     inkscape:current-layer="g3659" />
   <g
      id="g3659"
      transform="matrix(0.99472472,0,0,0.94278817,0.144061,0.54268913)">

@@ -12,7 +12,7 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.47pre4 r22446"
+   inkscape:version="0.48.1 r9760"
    width="129"
    height="22"
    sodipodi:docname="preferencesbutton_up.svg">
@@ -1771,15 +1771,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1280"
-     inkscape:window-height="721"
+     inkscape:window-width="1316"
+     inkscape:window-height="744"
      id="namedview4"
      showgrid="false"
      inkscape:zoom="4.5775194"
      inkscape:cx="72.999798"
      inkscape:cy="11"
-     inkscape:window-x="0"
-     inkscape:window-y="27"
+     inkscape:window-x="50"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
   <rect
@@ -1802,10 +1802,6 @@
      id="path3042"
      d="m 0,21 0,1 129,0 0,-1 -129,0 z"
      style="fill:#989898;fill-opacity:1;stroke:none" />
-  <path
-     style="opacity:0.5;fill:url(#linearGradient4101);fill-opacity:1;stroke:none"
-     d="m 14.281266,1.142099 c -4.6069237,0 -8.2356854,0.5982674 -8.2356854,1.3578023 l 0,6.6532332 C 20.605296,10.723652 40.305787,11.678647 62.048272,11.678647 c 23.816778,0 45.122308,-1.143791 59.955818,-2.987165 l 0,-6.1915807 c 0,-0.7595349 -3.62876,-1.3578023 -8.23568,-1.3578023 l -99.487144,0 z"
-     id="rect3687" />
   <rect
      style="fill:none;stroke:#4d4d4d;stroke-width:1.77798724;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
      id="rect2911"

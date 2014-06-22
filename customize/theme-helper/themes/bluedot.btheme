@@ -1,0 +1,42 @@
+#!/bin/bash
+#THEME name you can use to owerwrite default theme 
+# must be lo-case (use only latin letters, without spaces, dot, comma etc)
+THEME=bluedottheme
+# this is diplayed on preference, and used to call theme by cinelerra (use only latin letters, without spaces)
+THEMENAME="Blue Dot"
+# best upper-case (use only latin letters, without spaces, dot, comma etc)
+THFUNC=BlueDotTheme
+
+#Where is your model?
+MODEL=model/MODEL
+
+# Input theme colors of your theme, when you make new theme keep in mind this informations
+INBGCOLOR=4d4d4d
+INBBCOLOR=333333
+INTEXT=bfbfbf
+
+# Output theme colors of your theme, this change your theme colors to make variant
+#like green, pink, diamond, yellow etc..
+BGCOLOR=0023d4
+BBCOLOR=274bff
+TEXT=eeeeff
+
+#SVG INPUT COLORS when you make new theme keep in mind this informations
+INBASE=ff0000
+INBORDER=666666
+INCHECKED=ff6600
+INDBUTTON=989898
+INICON=cccccc
+INMISC=803300
+
+
+#SVG OUTPUT COLORS this change your theme colors to make variant
+#like green, pink, diamond, yellow etc..
+OUTBASE=7282d4
+OUTBORDER=d5741d
+OUTCHECKED=414abe
+OUTDBUTTON=a7abdc
+OUTICON=d5d5ff
+OUTMISC=e68600
+
+

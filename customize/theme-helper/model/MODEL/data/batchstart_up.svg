@@ -12,10 +12,10 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.47pre4 r22446"
+   inkscape:version="0.48.1 r9760"
    width="100"
    height="26"
-   sodipodi:docname="batchcancel_up.svg">
+   sodipodi:docname="batchstart_up.svg">
   <metadata
      id="metadata8">
     <rdf:RDF>
@@ -24,7 +24,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -291,15 +291,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1280"
-     inkscape:window-height="752"
+     inkscape:window-width="1316"
+     inkscape:window-height="744"
      id="namedview4"
      showgrid="false"
      inkscape:zoom="2.705"
      inkscape:cx="-17.016518"
      inkscape:cy="-0.35315938"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
+     inkscape:window-x="50"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
   <rect
@@ -333,10 +333,6 @@
      sodipodi:ry="7.3937154"
      d="m 24.768946,13.800369 a 7.9482441,7.3937154 0 1 1 -15.8964885,0 7.9482441,7.3937154 0 1 1 15.8964885,0 z"
      transform="matrix(1.0190298,0,0,1.0502923,4.3009766,-1.0279876)" />
-  <path
-     style="fill:url(#linearGradient3656);fill-opacity:1;stroke:none"
-     d="m 12.468207,2.938217 c -5.0204338,0 -9.0726183,4.6682602 -9.0726183,10.491591 0,5.731985 3.9239276,10.347684 8.8346493,10.49159 0,-6.672478 19.658528,-12.099393 43.90553,-12.099393 17.445814,0 32.540988,2.810975 39.622063,6.867224 0.769839,-1.546494 1.219598,-3.338223 1.219598,-5.259421 0,-5.8233308 -4.052185,-10.491591 -9.072618,-10.491591 l -75.436604,0 z"
-     id="rect3649" />
   <text
      xml:space="preserve"
      style="font-size:20.19494057px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#e6e6e6;fill-opacity:1;stroke:none;font-family:Arial;-inkscape-font-specification:Arial"

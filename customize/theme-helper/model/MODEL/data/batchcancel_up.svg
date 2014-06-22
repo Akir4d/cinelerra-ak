@@ -12,10 +12,10 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.47pre4 r22446"
+   inkscape:version="0.48.1 r9760"
    width="100"
    height="26"
-   sodipodi:docname="batchcancel_hi.svg">
+   sodipodi:docname="batchcancel_up.svg">
   <metadata
      id="metadata8">
     <rdf:RDF>
@@ -24,7 +24,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -276,7 +276,7 @@
      inkscape:zoom="2.705"
      inkscape:cx="-1.7564381"
      inkscape:cy="-0.35315938"
-     inkscape:window-x="455"
+     inkscape:window-x="462"
      inkscape:window-y="311"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg2" />
@@ -337,8 +337,4 @@
        id="path6842"
        sodipodi:nodetypes="ccccccccccccc" />
   </g>
-  <path
-     style="fill:url(#linearGradient3656);fill-opacity:1;stroke:none"
-     d="m 12.468207,2.938217 c -5.0204338,0 -9.0726183,4.6682602 -9.0726183,10.491591 0,5.731985 3.9239276,10.347684 8.8346493,10.49159 0,-6.672478 19.658528,-12.099393 43.90553,-12.099393 17.445814,0 32.540988,2.810975 39.622063,6.867224 0.769839,-1.546494 1.219598,-3.338223 1.219598,-5.259421 0,-5.8233308 -4.052185,-10.491591 -9.072618,-10.491591 l -75.436604,0 z"
-     id="rect3649" />
 </svg>

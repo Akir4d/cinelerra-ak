@@ -12,7 +12,7 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.47pre4 r22446"
+   inkscape:version="0.48.1 r9760"
    width="18.999979"
    height="20.000025"
    sodipodi:docname="zoomtumble_up.svg">
@@ -589,15 +589,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1280"
-     inkscape:window-height="750"
+     inkscape:window-width="1316"
+     inkscape:window-height="744"
      id="namedview4"
      showgrid="false"
      inkscape:zoom="25.14997"
      inkscape:cx="9.4999892"
      inkscape:cy="13.057537"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
+     inkscape:window-x="50"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
   <path
@@ -622,16 +622,8 @@
      id="path2910"
      sodipodi:nodetypes="cccc" />
   <path
-     style="opacity:0.2;fill:url(#linearGradient3017);fill-opacity:1;stroke:none"
-     d="m 3.9364272,1.083351 c -1.4238461,0 -2.6001997,0.5641506 -2.6001997,1.2514651 l 0,2.0215974 c 1.2338354,0.1740686 2.4934442,0.3451008 3.7307213,0.529466 2.9653165,0.4418581 7.9513972,1.3506266 12.6335792,1.5643312 l 0,-4.1153946 c 0,-0.6873145 -1.119829,-1.2514651 -2.543674,-1.2514651 l -11.2204268,0 z"
-     id="path3112" />
-  <path
      sodipodi:nodetypes="cccc"
      id="path3917"
      d="m 15.431473,12.167971 -11.9469468,0 6.0747191,6.070041 5.8722277,-6.070041 z"
      style="fill:#cccccc;fill-opacity:1;stroke:none" />
-  <path
-     style="opacity:0.2;fill:url(#linearGradient3013);fill-opacity:1;stroke:none"
-     d="m 1.3362275,11.14007 0,1.859857 c 3.1495764,1.519052 8.2023516,2.102096 12.6231935,2.041307 1.083637,-0.0149 2.400202,-0.09937 3.838134,-0.226813 l 0,-3.674351 -16.4613275,0 z"
-     id="path3118" />
 </svg>

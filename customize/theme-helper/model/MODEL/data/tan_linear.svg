@@ -11,10 +11,10 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.1 r9760"
-   width="93"
-   height="18"
-   sodipodi:docname="title_bg.svg">
+   inkscape:version="0.48.4 r9939"
+   width="30"
+   height="30"
+   sodipodi:docname="tan_linear.svg">
   <metadata
      id="metadata8">
     <rdf:RDF>
@@ -23,51 +23,43 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <defs
-     id="defs6">
-    <inkscape:perspective
-       sodipodi:type="inkscape:persp3d"
-       inkscape:vp_x="0 : 0.5 : 1"
-       inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_z="1 : 0.5 : 1"
-       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
-       id="perspective10" />
-  </defs>
+     id="defs6" />
   <sodipodi:namedview
-     pagecolor="#000000"
+     pagecolor="#ffffff"
      bordercolor="#666666"
      borderopacity="1"
      objecttolerance="10"
      gridtolerance="10"
      guidetolerance="10"
-     inkscape:pageopacity="1"
+     inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1316"
+     inkscape:window-width="1321"
      inkscape:window-height="744"
      id="namedview4"
      showgrid="false"
-     showguides="true"
-     inkscape:guide-bbox="true"
-     inkscape:zoom="2.1451613"
-     inkscape:cx="-46.033835"
-     inkscape:cy="9.9999994"
-     inkscape:window-x="50"
+     inkscape:zoom="7.8666667"
+     inkscape:cx="-9.5338983"
+     inkscape:cy="15"
+     inkscape:window-x="45"
      inkscape:window-y="24"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg2"
-     showborder="true"
-     inkscape:showpageshadow="false" />
+     inkscape:current-layer="svg2" />
   <rect
-     style="fill:#102645;fill-opacity:1;stroke:#49638b;stroke-width:1.83625912999999996;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     id="rect2818"
-     width="91.163742"
-     height="16.16374"
-     x="0.91812956"
-     y="0.91812956"
-     ry="2.6849899"
-     rx="3.0034139" />
+     style="fill:#ff0000;fill-opacity:1;stroke:none"
+     id="rect3778"
+     width="4.3220339"
+     height="4.3220339"
+     x="10.932203"
+     y="10.423729" />
+  <path
+     style="fill:#cccccc;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
+     d="m 6.6101695,17.79661 1.3983051,1.525424 4.9576274,-5.59322 6.991525,8.135593 6.101695,0.127118 0,-2.161017 -5.211864,0 -7.881356,-9.025423 z"
+     id="path2987"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ccccccccc" />
 </svg>

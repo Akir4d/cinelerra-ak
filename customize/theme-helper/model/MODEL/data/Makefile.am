@@ -186,6 +186,11 @@ PNGS = \
 	 patch_up.png \
 	 pause.png \
 	 playpatch.png \
+         playpatch_up.png \
+	 playpatch_hi.png \
+	 playpatch_checked.png \
+	 playpatch_dn.png \
+	 playpatch_checkedhi.png \
 	 play.png \
 	 plugin_bg.png \
 	 plugin_ondn.png \
@@ -225,6 +230,11 @@ PNGS = \
 	 recordmonitor_meters.png \
 	 recordmonitor_panel.png \
 	 recordpatch.png \
+         recordpatch_up.png \
+	 recordpatch_hi.png \
+	 recordpatch_checked.png \
+	 recordpatch_dn.png \
+	 recordpatch_checkedhi.png \
 	 record.png \
 	 redo.png \
 	 reload.png \
@@ -237,6 +247,7 @@ PNGS = \
 	 reverse.png \
 	 rewind.png \
 	 right_justify.png \
+	 ruler.png \
 	 setformat_bg.png \
 	 show_meters.png \
 	 singleframe.png \
@@ -247,6 +258,8 @@ PNGS = \
 	 statusbar.png \
 	 stop.png \
 	 swap_extents.png \
+	 tan_linear.png \
+	 tan_smooth.png \
 	 text_highlight.png \
 	 text.png \
 	 timebar_bg_flat.png \
@@ -307,7 +320,7 @@ PNGS = \
 .data.$(OBJEXT):
 	$(OBJCOPY) -I binary -B $(OBJCOPYARCH) -O $(OBJCOPYTARGET) $< $@
 
-THEME.data: $(PNGS)
+unflattheme.data: $(PNGS)
 	$(top_builddir)/guicast/bootstrap $@ $^ || { rm -f $@; exit 1; }
 
 clean-local:
@@ -315,302 +328,4 @@ clean-local:
  
 EXTRA_DIST = \
 	$(PNGS) \
-	 arrow.svg \
-	 autokeyframe.svg \
-	 bar.svg \
-	 batchcancel_dn.svg \
-	 batchcancel_hi.svg \
-	 batchcancel_up.svg \
-	 batchstart_dn.svg \
-	 batchstart_hi.svg \
-	 batchstart_up.svg \
-	 batchstop_dn.svg \
-	 batchstop_hi.svg \
-	 batchstop_up.svg \
-	 blank30x30.svg \
-	 bottom_justify.svg \
-	 camerakeyframe.svg \
-	 camera.svg \
-	 cancel.svg \
-	 cbuttons_left.svg \
-	 cbuttons_right.svg \
-	 center_justify.svg \
-	 channel_bg.svg \
-	 channel_position.svg \
-	 channel.svg \
-	 checkbox_checkedhi.svg \
-	 checkbox_checked.svg \
-	 checkbox_dn.svg \
-	 checkbox_hi.svg \
-	 checkbox_up.svg \
-	 clip_icon.svg \
-	 closetip.svg \
-	 cmeter_bg.svg \
-	 column_dn.svg \
-	 column_hi.svg \
-	 column_up.svg \
-	 copy.svg \
-	 cpanel_bg.svg \
-	 cpanel_checkedhi.svg \
-	 cpanel_checked.svg \
-	 cpanel_dn.svg \
-	 cpanel_hi.svg \
-	 cpanel_up.svg \
-	 crop.svg \
-	 cut.svg \
-	 cwindow_active.svg \
-	 cwindow_inactive.svg \
-	 delete.svg \
-	 drawpatch.svg \
-	 editpanel_checkedhi.svg \
-	 editpanel_checked.svg \
-	 editpanel_dn.svg \
-	 editpanel_hi.svg \
-	 editpanel_up.svg \
-	 end.svg \
-	 expandpatch_checkedhi.svg \
-	 expandpatch_checked.svg \
-	 expandpatch_dn.svg \
-	 expandpatch_hi.svg \
-	 expandpatch_up.svg \
-	 eyedrop.svg \
-	 fastfwd.svg \
-	 fastrev.svg \
-	 filebox_bigbutton_dn.svg \
-	 filebox_bigbutton_hi.svg \
-	 filebox_bigbutton_up.svg \
-	 fileboxbutton_dn.svg \
-	 fileboxbutton_hi.svg \
-	 fileboxbutton_up.svg \
-	 fitautos.svg \
-	 fit.svg \
-	 folder.svg \
-	 framefwd.svg \
-	 framerev.svg \
-	 gangpatch.svg \
-	 generic_dn.svg \
-	 generic_hi.svg \
-	 generic_up.svg \
-	 goto.svg \
-	 heroine_icon.svg \
-	 hscroll_handle_bg.svg \
-	 hscroll_handle_dn.svg \
-	 hscroll_handle_hi.svg \
-	 hscroll_handle_up.svg \
-	 hscroll_left_dn.svg \
-	 hscroll_left_hi.svg \
-	 hscroll_left_up.svg \
-	 hscroll_right_dn.svg \
-	 hscroll_right_hi.svg \
-	 hscroll_right_up.svg \
-	 hslider_bg_dn.svg \
-	 hslider_bg_hi.svg \
-	 hslider_bg_up.svg \
-	 hslider_fg_dn.svg \
-	 hslider_fg_hi.svg \
-	 hslider_fg_up.svg \
-	 ibeam.svg \
-	 icons.svg \
-	 in_checkedhi.svg \
-	 in_checked.svg \
-	 in_dn.svg \
-	 in_hi.svg \
-	 inpoint.svg \
-	 in_up.svg \
-	 keyframe3.svg \
-	 label_checkedhi.svg \
-	 label_checked.svg \
-	 label.svg \
-	 labeltoggle_dn.svg \
-	 labeltoggle_uphi.svg \
-	 labeltoggle_up.svg \
-	 left_justify.svg \
-	 listbox_button.svg \
-	 listbox_dn.svg \
-	 listbox_up.svg \
-	 locklabels_dn.svg \
-	 locklabels_lockedhi.svg \
-	 locklabels_locked.svg \
-	 locklabels_unlockedhi.svg \
-	 locklabels_unlocked.svg \
-	 magnify.svg \
-	 maskkeyframe.svg \
-	 mask.svg \
-	 mbutton_bg.svg \
-	 mclock_flat.svg \
-	 menubar_bg.svg \
-	 menubar_dn.svg \
-	 menubar_hi.svg \
-	 menubar_up.svg \
-	 menuitem_dn.svg \
-	 menuitem_hi.svg \
-	 menuitem_up.svg \
-	 menu_popup_bg.svg \
-	 middle_justify.svg \
-	 mode_add.svg \
-	 mode_divide.svg \
-	 mode_dn.svg \
-	 mode_hi.svg \
-	 modekeyframe.svg \
-	 mode_max.svg \
-	 mode_multiply.svg \
-	 mode_normal.svg \
-	 mode_replace.svg \
-	 mode_subtract.svg \
-	 mode_up.svg \
-	 mscroll_filler.svg \
-	 mutepatch_checkedhi.svg \
-	 mutepatch_checked.svg \
-	 mutepatch_dn.svg \
-	 mutepatch_hi.svg \
-	 mutepatch_up.svg \
-	 new_bg.svg \
-	 new_bigbutton_dn.svg \
-	 new_bigbutton_hi.svg \
-	 new_bigbutton_up.svg \
-	 nextlabel.svg \
-	 nexttip.svg \
-	 ok.svg \
-	 openfolder.svg \
-	 out_checkedhi.svg \
-	 out_checked.svg \
-	 out_dn.svg \
-	 out_hi.svg \
-	 outpoint.svg \
-	 out_up.svg \
-	 over.svg \
-	 overwrite.svg \
-	 pan_channel_small.svg \
-	 pan_channel.svg \
-	 panel_divider.svg \
-	 pan_hi.svg \
-	 pankeyframe.svg \
-	 pan_popup.svg \
-	 pan_stick_small.svg \
-	 pan_stick.svg \
-	 pan_up.svg \
-	 paste.svg \
-	 patchbay_bg.svg \
-	 patch_checkedhi.svg \
-	 patch_checked.svg \
-	 patch_dn.svg \
-	 patch_hi.svg \
-	 patch_up.svg \
-	 pause.svg \
-	 playpatch.svg \
-	 play.svg \
-	 plugin_bg.svg \
-	 plugin_ondn.svg \
-	 plugin_onhi.svg \
-	 plugin_onselecthi.svg \
-	 plugin_onselect.svg \
-	 plugin_on.svg \
-	 plugin_showdn.svg \
-	 plugin_showhi.svg \
-	 plugin_showselecthi.svg \
-	 plugin_showselect.svg \
-	 plugin_show.svg \
-	 pot_dn.svg \
-	 pot_hi.svg \
-	 pot_up.svg \
-	 preferences_bg.svg \
-	 preferencesbutton_dnhi.svg \
-	 preferencesbutton_dnlo.svg \
-	 preferencesbutton_dn.svg \
-	 preferencesbutton_uphi.svg \
-	 preferencesbutton_up.svg \
-	 prevlabel.svg \
-	 prevtip.svg \
-	 progress_bg.svg \
-	 progress_hi.svg \
-	 projectorkeyframe.svg \
-	 projector.svg \
-	 protect.svg \
-	 radial_checkedhi.svg \
-	 radial_checked.svg \
-	 radial_dn.svg \
-	 radial_hi.svg \
-	 radial_up.svg \
-	 recordgui_batch.svg \
-	 recordgui_controls.svg \
-	 recordgui_list.svg \
-	 recordmonitor_meters.svg \
-	 recordmonitor_panel.svg \
-	 recordpatch.svg \
-	 record.svg \
-	 redo.svg \
-	 reload.svg \
-	 resource1024.svg \
-	 resource128.svg \
-	 resource256.svg \
-	 resource32.svg \
-	 resource512.svg \
-	 resource64.svg \
-	 reverse.svg \
-	 rewind.svg \
-	 right_justify.svg \
-	 setformat_bg.svg \
-	 show_meters.svg \
-	 singleframe.svg \
-	 splice.svg \
-	 statusbar_cancel_dn.svg \
-	 statusbar_cancel_hi.svg \
-	 statusbar_cancel_up.svg \
-	 statusbar.svg \
-	 stop.svg \
-	 swap_extents.svg \
-	 text_highlight.svg \
-	 text.svg \
-	 timebar_bg_flat.svg \
-	 timebar_brender.svg \
-	 timebar_view.svg \
-	 tipbutton_dn.svg \
-	 tipbutton_hi.svg \
-	 tipbutton_up.svg \
-	 title_bg.svg \
-	 titlesafe.svg \
-	 toclip.svg \
-	 toolwindow.svg \
-	 top_justify.svg \
-	 transportdn.svg \
-	 transporthi.svg \
-	 transportup.svg \
-	 tumble_bottom.svg \
-	 tumble_hi.svg \
-	 tumble_top.svg \
-	 tumble_up.svg \
-	 undo.svg \
-	 updir.svg \
-	 vbuttons_left.svg \
-	 vclock.svg \
-	 vscroll_handle_bg.svg \
-	 vscroll_handle_dn.svg \
-	 vscroll_handle_hi.svg \
-	 vscroll_handle_up.svg \
-	 vscroll_left_dn.svg \
-	 vscroll_left_hi.svg \
-	 vscroll_left_up.svg \
-	 vscroll_right_dn.svg \
-	 vscroll_right_hi.svg \
-	 vscroll_right_up.svg \
-	 vwindow_timebar.svg \
-	 wrench.svg \
-	 xmeter_green.svg \
-	 xmeter_normal.svg \
-	 xmeter_over.svg \
-	 xmeter_red.svg \
-	 xmeter_white.svg \
-	 xmeter_yellow.svg \
-	 ymeter_green.svg \
-	 ymeter_normal.svg \
-	 ymeter_over.svg \
-	 ymeter_red.svg \
-	 ymeter_white.svg \
-	 ymeter_yellow.svg \
-	 zoompopup_dn.svg \
-	 zoompopup_hi.svg \
-	 zoompopup_up.svg \
-	 zoomtumble_bottom.svg \
-	 zoomtumble_hi.svg \
-	 zoomtumble_top.svg \
-	 zoomtumble_up.svg
+	Source

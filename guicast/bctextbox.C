@@ -678,8 +678,10 @@ int BC_TextBox::repeat_event(int64_t duration)
 }
 
 void BC_TextBox::default_keypress(int &dispatch_event, int &result)
-{       
-        //for (int a = 0; a < 5; a++) temp_string[a] = 0;
+{
+	char buffer[4];
+	char *temp_string = buffer;
+
 	if((top_level->get_keypress() == RETURN) ||
 //             (top_level->get_keypress() > 30 && top_level->get_keypress() < 127))
                (top_level->get_keypress() > 30 && top_level->get_keypress() <= 255))
@@ -691,14 +693,13 @@ void BC_TextBox::default_keypress(int &dispatch_event, int &result)
 				{
 				temp_string[0] = 0xa;
 				temp_string[1] = 0;
-				}
-				else
-				{ 
+			}
+			else
+			{
 #ifdef X_HAVE_UTF8_STRING
-					if (top_level->get_keypress_utf8() > 0)
-					{
-						temp_string = top_level->get_keypress_utf8();
-					} else 
+				if (top_level->get_keypress_utf8())
+					temp_string = top_level->get_keypress_utf8();
+					else 
 					{
 						temp_string[0] = top_level->get_keypress();
 						temp_string[1] = 0;

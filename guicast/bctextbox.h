@@ -160,8 +160,7 @@ private:
 	int highlighted;
 	int high_color, back_color;
 	int background_color;
-	char text[BCTEXTLEN], text_row[BCTEXTLEN]; 
-	char* temp_string;
+	char text[BCTEXTLEN], text_row[BCTEXTLEN];
 	int active;
 	int enabled;
 	int precision;

@@ -30,6 +30,19 @@ AC_DEFUN([GREP_CXXFLAGS],
   ;;
 esac
 ])
+dnl
+dnl GREP_CFLAGS(flag, cmd_if_missing, cmd_if_present)
+dnl
+AC_DEFUN([GREP_CFLAGS],
+[case "$CFLAGS" in
+"$1" | "$1 "* | *" $1" | *" $1 "* )
+  ifelse($#, 3, [$3], [:])
+  ;;
+*)
+  $2
+  ;;
+esac
+])
 
 if eval "test x$GCC = xyes"; then
   for flag in \
@@ -38,10 +51,17 @@ if eval "test x$GCC = xyes"; then
   do
     GREP_CXXFLAGS($flag, [ CXXFLAGS="$CXXFLAGS $flag" ])
   done
+  for flag in \
+      -Wformat \
+      -Werror=format-security
+  do
+    GREP_CFLAGS($flag, [ CFLAGS="$CFLAGS $flag" ])
+  done
   AC_ARG_WITH([lots-of-warnings],
 	AC_HELP_STRING([--with-lots-of-warnings], [ask the compiler to enable lots of warning flags]),[
   for flag in \
       -Wall \
+      -Werror=format-security \
       -Wextra \
       -Wcast-qual \
       -Wpointer-arith \
@@ -50,6 +70,18 @@ if eval "test x$GCC = xyes"; then
       -pedantic
   do
     GREP_CXXFLAGS($flag, [ CXXFLAGS="$CXXFLAGS $flag" ])
+  done
+  for flag in \
+      -Wall \
+      -Werror=format-security \
+      -Wextra \
+      -Wcast-qual \
+      -Wpointer-arith \
+      -Wreturn-type \
+      -Wunused \
+      -pedantic
+  do
+    GREP_CFLAGS($flag, [ CFLAGS="$CFLAGS $flag" ])
   done
 ])
 fi
@@ -284,6 +316,10 @@ else
 fi
 AC_DEFINE_UNQUOTED(HAVE_OPENCV_SURF, $HAVE_OPENCV_SURF,
 	[define if SURF support is compiled into opencv])
+if test "x$opencv" = "xyes" && test "x$opencvh" = "xyes" ; then
+	enable_findobject=ok
+fi
+AM_CONDITIONAL(ENABLE_FINDOBJECT,test "x$enable_findobject" = "xok")
 ############## END OF MISC LIBRARIES
 
 LARGEFILE_CFLAGS="-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64"
@@ -628,69 +664,95 @@ AC_SUBST(OBJCOPYARCH, $ocarch)
 
 AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 	m4/Makefile \
-					libmpeg3/Makefile libmpeg3/video/Makefile libmpeg3/audio/Makefile \
-					quicktime/Makefile \
-					quicktime/encore50/Makefile \
-					mpeg2enc/Makefile toolame-02l/Makefile \
-					guicast/Makefile cinelerra/Makefile \
+	libmpeg3/Makefile \
+	libmpeg3/video/Makefile \
+	libmpeg3/audio/Makefile \
+	quicktime/Makefile \
+	quicktime/encore50/Makefile \
+	mpeg2enc/Makefile \
+	toolame-02l/Makefile \
+	guicast/Makefile \
+	cinelerra/Makefile \
 	cinelerra/data/Makefile \
 	mplexlo/Makefile \
-					plugins/colors/Makefile \
-					plugins/libfourier/Makefile \
-					plugins/libeffecttv/Makefile \
-					plugins/Makefile
-					plugins/1080to540/Makefile \
-					plugins/histogram/Makefile \
-					plugins/720to480/Makefile \
-					plugins/bandslide/Makefile \
-					plugins/bandwipe/Makefile 
-					plugins/blur/Makefile \
-					plugins/bluebanana/Makefile \
-					plugins/brightness/Makefile \
-					plugins/burn/Makefile plugins/parametric/Makefile plugins/aging/Makefile \
-					plugins/cdripper/Makefile \
-					plugins/chromakey/Makefile \
-					plugins/chromakeyhsv/Makefile \
-					plugins/colorbalance/Makefile \
-					plugins/compressor/Makefile \
-					plugins/crossfade/Makefile \
-					plugins/decimate/Makefile \
-					plugins/deinterlace/Makefile plugins/delayaudio/Makefile plugins/delayvideo/Makefile \
-					plugins/denoise/Makefile plugins/denoisefft/Makefile plugins/denoisevideo/Makefile \
-					plugins/denoisemjpeg/Makefile \
-					plugins/despike/Makefile plugins/dissolve/Makefile plugins/dot/Makefile \
-					plugins/fieldframe/Makefile plugins/flip/Makefile plugins/framefield/Makefile \
+	plugins/colors/Makefile \
+	plugins/libfourier/Makefile \
+	plugins/libeffecttv/Makefile \
+	plugins/Makefile \
+	plugins/1080to540/Makefile \
+	plugins/histogram/Makefile \
+	plugins/720to480/Makefile \
+	plugins/C41/Makefile \
+	plugins/bandslide/Makefile \
+	plugins/bandwipe/Makefile 
+	plugins/blur/Makefile \
+	plugins/bluebanana/Makefile \
+	plugins/brightness/Makefile \
+	plugins/burn/Makefile \
+	plugins/parametric/Makefile \
+	plugins/aging/Makefile \
+	plugins/cdripper/Makefile \
+	plugins/chromakey/Makefile \
+	plugins/chromakeyhsv/Makefile \
+	plugins/colorbalance/Makefile \
+	plugins/compressor/Makefile \
+	plugins/crossfade/Makefile \
+	plugins/decimate/Makefile \
+	plugins/deinterlace/Makefile \
+	plugins/delayaudio/Makefile \
+	plugins/delayvideo/Makefile \
+	plugins/denoise/Makefile \
+	plugins/denoisefft/Makefile \
+	plugins/denoisevideo/Makefile \
+	plugins/denoisemjpeg/Makefile \
+	plugins/despike/Makefile \
+	plugins/dissolve/Makefile \
+	plugins/dot/Makefile \
+	plugins/fieldframe/Makefile \
+	plugins/flip/Makefile \
+	plugins/framefield/Makefile \
 	plugins/findobject/Makefile \
-					plugins/freeverb/Makefile plugins/freezeframe/Makefile plugins/gain/Makefile \
+	plugins/freeverb/Makefile \
+	plugins/freezeframe/Makefile \
+	plugins/gain/Makefile \
 	plugins/gamma/Makefile \
-					plugins/holo/Makefile plugins/huesaturation/Makefile \
-					plugins/interpolate/Makefile \
-					plugins/interpolateaudio/Makefile \
-					plugins/interpolatevideo/Makefile \
-					plugins/invertaudio/Makefile plugins/invertvideo/Makefile plugins/irissquare/Makefile \
-					plugins/ivtc/Makefile \
+	plugins/holo/Makefile \
+	plugins/huesaturation/Makefile \
+	plugins/interpolate/Makefile \
+	plugins/interpolateaudio/Makefile \
+	plugins/interpolatevideo/Makefile \
+	plugins/invertaudio/Makefile \
+	plugins/invertvideo/Makefile \
+	plugins/irissquare/Makefile \
+	plugins/ivtc/Makefile \
 	plugins/liveaudio/Makefile \
 	plugins/livevideo/Makefile \
-					plugins/loopaudio/Makefile \
-					plugins/loopvideo/Makefile \
-					plugins/motion/Makefile \
-					plugins/motionblur/Makefile \
-					plugins/normalize/Makefile \
-					plugins/oilpainting/Makefile \
-					plugins/overlay/Makefile \
+	plugins/loopaudio/Makefile \
+	plugins/loopvideo/Makefile \
+	plugins/motion/Makefile \
+	plugins/motionblur/Makefile \
+	plugins/normalize/Makefile \
+	plugins/oilpainting/Makefile \
+	plugins/overlay/Makefile \
 	plugins/overlayaudio/Makefile \
-					plugins/pitch/Makefile \
-					plugins/polar/Makefile \
-					plugins/reroute/Makefile
-					plugins/reframert/Makefile
-					plugins/reframe/Makefile plugins/resample/Makefile plugins/reverb/Makefile \
-					plugins/reverseaudio/Makefile plugins/reversevideo/Makefile plugins/rgb601/Makefile \
-					plugins/rotate/Makefile \
-					plugins/scale/Makefile \
-					plugins/denoiseseltempavg/Makefile \
-					plugins/shapewipe/Makefile \
-					plugins/sharpen/Makefile \
-					plugins/shiftinterlace/Makefile plugins/slide/Makefile plugins/spectrogram/Makefile \
+	plugins/pitch/Makefile \
+	plugins/polar/Makefile \
+	plugins/reroute/Makefile \
+	plugins/reframert/Makefile \
+	plugins/reframe/Makefile \
+	plugins/resample/Makefile \
+	plugins/reverb/Makefile \
+	plugins/reverseaudio/Makefile \
+	plugins/reversevideo/Makefile \
+	plugins/rgb601/Makefile \
+	plugins/rotate/Makefile \
+	plugins/scale/Makefile \
+	plugins/denoiseseltempavg/Makefile \
+	plugins/shapewipe/Makefile \
+	plugins/sharpen/Makefile \
+	plugins/shiftinterlace/Makefile \
+	plugins/slide/Makefile \
+	plugins/spectrogram/Makefile \
 	plugins/suv/Makefile \
 	plugins/suv/data/Makefile \
 	plugins/unflattheme/Makefile \
@@ -699,23 +761,32 @@ AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 	plugins/bluedottheme/data/Makefile \
 	plugins/defaulttheme/Makefile \
 	plugins/defaulttheme/data/Makefile \
-					plugins/swapchannels/Makefile \
-					plugins/synthesizer/Makefile \
-					plugins/threshold/Makefile \
-					plugins/timeavg/Makefile \
-					plugins/timestretch/Makefile plugins/titler/Makefile plugins/translate/Makefile \
-					plugins/unsharp/Makefile \
-					plugins/videoscope/Makefile plugins/wave/Makefile plugins/whirl/Makefile \
-					plugins/wipe/Makefile \
-					plugins/yuv/Makefile \
-					plugins/downsample/Makefile plugins/flash/Makefile plugins/gradient/Makefile \
-					plugins/level/Makefile plugins/linearblur/Makefile \
-					plugins/perspective/Makefile plugins/radialblur/Makefile plugins/zoomblur/Makefile \
-					plugins/timefront/Makefile \
-					plugins/svg/Makefile \
-					plugins/diffkey/Makefile \
-					plugins/fonts/Makefile \
-					image/Makefile)
+	plugins/swapchannels/Makefile \
+	plugins/synthesizer/Makefile \
+	plugins/threshold/Makefile \
+	plugins/timeavg/Makefile \
+	plugins/timestretch/Makefile \
+	plugins/titler/Makefile \
+	plugins/translate/Makefile \
+	plugins/unsharp/Makefile \
+	plugins/videoscope/Makefile \
+	plugins/wave/Makefile \
+	plugins/whirl/Makefile \
+	plugins/wipe/Makefile \
+	plugins/yuv/Makefile \
+	plugins/downsample/Makefile \
+	plugins/flash/Makefile \
+	plugins/gradient/Makefile \
+	plugins/level/Makefile \
+	plugins/linearblur/Makefile \
+	plugins/perspective/Makefile \
+	plugins/radialblur/Makefile \
+	plugins/zoomblur/Makefile \
+	plugins/timefront/Makefile \
+	plugins/svg/Makefile \
+	plugins/diffkey/Makefile \
+	plugins/fonts/Makefile \
+	image/Makefile)
 
 succeeded=yes
 AC_DEFUN([RPT],[if test "x$$1" = "xskip"; then status="not probed"
@@ -756,8 +827,6 @@ RPT(libfaac,libfaac libraries)
 RPT(libfaach,libfaac headers)
 RPT(libfaad,libfaad libraries)
 RPT(libfaadh,libfaad headers)
-RPT(opencv,opencv libraries)
-RPT(opencvh,opencv headers)
 mandatory="$succeeded"
 
 echo
@@ -781,6 +850,10 @@ ORPT(enable_firewire,Firewire,--disable-firewire,
 )
 ORPT(enable_opengl,Hardware acceleration using OpenGL 2.0,--disable-opengl,
 	RPT(libGL,OpenGL 2.0 libraries)
+)
+ORPT(enable_findobject,findobject plugin using OpenCV 2.0,--disable-findobject,
+	RPT(opencv,opencv libraries)
+	RPT(opencvh,opencv headers)
 )
 
 if test "x$mandatory" = "xno"; then

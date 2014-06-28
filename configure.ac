@@ -761,6 +761,10 @@ AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 	plugins/bluedottheme/data/Makefile \
 	plugins/defaulttheme/Makefile \
 	plugins/defaulttheme/data/Makefile \
+	plugins/pinkladytheme/Makefile \
+	plugins/pinkladytheme/data/Makefile \
+	plugins/hulktheme/Makefile \
+	plugins/hulktheme/data/Makefile \
 	plugins/swapchannels/Makefile \
 	plugins/synthesizer/Makefile \
 	plugins/threshold/Makefile \

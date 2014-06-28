@@ -19,10 +19,8 @@
  * 
  */
 
-// Blue Dot theme by Koen Muylkens <koen.muylkens@esat.kuleuven.ac.be>
-
-#ifndef BLUEDOTTHEME_H
-#define BLUEDOTTHEME_H
+#ifndef DEFAULTbluedottheme_H
+#define DEFAULTbluedottheme_H
 
 #include "new.inc"
 #include "plugintclient.h"
@@ -61,9 +59,7 @@ public:
 	void get_new_sizes(NewWindow *gui);
 	void draw_new_bg(NewWindow *gui);
 	void draw_setformat_bg(SetFormatWindow *gui);
-// MIHA: COPIED FROM DEFAULT THEME M1>>
-//	void get_plugindialog_sizes();
-// MIHA: COPIED FROM DEFAULT THEME M1<<
+	void get_plugindialog_sizes();
 
 private:
 	void build_icons();
@@ -91,7 +87,7 @@ public:
 	BlueDotThemeMain(PluginServer *server);
 	~BlueDotThemeMain();
 	
-	const char* plugin_title();
+	char* plugin_title();
 	Theme* new_theme();
 	
 	BlueDotTheme *theme;

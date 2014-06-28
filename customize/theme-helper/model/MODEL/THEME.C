@@ -102,19 +102,19 @@ void THFUNC::initialize()
 	BC_Resources *resources = BC_WindowBase::get_resources();
 
 
-	resources->text_default = 0xbfbfbf;
-	resources->text_background = 0x333333;
+	resources->text_default = TEXT;
+	resources->text_background = BBCOLOR;
 	resources->text_border1 = 0x202020;
-	resources->text_border2 = 0x333333;
-	resources->text_border3 = 0x333333;
+	resources->text_border2 = BBCOLOR;
+	resources->text_border3 = BBCOLOR;
 	resources->text_border4 = 0x969696;
 	resources->text_inactive_highlight = 0x707070;
 
-	resources->bg_color = 0x4d4d4d;
-	resources->default_text_color = 0xbfbfbf;
-	resources->menu_title_text = 0xbfbfbf;
-	resources->popup_title_text = 0xbfbfbf;
-	resources->menu_item_text = 0xbfbfbf;
+	resources->bg_color = BGCOLOR;
+	resources->default_text_color = TEXT;
+	resources->menu_title_text = TEXT;
+	resources->popup_title_text = TEXT;
+	resources->menu_item_text = TEXT;
 	resources->menu_highlighted_fontcolor = WHITE;
 	resources->generic_button_margin = 30;
 	resources->pot_needle_color = resources->text_default;
@@ -130,21 +130,21 @@ void THFUNC::initialize()
 	resources->popupmenu_margin = 10;
 	resources->popupmenu_triangle_margin = 15;
 
-	resources->listbox_title_color = 0xbfbfbf;
+	resources->listbox_title_color = TEXT;
 
 	resources->listbox_title_margin = 20;
 	resources->listbox_title_hotspot = 20;
 	resources->listbox_border1 = 0x1a1a1a;
-	resources->listbox_border2 = 0x333333;
-	resources->listbox_border3 = 0x333333;
+	resources->listbox_border2 = BBCOLOR;
+	resources->listbox_border3 = BBCOLOR;
 	resources->listbox_border4 = 0x646464;
 	resources->listbox_highlighted = 0x505050;
-	resources->listbox_inactive = 0x333333;
+	resources->listbox_inactive = BBCOLOR;
 	resources->listbox_bg = 0;
-	resources->listbox_text = 0xbfbfbf;
+	resources->listbox_text = TEXT;
 
 	resources->filebox_margin = 130;
-	resources->file_color = 0xbfbfbf;
+	resources->file_color = TEXT;
 	resources->directory_color = 0xa0a0ff;
 
 
@@ -644,7 +644,7 @@ void THFUNC::initialize()
 	flush_images();
 
 	title_font = MEDIUMFONT_3D;
-	title_color = 0xbfbfbf;
+	title_color = TEXT;
 	recordgui_fixed_color = YELLOW;
 	recordgui_variable_color = RED;
 
@@ -1013,7 +1013,7 @@ void THFUNC::draw_mwindow_bg(MWindowGUI *gui)
 		get_image("timebar_bg"));
 
 // Zoombar
-	gui->set_color(0x333333);
+	gui->set_color(BBCOLOR);
 	gui->draw_box(mzoom_x, 
 		mzoom_y,
 		mwindow->session->mwindow_w,

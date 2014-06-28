@@ -17,9 +17,9 @@ INTEXT=bfbfbf
 
 # Output theme colors of your theme, this change your theme colors to make variant
 #like green, pink, diamond, yellow etc..
-BGCOLOR=d40055
-BBCOLOR=ff277e
-TEXT=ffeef5
+BGCOLOR=d46a95
+BBCOLOR=ffb1d0
+TEXT=1b0f11
 
 #SVG INPUT COLORS when you make new theme keep in mind this informations
 INBASE=ff0000

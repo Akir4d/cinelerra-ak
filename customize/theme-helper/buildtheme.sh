@@ -57,7 +57,7 @@ for T in `ls "$SRC" | grep \.btheme`;
 		#Some rename and basecolors change
 		for i in THEME.C THEME.h Makefile.am data/Makefile.am;
 			do
-			sed -i s/THEMENAME/$THEMENAME/g $i
+			sed -i s/THEMENAME/"$THEMENAME"/g $i
 			sed -i s/THEME/$THEME/g $i
 			sed -i s/THFUNC/$THFUNC/g $i
 			sed -i s/BGCOLOR/"0x$BGCOLOR"/g $i
@@ -66,7 +66,7 @@ for T in `ls "$SRC" | grep \.btheme`;
 		done
 		mv THEME.C $THEME.C
 		mv THEME.h $THEME.h
-		mkdir Source
+		mkdir data/Source
 		# Compile pngs files from svg
 		cd data
 		for i in `ls | grep svg`
@@ -89,7 +89,7 @@ for T in `ls "$SRC" | grep \.btheme`;
 		# Install
 		mv "$SRC"/$THEME $DST/
 
-echo "the new $THEMES are on $DST"
+echo "the new themes are on $DST, you should copy on plugins and add theme on configure.ac and plugins/Makefile.am"
 done
 
 

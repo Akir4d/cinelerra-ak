@@ -320,7 +320,7 @@ PNGS = \
 .data.$(OBJEXT):
 	$(OBJCOPY) -I binary -B $(OBJCOPYARCH) -O $(OBJCOPYTARGET) $< $@
 
-unflattheme.data: $(PNGS)
+THEME.data: $(PNGS)
 	$(top_builddir)/guicast/bootstrap $@ $^ || { rm -f $@; exit 1; }
 
 clean-local:

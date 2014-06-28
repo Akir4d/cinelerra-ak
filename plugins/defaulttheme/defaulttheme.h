@@ -19,8 +19,8 @@
  * 
  */
 
-#ifndef BLONDTHEME_H
-#define BLONDTHEME_H
+#ifndef DEFAULTdefaulttheme_H
+#define DEFAULTdefaulttheme_H
 
 #include "new.inc"
 #include "plugintclient.h"
@@ -87,7 +87,7 @@ public:
 	BlondThemeMain(PluginServer *server);
 	~BlondThemeMain();
 	
-	const char* plugin_title();
+	char* plugin_title();
 	Theme* new_theme();
 	
 	BlondTheme *theme;

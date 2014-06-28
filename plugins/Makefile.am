@@ -2,7 +2,9 @@ THEMES= \
 	suv \
 	unflattheme \
 	bluedottheme \
-	defaulttheme
+	defaulttheme \
+	pinkladytheme \
+	hulktheme
 
 if ENABLE_FINDOBJECT
 MAYBE_FINDOBJECT = \

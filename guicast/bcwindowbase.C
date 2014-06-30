@@ -2346,14 +2346,23 @@ int BC_WindowBase::get_single_text_width(int font, const char *text, int length)
 	{
 		XGlyphInfo extents;
 #ifdef X_HAVE_UTF8_STRING
-		XftTextExtentsUtf8(top_level->display,
-#else
-		XftTextExtents8(top_level->display,
+		if(get_resources()->locale_utf8)
+		{
+			XftTextExtentsUtf8(top_level->display,
+				get_xft_struct(font),
+				(const FcChar8*)text,
+				length,
+				&extents);
+		}
+		else
 #endif
-			get_xft_struct(font),
-			(const XftChar8 *)text,
-			length,
-			&extents);
+		{
+			XftTextExtents8(top_level->display,
+				get_xft_struct(font),
+				(const FcChar8*)text,
+				length,
+				&extents);
+		}
 		return extents.xOff;
 	}
 	else
@@ -2415,14 +2424,23 @@ int BC_WindowBase::get_text_ascent(int font)
 	{
 		XGlyphInfo extents;
 #ifdef X_HAVE_UTF8_STRING
-		XftTextExtentsUtf8(top_level->display,
-#else
-		XftTextExtents8(top_level->display,
+		if(get_resources()->locale_utf8)
+		{
+			XftTextExtentsUtf8(top_level->display,
+				get_xft_struct(font),
+				(const FcChar8*)"O",
+				1,
+				&extents);
+		}
+		else
 #endif
-			get_xft_struct(font),
-			(const XftChar8 *)"O",
-			1,
-			&extents);
+		{
+			XftTextExtents8(top_level->display,
+				get_xft_struct(font),
+				(const FcChar8*)"O",
+				1,
+				&extents);
+		}
 		return extents.y + 2;
 	}
 	else

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cinelerra 2.0\n"
 "Report-Msgid-Bugs-To: cinelerra@lists.cinelerra-cv.org\n"
-"POT-Creation-Date: 2014-06-21 18:26+0200\n"
+"POT-Creation-Date: 2014-07-02 01:03+0200\n"
 "PO-Revision-Date: 2006-02-01 15:00+0200\n"
 "Last-Translator: ga <ga@kutxa.homeunix.org>\n"
 "Language-Team: es <ga@kutxa.homeunix.org>\n"
@@ -245,7 +245,7 @@ msgstr "Organizar objetos"
 msgid "View"
 msgstr "Ver"
 
-#: cinelerra/assetpopup.C:246 cinelerra/mainmenu.C:726
+#: cinelerra/assetpopup.C:246 cinelerra/mainmenu.C:728
 msgid "Paste"
 msgstr "Pegar"
 
@@ -983,108 +983,108 @@ msgstr "Borrar los índices existentes"
 msgid "Delete all indexes in %s?"
 msgstr "¿Borrar todos los index en %s?"
 
-#: cinelerra/editpanel.C:523
+#: cinelerra/editpanel.C:479
 msgid "In point ( [ )"
 msgstr "Punto de entrada ( [ )"
 
-#: cinelerra/editpanel.C:548
+#: cinelerra/editpanel.C:504
 msgid "Out point ( ] )"
 msgstr "Punto final ( ] )"
 
-#: cinelerra/editpanel.C:579
+#: cinelerra/editpanel.C:535
 msgid "Next label ( ctrl -> )"
 msgstr "Siguiente etiqueta ( Strg -> )"
 
-#: cinelerra/editpanel.C:606
+#: cinelerra/editpanel.C:562
 msgid "Previous label ( ctrl <- )"
 msgstr "Etiqueta anterior ( Strg <- )"
 
-#: cinelerra/editpanel.C:628
+#: cinelerra/editpanel.C:584
 msgid "Lift"
 msgstr "Lift"
 
-#: cinelerra/editpanel.C:643
+#: cinelerra/editpanel.C:599
 msgid "Overwrite ( b )"
 msgstr "Sobreescribir ( b )"
 
-#: cinelerra/editpanel.C:668
+#: cinelerra/editpanel.C:624
 msgid "Extract"
 msgstr "Extraer"
 
-#: cinelerra/editpanel.C:684
+#: cinelerra/editpanel.C:640
 msgid "To clip ( i )"
 msgstr "A clip ( i )"
 
-#: cinelerra/editpanel.C:711
+#: cinelerra/editpanel.C:667
 msgid "Manual goto ( g )"
 msgstr "Saltar manualmente ( g )"
 
-#: cinelerra/editpanel.C:739
+#: cinelerra/editpanel.C:695
 msgid "Splice ( v )"
 msgstr "Separar ( v )"
 
-#: cinelerra/editpanel.C:764
+#: cinelerra/editpanel.C:720
 msgid "Cut ( x )"
 msgstr "Cortar ( x )"
 
-#: cinelerra/editpanel.C:789
+#: cinelerra/editpanel.C:745
 msgid "Copy ( c )"
 msgstr "Copiar ( c )"
 
-#: cinelerra/editpanel.C:812
+#: cinelerra/editpanel.C:768
 msgid "Append to end of track"
 msgstr "Añadir al final de la pista"
 
-#: cinelerra/editpanel.C:830
+#: cinelerra/editpanel.C:786
 msgid "Insert before beginning of track"
 msgstr "Insertar al inicio de la pista"
 
-#: cinelerra/editpanel.C:849
+#: cinelerra/editpanel.C:805
 msgid "Paste ( v )"
 msgstr "Pegar ( v )"
 
-#: cinelerra/editpanel.C:876
+#: cinelerra/editpanel.C:832
 msgid "Set transition"
 msgstr "Poner transición"
 
-#: cinelerra/editpanel.C:891
+#: cinelerra/editpanel.C:847
 msgid "Set presentation up to current position"
 msgstr "Poner la presentación a la posición actual"
 
-#: cinelerra/editpanel.C:906
+#: cinelerra/editpanel.C:862
 msgid "Undo ( z )"
 msgstr "Deshacer ( z )"
 
-#: cinelerra/editpanel.C:928
+#: cinelerra/editpanel.C:884
 msgid "Redo ( shift Z )"
 msgstr "Rehacer ( Shift Z )"
 
-#: cinelerra/editpanel.C:954
+#: cinelerra/editpanel.C:910
 msgid "Toggle label at current position ( l )"
 msgstr "Poner la etiqueta en la posición actual ( l )"
 
-#: cinelerra/editpanel.C:983
+#: cinelerra/editpanel.C:939
 msgid "Fit selection to display ( f )"
 msgstr "Ajustar la selección a la vista ( f )"
 
-#: cinelerra/editpanel.C:1016
+#: cinelerra/editpanel.C:972
 #, fuzzy
 msgid "Fit all autos to display ( Alt + f )"
 msgstr "Ajustar los keyframes a la vista ( Alt + f )"
 
-#: cinelerra/editpanel.C:1065
+#: cinelerra/editpanel.C:1021
 msgid "Drag and drop editing mode"
 msgstr "Modo de edición 'Arrastrar y Soltar'"
 
-#: cinelerra/editpanel.C:1090
+#: cinelerra/editpanel.C:1046
 msgid "Cut and paste editing mode"
 msgstr "Modo de edición 'Cortar y Pegar'"
 
-#: cinelerra/editpanel.C:1113
+#: cinelerra/editpanel.C:1069
 msgid "Generate keyframes while tweeking"
 msgstr "Generar fotogramas clave mientras editas"
 
-#: cinelerra/editpanel.C:1134
+#: cinelerra/editpanel.C:1090
 msgid "Lock labels from moving"
 msgstr ""
 
@@ -1100,11 +1100,11 @@ msgstr "Redimensionar la pista"
 msgid "Match output size"
 msgstr "Ajustar al tamaño de salida"
 
-#: cinelerra/editpopup.C:196 cinelerra/mainmenu.C:838 cinelerra/mainmenu.C:906
+#: cinelerra/editpopup.C:196 cinelerra/mainmenu.C:840 cinelerra/mainmenu.C:908
 msgid "Delete track"
 msgstr "Eliminar pista"
 
-#: cinelerra/editpopup.C:213 cinelerra/mainmenu.C:826 cinelerra/mainmenu.C:892
+#: cinelerra/editpopup.C:213 cinelerra/mainmenu.C:828 cinelerra/mainmenu.C:894
 msgid "Add track"
 msgstr "Añadir pista"
 
@@ -2217,181 +2217,181 @@ msgstr "Deshacer"
 msgid "Undo %s"
 msgstr "Deshacer %s"
 
-#: cinelerra/mainmenu.C:560
+#: cinelerra/mainmenu.C:561
 msgid "Redo"
 msgstr "Rehacer"
 
-#: cinelerra/mainmenu.C:575
+#: cinelerra/mainmenu.C:576
 #, c-format
 msgid "Redo %s"
 msgstr "Rehacer %s"
 
-#: cinelerra/mainmenu.C:580
+#: cinelerra/mainmenu.C:582
 msgid "Cut keyframes"
 msgstr "Cortar fotogramas clave"
 
-#: cinelerra/mainmenu.C:592
+#: cinelerra/mainmenu.C:594
 msgid "Copy keyframes"
 msgstr "Copiar fotogramas clave"
 
-#: cinelerra/mainmenu.C:605
+#: cinelerra/mainmenu.C:607
 msgid "Paste keyframes"
 msgstr "Pegar fotogramas clave"
 
-#: cinelerra/mainmenu.C:617
+#: cinelerra/mainmenu.C:619
 msgid "Clear keyframes"
 msgstr "Eliminar fotogramas clave"
 
-#: cinelerra/mainmenu.C:631
+#: cinelerra/mainmenu.C:633
 msgid "Straighten curves"
 msgstr ""
 
-#: cinelerra/mainmenu.C:650
+#: cinelerra/mainmenu.C:652
 msgid "Cut default keyframe"
 msgstr "Cortar fotograma clave por defecto"
 
-#: cinelerra/mainmenu.C:663
+#: cinelerra/mainmenu.C:665
 msgid "Copy default keyframe"
 msgstr "Copiar fotograma clave por defecto"
 
-#: cinelerra/mainmenu.C:676
+#: cinelerra/mainmenu.C:678
 msgid "Paste default keyframe"
 msgstr "Pegar fotograma clave por defecto"
 
-#: cinelerra/mainmenu.C:689
+#: cinelerra/mainmenu.C:691
 msgid "Clear default keyframe"
 msgstr "Eliminar fotograma clave por defecto"
 
-#: cinelerra/mainmenu.C:702
+#: cinelerra/mainmenu.C:704
 msgid "Cut"
 msgstr "Cortar"
 
-#: cinelerra/mainmenu.C:714
+#: cinelerra/mainmenu.C:716
 msgid "Copy"
 msgstr "Copiar"
 
-#: cinelerra/mainmenu.C:738 plugins/compressor/compressor.C:1406
+#: cinelerra/mainmenu.C:740 plugins/compressor/compressor.C:1406
 #: plugins/synthesizer/synthesizer.C:980
 msgid "Clear"
 msgstr "Limpiar"
 
-#: cinelerra/mainmenu.C:752
+#: cinelerra/mainmenu.C:754
 msgid "Paste silence"
 msgstr "Pegar silencio"
 
-#: cinelerra/mainmenu.C:765
+#: cinelerra/mainmenu.C:767
 msgid "Select All"
 msgstr "Seleccionar todo"
 
-#: cinelerra/mainmenu.C:776
+#: cinelerra/mainmenu.C:778
 msgid "Clear labels"
 msgstr "Eliminar etiquetas"
 
-#: cinelerra/mainmenu.C:788
+#: cinelerra/mainmenu.C:790
 msgid "Mute Region"
 msgstr "Silenciar región"
 
-#: cinelerra/mainmenu.C:801
+#: cinelerra/mainmenu.C:803
 msgid "Trim Selection"
 msgstr "Eliminar espacios de selección"
 
-#: cinelerra/mainmenu.C:849 cinelerra/mainmenu.C:932
+#: cinelerra/mainmenu.C:851 cinelerra/mainmenu.C:934
 msgid "Default Transition"
 msgstr "Transición por defecto"
 
-#: cinelerra/mainmenu.C:862
+#: cinelerra/mainmenu.C:864
 msgid "Map 1:1"
 msgstr ""
 
-#: cinelerra/mainmenu.C:874
+#: cinelerra/mainmenu.C:876
 msgid "Map 5.1:2"
 msgstr ""
 
-#: cinelerra/mainmenu.C:919
+#: cinelerra/mainmenu.C:921
 msgid "Reset Translation"
 msgstr "Restaurar transformación"
 
-#: cinelerra/mainmenu.C:960
+#: cinelerra/mainmenu.C:962
 msgid "Delete tracks"
 msgstr "Eliminar pistas"
 
-#: cinelerra/mainmenu.C:972
+#: cinelerra/mainmenu.C:974
 msgid "Delete last track"
 msgstr "Eliminar última pista"
 
-#: cinelerra/mainmenu.C:984
+#: cinelerra/mainmenu.C:986
 msgid "Move tracks up"
 msgstr "Mover pistas hacia arriba"
 
-#: cinelerra/mainmenu.C:996
+#: cinelerra/mainmenu.C:998
 msgid "Move tracks down"
 msgstr "Mover pistas hacia abajo"
 
-#: cinelerra/mainmenu.C:1011
+#: cinelerra/mainmenu.C:1013
 msgid "Concatenate tracks"
 msgstr "Concatenar pistas"
 
-#: cinelerra/mainmenu.C:1028
+#: cinelerra/mainmenu.C:1030
 msgid "Loop Playback"
 msgstr "Playback continuo"
 
-#: cinelerra/mainmenu.C:1047
+#: cinelerra/mainmenu.C:1049
 msgid "Set background render"
 msgstr "Ajustar renderizado en background"
 
-#: cinelerra/mainmenu.C:1065
+#: cinelerra/mainmenu.C:1067
 msgid "Edit labels"
 msgstr "Editar etiquetas"
 
-#: cinelerra/mainmenu.C:1081
+#: cinelerra/mainmenu.C:1083
 msgid "Edit effects"
 msgstr "Editar efectos"
 
-#: cinelerra/mainmenu.C:1097
+#: cinelerra/mainmenu.C:1099
 msgid "Autos follow edits"
 msgstr "Autos follow edits"
 
-#: cinelerra/mainmenu.C:1111
+#: cinelerra/mainmenu.C:1113
 msgid "Align cursor on frames"
 msgstr "Alinear el cursor en fotogramas"
 
-#: cinelerra/mainmenu.C:1124 cinelerra/mainmenu.C:1134
+#: cinelerra/mainmenu.C:1126 cinelerra/mainmenu.C:1136
 msgid "Slow Shuttle"
 msgstr "Slow Shuttle"
 
-#: cinelerra/mainmenu.C:1139
+#: cinelerra/mainmenu.C:1141
 msgid "Fast Shuttle"
 msgstr "Fast Shuttle"
 
-#: cinelerra/mainmenu.C:1143
+#: cinelerra/mainmenu.C:1145
 msgid "Save settings now"
 msgstr "Guardar preferencias"
 
-#: cinelerra/mainmenu.C:1152
+#: cinelerra/mainmenu.C:1154
 msgid "Saved settings."
 msgstr "Preferencias guardadas."
 
-#: cinelerra/mainmenu.C:1165
+#: cinelerra/mainmenu.C:1167
 msgid "Show Viewer"
 msgstr "Mostrar visor"
 
-#: cinelerra/mainmenu.C:1177
+#: cinelerra/mainmenu.C:1179
 msgid "Show Resources"
 msgstr "Mostrar recursos"
 
-#: cinelerra/mainmenu.C:1189
+#: cinelerra/mainmenu.C:1191
 msgid "Show Compositor"
 msgstr "Mostrar compositor"
 
-#: cinelerra/mainmenu.C:1202
+#: cinelerra/mainmenu.C:1204
 msgid "Show Overlays"
 msgstr "Mostrar Overlays"
 
-#: cinelerra/mainmenu.C:1215
+#: cinelerra/mainmenu.C:1217
 msgid "Show Levels"
 msgstr "Mostrar niveles"
 
-#: cinelerra/mainmenu.C:1227
+#: cinelerra/mainmenu.C:1229
 msgid "Default positions"
 msgstr "Posición por defecto"
 
@@ -2408,47 +2408,47 @@ msgstr ""
 msgid "Render effect..."
 msgstr "Renderizar efecto..."
 
-#: cinelerra/menueffects.C:132
+#: cinelerra/menueffects.C:133
 #, c-format
 msgid "No recordable tracks specified."
 msgstr "No se han especificado pistas modificables."
 
-#: cinelerra/menueffects.C:143
+#: cinelerra/menueffects.C:144
 #, c-format
 msgid "No plugins available."
 msgstr "No hay plugins disponibles."
 
-#: cinelerra/menueffects.C:245
+#: cinelerra/menueffects.C:246
 msgid "No output file specified."
 msgstr "No se ha especificado fichero de salida."
 
-#: cinelerra/menueffects.C:253
+#: cinelerra/menueffects.C:254
 msgid "No effect selected."
 msgstr "No se ha seleccionado ningún efecto."
 
-#: cinelerra/menueffects.C:295
+#: cinelerra/menueffects.C:296
 msgid "No selected range to process."
 msgstr "No se ha seleccionado una región para procesar."
 
-#: cinelerra/menueffects.C:454 cinelerra/packagerenderer.C:175
+#: cinelerra/menueffects.C:455 cinelerra/packagerenderer.C:175
 #: cinelerra/savefile.C:103
 #, c-format
 msgid "Couldn't open %s"
 msgstr "No se puedo abrir %s"
 
-#: cinelerra/menueffects.C:603
+#: cinelerra/menueffects.C:604
 msgid "Select an effect"
 msgstr "Seleccionar un efecto"
 
-#: cinelerra/menueffects.C:615 cinelerra/render.C:1136
+#: cinelerra/menueffects.C:616 cinelerra/render.C:1136
 msgid "Select the first file to render to:"
 msgstr "Selecciona el primer fichero a renderizar:"
 
-#: cinelerra/menueffects.C:616 cinelerra/render.C:1137
+#: cinelerra/menueffects.C:617 cinelerra/render.C:1137
 msgid "Select a file to render to:"
 msgstr "Selecciona un fichero a renderizar:"
 
-#: cinelerra/menueffects.C:744
+#: cinelerra/menueffects.C:745
 msgid "Set up effect panel and hit \"OK\""
 msgstr "Abrir el panel de efectos y presionar \"OK\""
 
@@ -4061,6 +4061,54 @@ msgstr "1080 a 480"
 #: plugins/720to480/720to480.C:195
 msgid "720 to 480"
 msgstr "720 a 480"
+
+#: plugins/C41/c41.C:290
+msgid "Activate processing"
+msgstr ""
+
+#: plugins/C41/c41.C:293
+msgid "Compute negfix values"
+msgstr ""
+
+#: plugins/C41/c41.C:295
+msgid "(uncheck for faster rendering)"
+msgstr ""
+
+#: plugins/C41/c41.C:298
+msgid "Computed negfix values:"
+msgstr ""
+
+#: plugins/C41/c41.C:301 plugins/C41/c41.C:342
+msgid "Min R:"
+msgstr ""
+
+#: plugins/C41/c41.C:305 plugins/C41/c41.C:346
+msgid "Min G:"
+msgstr ""
+
+#: plugins/C41/c41.C:309 plugins/C41/c41.C:350
+msgid "Min B:"
+msgstr ""
+
+#: plugins/C41/c41.C:313 plugins/C41/c41.C:354
+msgid "Magic4:"
+msgstr ""
+
+#: plugins/C41/c41.C:317 plugins/C41/c41.C:358
+msgid "Magic5:"
+msgstr ""
+
+#: plugins/C41/c41.C:321 plugins/C41/c41.C:362
+msgid "Magic6:"
+msgstr ""
+
+#: plugins/C41/c41.C:339
+msgid "negfix values to apply:"
+msgstr ""
+
+#: plugins/C41/c41.C:407
+msgid "C41"
+msgstr ""
 
 #: plugins/aging/aging.C:80
 msgid "AgingTV"

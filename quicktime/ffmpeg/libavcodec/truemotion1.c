@@ -20,7 +20,7 @@
  */
 
 /**
- * @file truemotion1.c
+ * @file
  * Duck TrueMotion v1 Video Decoder by
  * Alex Beregszaszi and
  * Mike Melanson (melanson@pcisys.net)
@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "avcodec.h"
 #include "dsputil.h"
@@ -117,7 +116,7 @@ typedef struct comp_types {
 } comp_types;
 
 /* { valid for metatype }, algorithm, num of deltas, vert res, horiz res */
-static comp_types compression_types[17] = {
+static const comp_types compression_types[17] = {
     { ALGO_NOP,    0, 0, 0 },
 
     { ALGO_RGB16V, 4, 4, BLOCK_4x4 },
@@ -164,7 +163,7 @@ static void select_delta_tables(TrueMotion1Context *s, int delta_table_index)
     }
 }
 
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
 static int make_ydt15_entry(int p2, int p1, int16_t *ydt)
 #else
 static int make_ydt15_entry(int p1, int p2, int16_t *ydt)
@@ -179,7 +178,7 @@ static int make_ydt15_entry(int p1, int p2, int16_t *ydt)
     return (lo + (hi << 16)) << 1;
 }
 
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
 static int make_cdt15_entry(int p2, int p1, int16_t *cdt)
 #else
 static int make_cdt15_entry(int p1, int p2, int16_t *cdt)
@@ -193,7 +192,7 @@ static int make_cdt15_entry(int p1, int p2, int16_t *cdt)
     return (lo + (lo << 16)) << 1;
 }
 
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
 static int make_ydt16_entry(int p2, int p1, int16_t *ydt)
 #else
 static int make_ydt16_entry(int p1, int p2, int16_t *ydt)
@@ -208,7 +207,7 @@ static int make_ydt16_entry(int p1, int p2, int16_t *ydt)
     return (lo + (hi << 16)) << 1;
 }
 
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
 static int make_cdt16_entry(int p2, int p1, int16_t *cdt)
 #else
 static int make_cdt16_entry(int p1, int p2, int16_t *cdt)
@@ -222,7 +221,7 @@ static int make_cdt16_entry(int p1, int p2, int16_t *cdt)
     return (lo + (lo << 16)) << 1;
 }
 
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
 static int make_ydt24_entry(int p2, int p1, int16_t *ydt)
 #else
 static int make_ydt24_entry(int p1, int p2, int16_t *ydt)
@@ -235,7 +234,7 @@ static int make_ydt24_entry(int p1, int p2, int16_t *ydt)
     return (lo + (hi << 8) + (hi << 16)) << 1;
 }
 
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
 static int make_cdt24_entry(int p2, int p1, int16_t *cdt)
 #else
 static int make_cdt24_entry(int p1, int p2, int16_t *cdt)
@@ -393,7 +392,7 @@ static int truemotion1_decode_header(TrueMotion1Context *s)
         }
     }
 
-    if (header.compression > 17) {
+    if (header.compression >= 17) {
         av_log(s->avctx, AV_LOG_ERROR, "invalid compression type (%d)\n", header.compression);
         return -1;
     }
@@ -519,6 +518,10 @@ hres,vres,i,i%vres (0 < i < 4)
 }
 
 #define APPLY_C_PREDICTOR() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->c_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -536,6 +539,10 @@ hres,vres,i,i%vres (0 < i < 4)
         index++;
 
 #define APPLY_C_PREDICTOR_24() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->c_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -554,6 +561,10 @@ hres,vres,i,i%vres (0 < i < 4)
 
 
 #define APPLY_Y_PREDICTOR() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->y_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -571,6 +582,10 @@ hres,vres,i,i%vres (0 < i < 4)
         index++;
 
 #define APPLY_Y_PREDICTOR_24() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->y_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -846,8 +861,10 @@ static void truemotion1_decode_24bit(TrueMotion1Context *s)
 
 static int truemotion1_decode_frame(AVCodecContext *avctx,
                                     void *data, int *data_size,
-                                    const uint8_t *buf, int buf_size)
+                                    AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     TrueMotion1Context *s = avctx->priv_data;
 
     s->buf = buf;
@@ -891,7 +908,7 @@ static av_cold int truemotion1_decode_end(AVCodecContext *avctx)
 
 AVCodec truemotion1_decoder = {
     "truemotion1",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_TRUEMOTION1,
     sizeof(TrueMotion1Context),
     truemotion1_decode_init,
@@ -899,5 +916,5 @@ AVCodec truemotion1_decoder = {
     truemotion1_decode_end,
     truemotion1_decode_frame,
     CODEC_CAP_DR1,
-    .long_name = "Duck TrueMotion 1.0",
+    .long_name = NULL_IF_CONFIG_SMALL("Duck TrueMotion 1.0"),
 };

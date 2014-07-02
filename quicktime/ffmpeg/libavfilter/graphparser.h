@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_GRAPHPARSER_H
-#define FFMPEG_GRAPHPARSER_H
+#ifndef AVFILTER_GRAPHPARSER_H
+#define AVFILTER_GRAPHPARSER_H
 
 #include "avfilter.h"
 #include "avfiltergraph.h"
@@ -29,7 +29,7 @@
  * A linked-list of the inputs/outputs of the filter chain.
  */
 typedef struct AVFilterInOut {
-    const char *name;
+    char *name;
     AVFilterContext *filter;
     int pad_idx;
 
@@ -37,15 +37,16 @@ typedef struct AVFilterInOut {
 } AVFilterInOut;
 
 /**
- * Add to a graph a graph described by a string.
+ * Adds a graph described by a string to a graph.
+ *
  * @param graph   the filter graph where to link the parsed graph context
  * @param filters string to be parsed
- * @param inouts  linked list to the inputs and outputs of the graph
- * @param outpad  pad index of the output
+ * @param inputs  linked list to the inputs of the graph
+ * @param outputs linked list to the outputs of the graph
  * @return        zero on success, -1 on error
  */
-int avfilter_parse_graph(AVFilterGraph *graph, const char *filters,
+int avfilter_graph_parse(AVFilterGraph *graph, const char *filters,
                          AVFilterInOut *inputs, AVFilterInOut *outputs,
                          AVClass *log_ctx);
 
-#endif  /* FFMPEG_GRAPHPARSER_H */
+#endif  /* AVFILTER_GRAPHPARSER_H */

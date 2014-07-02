@@ -23,6 +23,9 @@
 #define FFMPEG_CMDUTILS_H
 
 #include <inttypes.h>
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libswscale/swscale.h"
 
 /**
  * program name, defined by the program for show_version().
@@ -33,6 +36,29 @@ extern const char program_name[];
  * program birth year, defined by the program for show_banner()
  */
 extern const int program_birth_year;
+
+extern const int this_year;
+
+extern const char **opt_names;
+extern AVCodecContext *avcodec_opts[AVMEDIA_TYPE_NB];
+extern AVFormatContext *avformat_opts;
+extern struct SwsContext *sws_opts;
+
+/**
+ * Fallback for options that are not explicitly handled, these will be
+ * parsed through AVOptions.
+ */
+int opt_default(const char *opt, const char *arg);
+
+/**
+ * Sets the libav* libraries log level.
+ */
+int opt_loglevel(const char *opt, const char *arg);
+
+/**
+ * Limit the execution time.
+ */
+int opt_timelimit(const char *opt, const char *arg);
 
 /**
  * Parses a string and returns its corresponding value as a double.
@@ -57,8 +83,8 @@ double parse_number_or_die(const char *context, const char *numstr, int type, do
  * @param context the context of the value to be set (e.g. the
  * corresponding commandline option name)
  * @param timestr the string to be parsed
- * @param is_duration a flag which tells how to interpret \p timestr, if
- * not zero \p timestr is interpreted as a duration, otherwise as a
+ * @param is_duration a flag which tells how to interpret timestr, if
+ * not zero timestr is interpreted as a duration, otherwise as a
  * date
  *
  * @see parse_date()
@@ -106,7 +132,20 @@ void show_help_options(const OptionDef *options, const char *msg, int mask, int 
 void parse_options(int argc, char **argv, const OptionDef *options,
                    void (* parse_arg_function)(const char*));
 
+void set_context_opts(void *ctx, void *opts_ctx, int flags);
+
+/**
+ * Prints an error message to stderr, indicating filename and a human
+ * readable description of the error code err.
+ *
+ * If strerror_r() is not available the use of this function in a
+ * multithreaded application may be unsafe.
+ *
+ * @see av_strerror()
+ */
 void print_error(const char *filename, int err);
+
+void list_fmts(void (*get_fmt_string)(char *buf, int buf_size, int fmt), int nb_fmts);
 
 /**
  * Prints the program banner to stderr. The banner contents depend on the
@@ -133,5 +172,52 @@ void show_license(void);
  * program.
  */
 void show_formats(void);
+
+/**
+ * Prints a listing containing all the codecs supported by the
+ * program.
+ */
+void show_codecs(void);
+
+/**
+ * Prints a listing containing all the filters supported by the
+ * program.
+ */
+void show_filters(void);
+
+/**
+ * Prints a listing containing all the bit stream filters supported by the
+ * program.
+ */
+void show_bsfs(void);
+
+/**
+ * Prints a listing containing all the protocols supported by the
+ * program.
+ */
+void show_protocols(void);
+
+/**
+ * Prints a listing containing all the pixel formats supported by the
+ * program.
+ */
+void show_pix_fmts(void);
+
+/**
+ * Returns a positive value if reads from standard input a line
+ * starting with [yY], otherwise returns 0.
+ */
+int read_yesno(void);
+
+/**
+ * Reads the file with name filename, and puts its content in a newly
+ * allocated 0-terminated buffer.
+ *
+ * @param bufptr puts here the pointer to the newly allocated buffer
+ * @param size puts here the size of the newly allocated buffer
+ * @return 0 in case of success, a negative value corresponding to an
+ * AVERROR error code in case of failure.
+ */
+int read_file(const char *filename, char **bufptr, size_t *size);
 
 #endif /* FFMPEG_CMDUTILS_H */

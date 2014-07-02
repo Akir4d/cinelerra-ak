@@ -19,9 +19,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+/* needed for usleep() */
+#define _XOPEN_SOURCE 600
+#include <unistd.h>
 #include "libavutil/avstring.h"
 #include "libavcodec/opt.h"
+#include "os_support.h"
 #include "avformat.h"
+#if CONFIG_NETWORK
+#include "network.h"
+#endif
 
 #if LIBAVFORMAT_VERSION_MAJOR >= 53
 /** @name Logging context. */
@@ -34,7 +41,7 @@ static const char *urlcontext_to_name(void *ptr)
 }
 static const AVOption options[] = {{NULL}};
 static const AVClass urlcontext_class =
-        { "URLContext", urlcontext_to_name, options };
+        { "URLContext", urlcontext_to_name, options, LIBAVUTIL_VERSION_INT };
 /*@}*/
 #endif
 
@@ -49,7 +56,7 @@ URLProtocol *av_protocol_next(URLProtocol *p)
     else  return first_protocol;
 }
 
-int register_protocol(URLProtocol *protocol)
+int av_register_protocol(URLProtocol *protocol)
 {
     URLProtocol **p;
     p = &first_protocol;
@@ -59,42 +66,24 @@ int register_protocol(URLProtocol *protocol)
     return 0;
 }
 
-int url_open(URLContext **puc, const char *filename, int flags)
+#if LIBAVFORMAT_VERSION_MAJOR < 53
+int register_protocol(URLProtocol *protocol)
+{
+    return av_register_protocol(protocol);
+}
+#endif
+
+int url_open_protocol (URLContext **puc, struct URLProtocol *up,
+                       const char *filename, int flags)
 {
     URLContext *uc;
-    URLProtocol *up;
-    const char *p;
-    char proto_str[128], *q;
     int err;
 
-    p = filename;
-    q = proto_str;
-    while (*p != '\0' && *p != ':') {
-        /* protocols can only contain alphabetic chars */
-        if (!isalpha(*p))
-            goto file_proto;
-        if ((q - proto_str) < sizeof(proto_str) - 1)
-            *q++ = *p;
-        p++;
-    }
-    /* if the protocol has length 1, we consider it is a dos drive */
-    if (*p == '\0' || (q - proto_str) <= 1) {
-    file_proto:
-        strcpy(proto_str, "file");
-    } else {
-        *q = '\0';
-    }
-
-    up = first_protocol;
-    while (up != NULL) {
-        if (!strcmp(proto_str, up->name))
-            goto found;
-        up = up->next;
-    }
-    err = AVERROR(ENOENT);
-    goto fail;
- found:
-    uc = av_malloc(sizeof(URLContext) + strlen(filename) + 1);
+#if CONFIG_NETWORK
+    if (!ff_network_init())
+        return AVERROR(EIO);
+#endif
+    uc = av_mallocz(sizeof(URLContext) + strlen(filename) + 1);
     if (!uc) {
         err = AVERROR(ENOMEM);
         goto fail;
@@ -111,20 +100,56 @@ int url_open(URLContext **puc, const char *filename, int flags)
     err = up->url_open(uc, filename, flags);
     if (err < 0) {
         av_free(uc);
-        *puc = NULL;
-        return err;
+        goto fail;
     }
 
-    //We must be carefull here as url_seek() could be slow, for example for http
+    //We must be careful here as url_seek() could be slow, for example for http
     if(   (flags & (URL_WRONLY | URL_RDWR))
-       || !strcmp(proto_str, "file"))
+       || !strcmp(up->name, "file"))
         if(!uc->is_streamed && url_seek(uc, 0, SEEK_SET) < 0)
             uc->is_streamed= 1;
     *puc = uc;
     return 0;
  fail:
     *puc = NULL;
+#if CONFIG_NETWORK
+    ff_network_close();
+#endif
     return err;
+}
+
+int url_open(URLContext **puc, const char *filename, int flags)
+{
+    URLProtocol *up;
+    const char *p;
+    char proto_str[128], *q;
+
+    p = filename;
+    q = proto_str;
+    while (*p != '\0' && *p != ':') {
+        /* protocols can only contain alphabetic chars */
+        if (!isalpha(*p))
+            goto file_proto;
+        if ((q - proto_str) < sizeof(proto_str) - 1)
+            *q++ = *p;
+        p++;
+    }
+    /* if the protocol has length 1, we consider it is a dos drive */
+    if (*p == '\0' || is_dos_path(filename)) {
+    file_proto:
+        strcpy(proto_str, "file");
+    } else {
+        *q = '\0';
+    }
+
+    up = first_protocol;
+    while (up != NULL) {
+        if (!strcmp(proto_str, up->name))
+            return url_open_protocol (puc, up, filename, flags);
+        up = up->next;
+    }
+    *puc = NULL;
+    return AVERROR(ENOENT);
 }
 
 int url_read(URLContext *h, unsigned char *buf, int size)
@@ -134,6 +159,29 @@ int url_read(URLContext *h, unsigned char *buf, int size)
         return AVERROR(EIO);
     ret = h->prot->url_read(h, buf, size);
     return ret;
+}
+
+int url_read_complete(URLContext *h, unsigned char *buf, int size)
+{
+    int ret, len;
+    int fast_retries = 5;
+
+    len = 0;
+    while (len < size) {
+        ret = url_read(h, buf+len, size-len);
+        if (ret == AVERROR(EAGAIN)) {
+            ret = 0;
+            if (fast_retries)
+                fast_retries--;
+            else
+                usleep(1000);
+        } else if (ret < 1)
+            return ret < 0 ? ret : len;
+        if (ret)
+           fast_retries = FFMAX(fast_retries, 2);
+        len += ret;
+    }
+    return len;
 }
 
 int url_write(URLContext *h, unsigned char *buf, int size)
@@ -148,13 +196,13 @@ int url_write(URLContext *h, unsigned char *buf, int size)
     return ret;
 }
 
-offset_t url_seek(URLContext *h, offset_t pos, int whence)
+int64_t url_seek(URLContext *h, int64_t pos, int whence)
 {
-    offset_t ret;
+    int64_t ret;
 
     if (!h->prot->url_seek)
-        return AVERROR(EPIPE);
-    ret = h->prot->url_seek(h, pos, whence);
+        return AVERROR(ENOSYS);
+    ret = h->prot->url_seek(h, pos, whence & ~AVSEEK_FORCE);
     return ret;
 }
 
@@ -165,6 +213,9 @@ int url_close(URLContext *h)
 
     if (h->prot->url_close)
         ret = h->prot->url_close(h);
+#if CONFIG_NETWORK
+    ff_network_close();
+#endif
     av_free(h);
     return ret;
 }
@@ -178,9 +229,9 @@ int url_exist(const char *filename)
     return 1;
 }
 
-offset_t url_filesize(URLContext *h)
+int64_t url_filesize(URLContext *h)
 {
-    offset_t pos, size;
+    int64_t pos, size;
 
     size= url_seek(h, 0, AVSEEK_SIZE);
     if(size<0){
@@ -191,6 +242,13 @@ offset_t url_filesize(URLContext *h)
         url_seek(h, pos, SEEK_SET);
     }
     return size;
+}
+
+int url_get_file_handle(URLContext *h)
+{
+    if (!h->prot->url_get_file_handle)
+        return -1;
+    return h->prot->url_get_file_handle(h);
 }
 
 int url_get_max_packet_size(URLContext *h)
@@ -223,7 +281,7 @@ int av_url_read_pause(URLContext *h, int pause)
     return h->prot->url_read_pause(h, pause);
 }
 
-offset_t av_url_read_seek(URLContext *h,
+int64_t av_url_read_seek(URLContext *h,
         int stream_index, int64_t timestamp, int flags)
 {
     if (!h->prot->url_read_seek)

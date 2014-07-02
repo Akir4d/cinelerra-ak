@@ -17,34 +17,39 @@
  */
 
 /**
- * @file fifo.h
- * A very simple circular buffer FIFO implementation.
+ * @file
+ * a very simple circular buffer FIFO implementation
  */
 
-#ifndef FFMPEG_FIFO_H
-#define FFMPEG_FIFO_H
+#ifndef AVUTIL_FIFO_H
+#define AVUTIL_FIFO_H
 
 #include <stdint.h>
-#include "common.h"
 
 typedef struct AVFifoBuffer {
     uint8_t *buffer;
     uint8_t *rptr, *wptr, *end;
+    uint32_t rndx, wndx;
 } AVFifoBuffer;
 
 /**
  * Initializes an AVFifoBuffer.
- * @param *f AVFifoBuffer to initialize
  * @param size of FIFO
- * @return <0 for failure >=0 otherwise
+ * @return AVFifoBuffer or NULL in case of memory allocation failure
  */
-int av_fifo_init(AVFifoBuffer *f, unsigned int size);
+AVFifoBuffer *av_fifo_alloc(unsigned int size);
 
 /**
  * Frees an AVFifoBuffer.
  * @param *f AVFifoBuffer to free
  */
 void av_fifo_free(AVFifoBuffer *f);
+
+/**
+ * Resets the AVFifoBuffer to the state right after av_fifo_alloc, in particular it is emptied.
+ * @param *f AVFifoBuffer to reset
+ */
+void av_fifo_reset(AVFifoBuffer *f);
 
 /**
  * Returns the amount of data in bytes in the AVFifoBuffer, that is the
@@ -55,41 +60,34 @@ void av_fifo_free(AVFifoBuffer *f);
 int av_fifo_size(AVFifoBuffer *f);
 
 /**
- * Reads data from an AVFifoBuffer.
- * @param *f AVFifoBuffer to read from
- * @param *buf data destination
- * @param buf_size number of bytes to read
+ * Returns the amount of space in bytes in the AVFifoBuffer, that is the
+ * amount of data you can write into it.
+ * @param *f AVFifoBuffer to write into
+ * @return size
  */
-int av_fifo_read(AVFifoBuffer *f, uint8_t *buf, int buf_size);
+int av_fifo_space(AVFifoBuffer *f);
 
 /**
- * Feeds data from an AVFifoBuffer to a user supplied callback.
+ * Feeds data from an AVFifoBuffer to a user-supplied callback.
  * @param *f AVFifoBuffer to read from
  * @param buf_size number of bytes to read
  * @param *func generic read function
  * @param *dest data destination
  */
-int av_fifo_generic_read(AVFifoBuffer *f, int buf_size, void (*func)(void*, void*, int), void* dest);
+int av_fifo_generic_read(AVFifoBuffer *f, void *dest, int buf_size, void (*func)(void*, void*, int));
 
 /**
- * Writes data into an AVFifoBuffer.
+ * Feeds data from a user-supplied callback to an AVFifoBuffer.
  * @param *f AVFifoBuffer to write to
- * @param *buf data source
- * @param size data size
- */
-attribute_deprecated void av_fifo_write(AVFifoBuffer *f, const uint8_t *buf, int size);
-
-/**
- * Feeds data from a user supplied callback to an AVFifoBuffer.
- * @param *f AVFifoBuffer to write to
- * @param *src data source
+ * @param *src data source; non-const since it may be used as a
+ * modifiable context by the function defined in func
  * @param size number of bytes to write
- * @param *func generic write function. First parameter is src,
- * second is dest_buf, third is dest_buf_size.
+ * @param *func generic write function; the first parameter is src,
+ * the second is dest_buf, the third is dest_buf_size.
  * func must return the number of bytes written to dest_buf, or <= 0 to
  * indicate no more data available to write.
  * If func is NULL, src is interpreted as a simple byte array for source data.
- * @return the number of bytes written to the fifo.
+ * @return the number of bytes written to the FIFO
  */
 int av_fifo_generic_write(AVFifoBuffer *f, void *src, int size, int (*func)(void*, void*, int));
 
@@ -97,8 +95,9 @@ int av_fifo_generic_write(AVFifoBuffer *f, void *src, int size, int (*func)(void
  * Resizes an AVFifoBuffer.
  * @param *f AVFifoBuffer to resize
  * @param size new AVFifoBuffer size in bytes
+ * @return <0 for failure, >=0 otherwise
  */
-void av_fifo_realloc(AVFifoBuffer *f, unsigned int size);
+int av_fifo_realloc2(AVFifoBuffer *f, unsigned int size);
 
 /**
  * Reads and discards the specified amount of data from an AVFifoBuffer.
@@ -114,4 +113,4 @@ static inline uint8_t av_fifo_peek(AVFifoBuffer *f, int offs)
         ptr -= f->end - f->buffer;
     return *ptr;
 }
-#endif /* FFMPEG_FIFO_H */
+#endif /* AVUTIL_FIFO_H */

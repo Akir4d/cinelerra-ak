@@ -35,7 +35,7 @@ ffmpeg -f oss -i /dev/dsp -f video4linux2 -i /dev/video0 /tmp/out.mpg
 
 Note that you must activate the right video source and channel before
 launching FFmpeg with any TV viewer such as xawtv
-(@url{http://bytesex.org/xawtv/}) by Gerd Knorr. You also
+(@url{http://linux.bytesex.org/xawtv/}) by Gerd Knorr. You also
 have to set the audio recording levels correctly with a
 standard mixer.
 
@@ -111,7 +111,7 @@ to MPEG file a.mpg.
 ffmpeg -i /tmp/a.wav -ar 22050 /tmp/a.mp2
 @end example
 
-Converts a.wav to MPEG audio at 22050Hz sample rate.
+Converts a.wav to MPEG audio at 22050 Hz sample rate.
 
 * You can encode to several formats at the same time and define a
 mapping from input stream to output streams:
@@ -124,7 +124,7 @@ Converts a.wav to a.mp2 at 64 kbits and to b.mp2 at 128 kbits. '-map
 file:index' specifies which input stream is used for each output
 stream, in the order of the definition of output streams.
 
-* You can transcode decrypted VOBs
+* You can transcode decrypted VOBs:
 
 @example
 ffmpeg -i snatch_1.vob -f avi -vcodec mpeg4 -b 800k -g 300 -bf 2 -acodec libmp3lame -ab 128k snatch.avi
@@ -140,6 +140,45 @@ The mapping is particularly useful for DVD transcoding
 to get the desired audio language.
 
 NOTE: To see the supported input formats, use @code{ffmpeg -formats}.
+
+* You can extract images from a video, or create a video from many images:
+
+For extracting images from a video:
+@example
+ffmpeg -i foo.avi -r 1 -s WxH -f image2 foo-%03d.jpeg
+@end example
+
+This will extract one video frame per second from the video and will
+output them in files named @file{foo-001.jpeg}, @file{foo-002.jpeg},
+etc. Images will be rescaled to fit the new WxH values.
+
+If you want to extract just a limited number of frames, you can use the
+above command in combination with the -vframes or -t option, or in
+combination with -ss to start extracting from a certain point in time.
+
+For creating a video from many images:
+@example
+ffmpeg -f image2 -i foo-%03d.jpeg -r 12 -s WxH foo.avi
+@end example
+
+The syntax @code{foo-%03d.jpeg} specifies to use a decimal number
+composed of three digits padded with zeroes to express the sequence
+number. It is the same syntax supported by the C printf function, but
+only formats accepting a normal integer are suitable.
+
+* You can put many streams of the same type in the output:
+
+@example
+ffmpeg -i test1.avi -i test2.avi -vcodec copy -acodec copy -vcodec copy -acodec copy test12.avi -newvideo -newaudio
+@end example
+
+In addition to the first video and audio streams, the resulting
+output file @file{test12.avi} will contain the second video
+and the second audio stream found in the input streams list.
+
+The @code{-newvideo}, @code{-newaudio} and @code{-newsubtitle}
+options have to be specified immediately after the name of the output
+file to which you want to add them.
 @c man end
 
 @chapter Invocation
@@ -164,19 +203,15 @@ then applied to the next input or output file.
 ffmpeg -i input.avi -b 64k output.avi
 @end example
 
-* To force the frame rate of the input and output file to 24 fps:
-@example
-ffmpeg -r 24 -i input.avi output.avi
-@end example
-
 * To force the frame rate of the output file to 24 fps:
 @example
 ffmpeg -i input.avi -r 24 output.avi
 @end example
 
-* To force the frame rate of input file to 1 fps and the output file to 24 fps:
+* To force the frame rate of the input file (valid for raw formats only)
+to 1 fps and the frame rate of the output file to 24 fps:
 @example
-ffmpeg -r 1 -i input.avi -r 24 output.avi
+ffmpeg -r 1 -i input.m2v -r 24 output.avi
 @end example
 
 The format option may be needed for raw input files.
@@ -187,26 +222,18 @@ specified for the inputs.
 @c man end
 
 @c man begin OPTIONS
+
+@include fftools-common-opts.texi
+
 @section Main options
 
 @table @option
-@item -L
-Show license.
-
-@item -h
-Show help.
-
-@item -version
-Show version.
-
-@item -formats
-Show available formats, codecs, protocols, ...
 
 @item -f @var{fmt}
 Force format.
 
 @item -i @var{filename}
-input filename
+input file name
 
 @item -y
 Overwrite output files.
@@ -231,29 +258,16 @@ The offset is added to the timestamps of the input files.
 Specifying a positive offset means that the corresponding
 streams are delayed by 'offset' seconds.
 
-@item -title @var{string}
-Set the title.
-
 @item -timestamp @var{time}
 Set the timestamp.
 
-@item -author @var{string}
-Set the author.
+@item -metadata @var{key}=@var{value}
+Set a metadata key/value pair.
 
-@item -copyright @var{string}
-Set the copyright.
-
-@item -comment @var{string}
-Set the comment.
-
-@item -album @var{string}
-Set the album.
-
-@item -track @var{number}
-Set the track.
-
-@item -year @var{number}
-Set the year.
+For example, for setting the title in the output file:
+@example
+ffmpeg -i in.avi -metadata title="my title" out.flv
+@end example
 
 @item -v @var{number}
 Set the logging verbosity level.
@@ -309,6 +323,8 @@ The following abbreviations are recognized:
 352x288
 @item 4cif
 704x576
+@item 16cif
+1408x1152
 @item qqvga
 160x120
 @item qvga
@@ -385,11 +401,22 @@ blue (default = 000000 (black)).
 @item -vn
 Disable video recording.
 @item -bt @var{tolerance}
-Set video bitrate tolerance (in bit/s).
+Set video bitrate tolerance (in bits, default 4000k).
+Has a minimum value of: (target_bitrate/target_framerate).
+In 1-pass mode, bitrate tolerance specifies how far ratecontrol is
+willing to deviate from the target average bitrate value. This is
+not related to min/max bitrate. Lowering tolerance too much has
+an adverse effect on quality.
 @item -maxrate @var{bitrate}
 Set max video bitrate (in bit/s).
+Requires -bufsize to be set.
 @item -minrate @var{bitrate}
 Set min video bitrate (in bit/s).
+Most useful in setting up a CBR encode:
+@example
+ffmpeg -i myfile.avi -b 4000k -minrate 4000k -maxrate 4000k -bufsize 1835k out.m2v
+@end example
+It is of little use elsewise.
 @item -bufsize @var{size}
 Set video buffer verifier buffer size (in bits).
 @item -vcodec @var{codec}
@@ -399,16 +426,29 @@ tell that the raw codec data must be copied as is.
 Use same video quality as source (implies VBR).
 
 @item -pass @var{n}
-Select the pass number (1 or 2). It is useful to do two pass
-encoding. The statistics of the video are recorded in the first
-pass and the video is generated at the exact requested bitrate
-in the second pass.
+Select the pass number (1 or 2). It is used to do two-pass
+video encoding. The statistics of the video are recorded in the first
+pass into a log file (see also the option -passlogfile),
+and in the second pass that log file is used to generate the video
+at the exact requested bitrate.
+On pass 1, you may just deactivate audio and set output to null,
+examples for Windows and Unix:
+@example
+ffmpeg -i foo.mov -vcodec libxvid -pass 1 -an -f rawvideo -y NUL
+ffmpeg -i foo.mov -vcodec libxvid -pass 1 -an -f rawvideo -y /dev/null
+@end example
 
-@item -passlogfile @var{file}
-Set two pass logfile name to @var{file}.
+@item -passlogfile @var{prefix}
+Set two-pass log file name prefix to @var{prefix}, the default file name
+prefix is ``ffmpeg2pass''. The complete file name will be
+@file{PREFIX-N.log}, where N is a number specific to the output
+stream.
 
 @item -newvideo
 Add a new video stream to the current output stream.
+
+@item -vlang @var{code}
+Set the ISO 639 language code (3 letters) of the current video stream.
 
 @end table
 
@@ -419,7 +459,7 @@ Add a new video stream to the current output stream.
 Set pixel format. Use 'list' as parameter to show all the supported
 pixel formats.
 @item -sws_flags @var{flags}
-Set SwScaler flags (only available when compiled with SwScaler support).
+Set SwScaler flags.
 @item -g @var{gop_size}
 Set the group of pictures size.
 @item -intra
@@ -435,9 +475,10 @@ maximum video quantizer scale (VBR)
 @item -qdiff @var{q}
 maximum difference between the quantizer scales (VBR)
 @item -qblur @var{blur}
-video quantizer scale blur (VBR)
+video quantizer scale blur (VBR) (range 0.0 - 1.0)
 @item -qcomp @var{compression}
-video quantizer scale compression (VBR)
+video quantizer scale compression (VBR) (default 0.5).
+Constant of ratecontrol equation. Recommended range for default rc_eq: 0.0-1.0
 
 @item -lmin @var{lambda}
 minimum video lagrange factor (VBR)
@@ -593,9 +634,6 @@ Calculate PSNR of compressed frames.
 Dump video coding statistics to @file{vstats_HHMMSS.log}.
 @item -vstats_file @var{file}
 Dump video coding statistics to @var{file}.
-@item -vhook @var{module}
-Insert video processing @var{module}. @var{module} contains the module
-name and its parameters separated by spaces.
 @item -top @var{n}
 top=1/bottom=0/auto=-1 field first
 @item -dc @var{precision}
@@ -605,7 +643,10 @@ Force video tag/fourcc.
 @item -qphist
 Show QP histogram.
 @item -vbsf @var{bitstream_filter}
-Bitstream filters available are "dump_extra", "remove_extra", "noise".
+Bitstream filters available are "dump_extra", "remove_extra", "noise", "h264_mp4toannexb", "imxdump", "mjpegadump".
+@example
+ffmpeg -i h264.mp4 -vcodec copy -vbsf h264_mp4toannexb -an out.h264
+@end example
 @end table
 
 @section Audio Options
@@ -617,6 +658,8 @@ Set the number of audio frames to record.
 Set the audio sampling frequency (default = 44100 Hz).
 @item -ab @var{bitrate}
 Set the audio bitrate in bit/s (default = 64k).
+@item -aq @var{q}
+Set the audio quality (codec-specific, VBR).
 @item -ac @var{channels}
 Set the number of audio channels (default = 1).
 @item -an
@@ -658,6 +701,13 @@ Force subtitle codec ('copy' to copy stream).
 Add a new subtitle stream to the current output stream.
 @item -slang @var{code}
 Set the ISO 639 language code (3 letters) of the current subtitle stream.
+@item -sn
+Disable subtitle recording.
+@item -sbsf @var{bitstream_filter}
+Bitstream filters available are "mov2textsub", "text2movsub".
+@example
+ffmpeg -i file.mov -an -vn -sbsf mov2textsub -scodec copy -f rawvideo sub.txt
+@end example
 @end table
 
 @section Audio/Video grab options
@@ -674,16 +724,20 @@ Synchronize read on input.
 @section Advanced options
 
 @table @option
-@item -map input stream id[:input stream id]
+@item -map @var{input_stream_id}[:@var{sync_stream_id}]
 Set stream mapping from input streams to output streams.
 Just enumerate the input streams in the order you want them in the output.
-[input stream id] sets the (input) stream to sync against.
+@var{sync_stream_id} if specified sets the input stream to sync
+against.
 @item -map_meta_data @var{outfile}:@var{infile}
 Set meta data information of @var{outfile} from @var{infile}.
 @item -debug
 Print specific debug info.
 @item -benchmark
-Add timings for benchmarking.
+Show benchmarking information at the end of an encode.
+Shows CPU time used and maximum memory consumption.
+Maximum memory consumption is not supported on all systems,
+it will usually display as 0 if not supported.
 @item -dump
 Dump each input packet.
 @item -hex
@@ -691,7 +745,7 @@ When dumping packets, also dump the payload.
 @item -bitexact
 Only use bit exact algorithms (for codec testing).
 @item -ps @var{size}
-Set packet size in bits.
+Set RTP payload size in bytes.
 @item -re
 Read input at native frame rate. Mainly used to simulate a grab device.
 @item -loop_input
@@ -703,8 +757,15 @@ Repeatedly loop output for formats that support looping such as animated GIF
 @item -threads @var{count}
 Thread count.
 @item -vsync @var{parameter}
-Video sync method. Video will be stretched/squeezed to match the timestamps,
-it is done by duplicating and dropping frames. With -map you can select from
+Video sync method.
+0   Each frame is passed with its timestamp from the demuxer to the muxer
+1   Frames will be duplicated and dropped to achieve exactly the requested
+    constant framerate.
+2   Frames are passed through with their timestamp or dropped so as to prevent
+    2 frames from having the same timestamp
+-1  Chooses between 1 and 2 depending on muxer capabilities. This is the default method.
+
+With -map you can select from
 which stream the timestamps should be taken. You can leave either video or
 audio unchanged and sync the remaining stream(s) to the unchanged one.
 @item -async @var{samples_per_second}
@@ -724,7 +785,40 @@ Set the maximum demux-decode delay.
 Set the initial demux-decode delay.
 @end table
 
-@node FFmpeg formula evaluator
+@section Preset files
+
+A preset file contains a sequence of @var{option}=@var{value} pairs,
+one for each line, specifying a sequence of options which would be
+awkward to specify on the command line. Lines starting with the hash
+('#') character are ignored and are used to provide comments. Check
+the @file{ffpresets} directory in the FFmpeg source tree for examples.
+
+Preset files are specified with the @code{vpre}, @code{apre},
+@code{spre}, and @code{fpre} options. The @code{fpre} option takes the
+filename of the preset instead of a preset name as input and can be
+used for any kind of codec. For the @code{vpre}, @code{apre}, and
+@code{spre} options, the options specified in a preset file are
+applied to the currently selected codec of the same type as the preset
+option.
+
+The argument passed to the @code{vpre}, @code{apre}, and @code{spre}
+preset options identifies the preset file to use according to the
+following rules:
+
+First ffmpeg searches for a file named @var{arg}.ffpreset in the
+directories @file{$FFMPEG_DATADIR} (if set), and @file{$HOME/.ffmpeg}, and in
+the datadir defined at configuration time (usually @file{PREFIX/share/ffmpeg})
+in that order. For example, if the argument is @code{libx264-max}, it will
+search for the file @file{libx264-max.ffpreset}.
+
+If no such file is found, then ffmpeg will search for a file named
+@var{codec_name}-@var{arg}.ffpreset in the above-mentioned
+directories, where @var{codec_name} is the name of the codec to which
+the preset file options will be applied. For example, if you select
+the video codec with @code{-vcodec libx264} and use @code{-vpre max},
+then it will search for the file @file{libx264-max.ffpreset}.
+
+@anchor{FFmpeg formula evaluator}
 @section FFmpeg formula evaluator
 
 When evaluating a rate control string, FFmpeg uses an internal formula
@@ -736,6 +830,9 @@ The following binary operators are available: @code{+}, @code{-},
 The following unary operators are available: @code{+}, @code{-},
 @code{(...)}.
 
+The following statements are available: @code{ld}, @code{st},
+@code{while}.
+
 The following functions are available:
 @table @var
 @item sinh(x)
@@ -744,16 +841,22 @@ The following functions are available:
 @item sin(x)
 @item cos(x)
 @item tan(x)
+@item atan(x)
+@item asin(x)
+@item acos(x)
 @item exp(x)
 @item log(x)
+@item abs(x)
 @item squish(x)
 @item gauss(x)
-@item abs(x)
+@item mod(x, y)
 @item max(x, y)
 @item min(x, y)
-@item gt(x, y)
-@item lt(x, y)
 @item eq(x, y)
+@item gte(x, y)
+@item gt(x, y)
+@item lte(x, y)
+@item lt(x, y)
 @item bits2qp(bits)
 @item qp2bits(qp)
 @end table
@@ -801,12 +904,12 @@ Fabrice Bellard
 
 @section Protocols
 
-The filename can be @file{-} to read from standard input or to write
+The file name can be @file{-} to read from standard input or to write
 to standard output.
 
 FFmpeg also handles many protocols specified with an URL syntax.
 
-Use 'ffmpeg -formats' to see a list of the supported protocols.
+Use 'ffmpeg -protocols' to see a list of the supported protocols.
 
 The protocol @code{http:} is currently used only to communicate with
 FFserver (see the FFserver documentation). When FFmpeg will be a
@@ -838,7 +941,7 @@ motion estimation completely (you have only I-frames, which means it
 is about as good as JPEG compression).
 
 @item To have very low audio bitrates, reduce the sampling frequency
-(down to 22050 kHz for MPEG audio, 22050 or 11025 for AC3).
+(down to 22050 Hz for MPEG audio, 22050 or 11025 for AC-3).
 
 @item To have a constant quality (but a variable bitrate), use the option
 '-qscale n' when 'n' is between 1 (excellent quality) and 31 (worst

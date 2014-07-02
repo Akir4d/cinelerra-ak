@@ -20,8 +20,8 @@
  */
 
 /**
- * @file 8bps.c
- * QT 8BPS Video Decoder by Roberto Togni <rtogni at bresciaonline dot it>
+ * @file
+ * QT 8BPS Video Decoder by Roberto Togni
  * For more information about the 8BPS format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 
 
@@ -57,8 +58,10 @@ typedef struct EightBpsContext {
  * Decode a frame
  *
  */
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const uint8_t *buf, int buf_size)
+static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *avpkt)
 {
+        const uint8_t *buf = avpkt->data;
+        int buf_size = avpkt->size;
         EightBpsContext * const c = avctx->priv_data;
         const unsigned char *encoded = buf;
         unsigned char *pixptr, *pixptr_end;
@@ -156,11 +159,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
         c->pic.data[0] = NULL;
 
-    if (avcodec_check_dimensions(avctx, avctx->width, avctx->height) < 0) {
-        return 1;
-    }
-
-        switch (avctx->bits_per_sample) {
+        switch (avctx->bits_per_coded_sample) {
                 case 8:
                         avctx->pix_fmt = PIX_FMT_PAL8;
                         c->planes = 1;
@@ -180,7 +179,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
                 case 32:
                         avctx->pix_fmt = PIX_FMT_RGB32;
                         c->planes = 4;
-#ifdef WORDS_BIGENDIAN
+#if HAVE_BIGENDIAN
                         c->planemap[0] = 1; // 1st plane is red
                         c->planemap[1] = 2; // 2nd plane is green
                         c->planemap[2] = 3; // 3rd plane is blue
@@ -193,7 +192,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 #endif
                         break;
                 default:
-                        av_log(avctx, AV_LOG_ERROR, "Error: Unsupported color depth: %u.\n", avctx->bits_per_sample);
+                        av_log(avctx, AV_LOG_ERROR, "Error: Unsupported color depth: %u.\n", avctx->bits_per_coded_sample);
                         return -1;
         }
 
@@ -222,7 +221,7 @@ static av_cold int decode_end(AVCodecContext *avctx)
 
 AVCodec eightbps_decoder = {
         "8bps",
-        CODEC_TYPE_VIDEO,
+        AVMEDIA_TYPE_VIDEO,
         CODEC_ID_8BPS,
         sizeof(EightBpsContext),
         decode_init,
@@ -230,5 +229,5 @@ AVCodec eightbps_decoder = {
         decode_end,
         decode_frame,
         CODEC_CAP_DR1,
-        .long_name = "QuickTime 8BPS video",
+        .long_name = NULL_IF_CONFIG_SMALL("QuickTime 8BPS video"),
 };

@@ -19,36 +19,59 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_AVFILTERGRAPH_H
-#define FFMPEG_AVFILTERGRAPH_H
+#ifndef AVFILTER_AVFILTERGRAPH_H
+#define AVFILTER_AVFILTERGRAPH_H
 
 #include "avfilter.h"
 
 typedef struct AVFilterGraph {
     unsigned filter_count;
     AVFilterContext **filters;
+
+    char *scale_sws_opts; ///< sws options to use for the auto-inserted scale filters
 } AVFilterGraph;
 
 /**
- * Get a pointer to a graph by instance name
+ * Gets a filter instance with name name from graph.
+ *
+ * @return the pointer to the found filter instance or NULL if it
+ * cannot be found.
  */
 AVFilterContext *avfilter_graph_get_filter(AVFilterGraph *graph, char *name);
 
 /**
- * Add an existing filter instance to a filter graph.
- * @param graph  The filter graph
- * @param filter The filter to be added
+ * Adds an existing filter instance to a filter graph.
+ *
+ * @param graph  the filter graph
+ * @param filter the filter to be added
  */
 int avfilter_graph_add_filter(AVFilterGraph *graphctx, AVFilterContext *filter);
 
 /**
- * Configure the formats of all the links in the graph.
+ * Checks for the validity of graph.
+ *
+ * A graph is considered valid if all its input and output pads are
+ * connected.
+ *
+ * @return 0 in case of success, a negative value otherwise
  */
-int avfilter_graph_config_formats(AVFilterGraph *graphctx);
+int avfilter_graph_check_validity(AVFilterGraph *graphctx, AVClass *log_ctx);
 
 /**
- * Free a graph and destroy its links.
+ * Configures all the links of graphctx.
+ *
+ * @return 0 in case of success, a negative value otherwise
  */
-void avfilter_destroy_graph(AVFilterGraph *graph);
+int avfilter_graph_config_links(AVFilterGraph *graphctx, AVClass *log_ctx);
 
-#endif  /* FFMPEG_AVFILTERGRAPH_H */
+/**
+ * Configures the formats of all the links in the graph.
+ */
+int avfilter_graph_config_formats(AVFilterGraph *graphctx, AVClass *log_ctx);
+
+/**
+ * Frees a graph and destroys its links.
+ */
+void avfilter_graph_destroy(AVFilterGraph *graph);
+
+#endif  /* AVFILTER_AVFILTERGRAPH_H */

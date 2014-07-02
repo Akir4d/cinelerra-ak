@@ -20,7 +20,7 @@
  */
 
 /**
- * @file tiertexseq.c
+ * @file
  * Tiertex Limited SEQ file demuxer
  */
 
@@ -212,7 +212,7 @@ static int seq_read_header(AVFormatContext *s, AVFormatParameters *ap)
 
     av_set_pts_info(st, 32, 1, SEQ_FRAME_RATE);
     seq->video_stream_index = st->index;
-    st->codec->codec_type = CODEC_TYPE_VIDEO;
+    st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
     st->codec->codec_id = CODEC_ID_TIERTEXSEQVIDEO;
     st->codec->codec_tag = 0;  /* no fourcc */
     st->codec->width = SEQ_FRAME_W;
@@ -225,14 +225,14 @@ static int seq_read_header(AVFormatContext *s, AVFormatParameters *ap)
 
     av_set_pts_info(st, 32, 1, SEQ_SAMPLE_RATE);
     seq->audio_stream_index = st->index;
-    st->codec->codec_type = CODEC_TYPE_AUDIO;
+    st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
     st->codec->codec_id = CODEC_ID_PCM_S16BE;
     st->codec->codec_tag = 0;  /* no tag */
     st->codec->channels = 1;
     st->codec->sample_rate = SEQ_SAMPLE_RATE;
-    st->codec->bits_per_sample = 16;
-    st->codec->bit_rate = st->codec->sample_rate * st->codec->bits_per_sample * st->codec->channels;
-    st->codec->block_align = st->codec->channels * st->codec->bits_per_sample;
+    st->codec->bits_per_coded_sample = 16;
+    st->codec->bit_rate = st->codec->sample_rate * st->codec->bits_per_coded_sample * st->codec->channels;
+    st->codec->block_align = st->codec->channels * st->codec->bits_per_coded_sample;
 
     return 0;
 }
@@ -285,7 +285,7 @@ static int seq_read_packet(AVFormatContext *s, AVPacket *pkt)
         return rc;
 
     pkt->stream_index = seq->audio_stream_index;
-    pkt->pts = seq->current_frame_pts++;
+    seq->current_frame_pts++;
 
     seq->audio_buffer_full = 0;
     return 0;
@@ -304,7 +304,7 @@ static int seq_read_close(AVFormatContext *s)
 
 AVInputFormat tiertexseq_demuxer = {
     "tiertexseq",
-    "Tiertex Limited SEQ format",
+    NULL_IF_CONFIG_SMALL("Tiertex Limited SEQ format"),
     sizeof(SeqDemuxContext),
     seq_probe,
     seq_read_header,

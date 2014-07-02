@@ -20,29 +20,70 @@
  */
 
 /**
- * @file log.c
- * log.
+ * @file
+ * logging functions
  */
 
+#include <unistd.h>
+#include <stdlib.h>
 #include "avutil.h"
+#include "log.h"
 
+#if LIBAVUTIL_VERSION_MAJOR > 50
+static
+#endif
 int av_log_level = AV_LOG_INFO;
+
+static int use_ansi_color=-1;
+
+#undef fprintf
+static void colored_fputs(int color, const char *str){
+    if(use_ansi_color<0){
+#if HAVE_ISATTY && !defined(_WIN32)
+        use_ansi_color= getenv("TERM") && !getenv("NO_COLOR") && isatty(2);
+#else
+        use_ansi_color= 0;
+#endif
+    }
+
+    if(use_ansi_color){
+        fprintf(stderr, "\033[%d;3%dm", color>>4, color&15);
+    }
+    fputs(str, stderr);
+    if(use_ansi_color){
+        fprintf(stderr, "\033[0m");
+    }
+}
 
 void av_log_default_callback(void* ptr, int level, const char* fmt, va_list vl)
 {
     static int print_prefix=1;
+    static int count;
+    static char prev[1024];
+    char line[1024];
+    static const uint8_t color[]={0x41,0x41,0x11,0x03,9,9,9};
     AVClass* avc= ptr ? *(AVClass**)ptr : NULL;
     if(level>av_log_level)
         return;
 #undef fprintf
     if(print_prefix && avc) {
-            fprintf(stderr, "[%s @ %p]", avc->item_name(ptr), avc);
+        snprintf(line, sizeof(line), "[%s @ %p]", avc->item_name(ptr), ptr);
+    }else
+        line[0]=0;
+
+    vsnprintf(line + strlen(line), sizeof(line) - strlen(line), fmt, vl);
+
+    print_prefix= line[strlen(line)-1] == '\n';
+    if(print_prefix && !strcmp(line, prev)){
+        count++;
+        return;
     }
-#define fprintf please_use_av_log
-
-    print_prefix= strstr(fmt, "\n") != NULL;
-
-    vfprintf(stderr, fmt, vl);
+    if(count>0){
+        fprintf(stderr, "    Last message repeated %d times\n", count);
+        count=0;
+    }
+    colored_fputs(color[av_clip(level>>3, 0, 6)], line);
+    strcpy(prev, line);
 }
 
 static void (*av_log_callback)(void*, int, const char*, va_list) = av_log_default_callback;

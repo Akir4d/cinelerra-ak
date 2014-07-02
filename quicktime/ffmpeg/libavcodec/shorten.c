@@ -20,7 +20,7 @@
  */
 
 /**
- * @file shorten.c
+ * @file
  * Shorten decoder
  * @author Jeff Muizelaar
  *
@@ -29,7 +29,7 @@
 #define DEBUG
 #include <limits.h>
 #include "avcodec.h"
-#include "bitstream.h"
+#include "get_bits.h"
 #include "golomb.h"
 
 #define MAX_CHANNELS 8
@@ -82,7 +82,9 @@ typedef struct ShortenContext {
     int channels;
 
     int32_t *decoded[MAX_CHANNELS];
+    int32_t *decoded_base[MAX_CHANNELS];
     int32_t *offset[MAX_CHANNELS];
+    int *coeffs;
     uint8_t *bitstream;
     int bitstream_size;
     int bitstream_index;
@@ -104,6 +106,7 @@ static av_cold int shorten_decode_init(AVCodecContext * avctx)
 {
     ShortenContext *s = avctx->priv_data;
     s->avctx = avctx;
+    avctx->sample_fmt = SAMPLE_FMT_S16;
 
     return 0;
 }
@@ -111,6 +114,9 @@ static av_cold int shorten_decode_init(AVCodecContext * avctx)
 static int allocate_buffers(ShortenContext *s)
 {
     int i, chan;
+    int *coeffs;
+    void *tmp_ptr;
+
     for (chan=0; chan<s->channels; chan++) {
         if(FFMAX(1, s->nmean) >= UINT_MAX/sizeof(int32_t)){
             av_log(s->avctx, AV_LOG_ERROR, "nmean too large\n");
@@ -121,13 +127,26 @@ static int allocate_buffers(ShortenContext *s)
             return -1;
         }
 
-        s->offset[chan] = av_realloc(s->offset[chan], sizeof(int32_t)*FFMAX(1, s->nmean));
+        tmp_ptr = av_realloc(s->offset[chan], sizeof(int32_t)*FFMAX(1, s->nmean));
+        if (!tmp_ptr)
+            return AVERROR(ENOMEM);
+        s->offset[chan] = tmp_ptr;
 
-        s->decoded[chan] = av_realloc(s->decoded[chan], sizeof(int32_t)*(s->blocksize + s->nwrap));
+        tmp_ptr = av_realloc(s->decoded_base[chan], (s->blocksize + s->nwrap) *
+                             sizeof(s->decoded_base[0][0]));
+        if (!tmp_ptr)
+            return AVERROR(ENOMEM);
+        s->decoded_base[chan] = tmp_ptr;
         for (i=0; i<s->nwrap; i++)
-            s->decoded[chan][i] = 0;
-        s->decoded[chan] += s->nwrap;
+            s->decoded_base[chan][i] = 0;
+        s->decoded[chan] = s->decoded_base[chan] + s->nwrap;
     }
+
+    coeffs = av_realloc(s->coeffs, s->nwrap * sizeof(*s->coeffs));
+    if (!coeffs)
+        return AVERROR(ENOMEM);
+    s->coeffs = coeffs;
+
     return 0;
 }
 
@@ -146,7 +165,7 @@ static void fix_bitshift(ShortenContext *s, int32_t *buffer)
 
     if (s->bitshift != 0)
         for (i = 0; i < s->blocksize; i++)
-            buffer[s->nwrap + i] <<= s->bitshift;
+            buffer[i] <<= s->bitshift;
 }
 
 
@@ -227,9 +246,9 @@ static int decode_wave_header(AVCodecContext *avctx, uint8_t *header, int header
     avctx->sample_rate = get_le32(&hb);
     avctx->bit_rate = get_le32(&hb) * 8;
     avctx->block_align = get_le16(&hb);
-    avctx->bits_per_sample = get_le16(&hb);
+    avctx->bits_per_coded_sample = get_le16(&hb);
 
-    if (avctx->bits_per_sample != 16) {
+    if (avctx->bits_per_coded_sample != 16) {
         av_log(avctx, AV_LOG_ERROR, "unsupported number of bits per sample\n");
         return -1;
     }
@@ -252,7 +271,7 @@ static int16_t * interleave_buffer(int16_t *samples, int nchan, int blocksize, i
 static void decode_subframe_lpc(ShortenContext *s, int channel, int residual_size, int pred_order)
 {
     int sum, i, j;
-    int coeffs[pred_order];
+    int *coeffs = s->coeffs;
 
     for (i=0; i<pred_order; i++)
         coeffs[i] = get_sr_golomb_shorten(&s->gb, LPCQUANT);
@@ -268,14 +287,23 @@ static void decode_subframe_lpc(ShortenContext *s, int channel, int residual_siz
 
 static int shorten_decode_frame(AVCodecContext *avctx,
         void *data, int *data_size,
-        const uint8_t *buf, int buf_size)
+        AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     ShortenContext *s = avctx->priv_data;
     int i, input_buf_size = 0;
     int16_t *samples = data;
     if(s->max_framesize == 0){
+        void *tmp_ptr;
         s->max_framesize= 1024; // should hopefully be enough for the first header
-        s->bitstream= av_fast_realloc(s->bitstream, &s->allocated_bitstream_size, s->max_framesize);
+        tmp_ptr = av_fast_realloc(s->bitstream, &s->allocated_bitstream_size,
+                                  s->max_framesize);
+        if (!tmp_ptr) {
+            av_log(avctx, AV_LOG_ERROR, "error allocating bitstream buffer\n");
+            return AVERROR(ENOMEM);
+        }
+        s->bitstream = tmp_ptr;
     }
 
     if(1 && s->max_framesize){//FIXME truncated
@@ -304,7 +332,7 @@ static int shorten_decode_frame(AVCodecContext *avctx,
     {
         int maxnlpc = 0;
         /* shorten signature */
-        if (get_bits_long(&s->gb, 32) != bswap_32(ff_get_fourcc("ajkg"))) {
+        if (get_bits_long(&s->gb, 32) != AV_RB32("ajkg")) {
             av_log(s->avctx, AV_LOG_ERROR, "missing shorten magic 'ajkg'\n");
             return -1;
         }
@@ -424,6 +452,12 @@ static int shorten_decode_frame(AVCodecContext *avctx,
                         case FN_QLPC:
                             {
                                 int pred_order = get_ur_golomb_shorten(&s->gb, LPCQSIZE);
+                                if (pred_order > s->nwrap) {
+                                    av_log(avctx, AV_LOG_ERROR,
+                                           "invalid pred_order %d\n",
+                                           pred_order);
+                                    return -1;
+                                }
                                 for (i=0; i<pred_order; i++)
                                     s->decoded[channel][i - pred_order] -= coffset;
                                 decode_subframe_lpc(s, channel, residual_size, pred_order);
@@ -468,9 +502,15 @@ static int shorten_decode_frame(AVCodecContext *avctx,
             case FN_BITSHIFT:
                 s->bitshift = get_ur_golomb_shorten(&s->gb, BITSHIFTSIZE);
                 break;
-            case FN_BLOCKSIZE:
-                s->blocksize = get_uint(s, av_log2(s->blocksize));
+            case FN_BLOCKSIZE: {
+                int blocksize = get_uint(s, av_log2(s->blocksize));
+                if (blocksize > s->blocksize) {
+                    av_log(avctx, AV_LOG_ERROR, "Increasing block size is not supported\n");
+                    return AVERROR_PATCHWELCOME;
+                }
+                s->blocksize = blocksize;
                 break;
+            }
             case FN_QUIT:
                 *data_size = 0;
                 return buf_size;
@@ -507,11 +547,12 @@ static av_cold int shorten_decode_close(AVCodecContext *avctx)
     int i;
 
     for (i = 0; i < s->channels; i++) {
-        s->decoded[i] -= s->nwrap;
-        av_freep(&s->decoded[i]);
+        s->decoded[i] = NULL;
+        av_freep(&s->decoded_base[i]);
         av_freep(&s->offset[i]);
     }
     av_freep(&s->bitstream);
+    av_freep(&s->coeffs);
     return 0;
 }
 
@@ -524,7 +565,7 @@ static void shorten_flush(AVCodecContext *avctx){
 
 AVCodec shorten_decoder = {
     "shorten",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_SHORTEN,
     sizeof(ShortenContext),
     shorten_decode_init,
@@ -532,5 +573,5 @@ AVCodec shorten_decoder = {
     shorten_decode_close,
     shorten_decode_frame,
     .flush= shorten_flush,
-    .long_name= "Shorten",
+    .long_name= NULL_IF_CONFIG_SMALL("Shorten"),
 };

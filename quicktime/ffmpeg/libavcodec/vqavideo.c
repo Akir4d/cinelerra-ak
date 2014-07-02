@@ -20,7 +20,7 @@
  */
 
 /**
- * @file vqavideo.c
+ * @file
  * VQA Video Decoder by Mike Melanson (melanson@pcisys.net)
  * For more information about the VQA format, visit:
  *   http://wiki.multimedia.cx/index.php?title=VQA
@@ -66,8 +66,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 
 #define PALETTE_COUNT 256
@@ -160,6 +160,12 @@ static av_cold int vqa_decode_init(AVCodecContext *avctx)
         ((s->vector_height != 2) && (s->vector_height != 4))) {
         /* return without further initialization */
         return -1;
+    }
+
+    if (s->width  & (s->vector_width  - 1) ||
+        s->height & (s->vector_height - 1)) {
+        av_log(avctx, AV_LOG_ERROR, "Image size not multiple of block size\n");
+        return AVERROR_INVALIDDATA;
     }
 
     /* allocate codebooks */
@@ -564,8 +570,10 @@ static void vqa_decode_chunk(VqaContext *s)
 
 static int vqa_decode_frame(AVCodecContext *avctx,
                             void *data, int *data_size,
-                            const uint8_t *buf, int buf_size)
+                            AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     VqaContext *s = avctx->priv_data;
 
     s->buf = buf;
@@ -608,7 +616,7 @@ static av_cold int vqa_decode_end(AVCodecContext *avctx)
 
 AVCodec vqa_decoder = {
     "vqavideo",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_WS_VQA,
     sizeof(VqaContext),
     vqa_decode_init,
@@ -616,5 +624,5 @@ AVCodec vqa_decoder = {
     vqa_decode_end,
     vqa_decode_frame,
     CODEC_CAP_DR1,
-    .long_name = "Westwood Studios VQA (Vector Quantized Animation) video",
+    .long_name = NULL_IF_CONFIG_SMALL("Westwood Studios VQA (Vector Quantized Animation) video"),
 };

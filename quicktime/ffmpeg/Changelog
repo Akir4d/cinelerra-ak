@@ -1,5 +1,235 @@
-version <next>
-- The "device" muxers and demuxers are now in a new libavdevice library
+Entries are sorted chronologically from oldest to youngest within each release,
+releases are sorted from youngest to oldest.
+
+version 0.6.6:
+- id3v2: fix skipping extended header in id3v2.4
+- nsvdec: Fix use of uninitialized streams
+- nsvdec: Be more careful with av_malloc()
+- nsvdec: Propagate errors
+- dv: check stype
+- dv: Fix null pointer dereference due to ach=0
+- dv: Fix small stack overread related to CVE-2011-3929 and CVE-2011-3936.
+- atrac3: Fix crash in tonal component decoding
+- mjpegbdec: Fix overflow in SOS
+- kgv1dec: Increase offsets array size so it is large enough
+- motionpixels: decode only the 111 complete frames for fate
+- motionpixels: Clip YUV values after applying a gradient
+- celp filters: Do not read earlier than the start of the 'out' vector
+- vqavideo: return error if image size is not a multiple of block size (CVE-2012-0947)
+- dpcm: ignore extra unpaired bytes in stereo streams (CVE-2011-3951)
+- aacsbr: prevent out of bounds memcpy() (CVE-2012-0850)
+- h264: Add check for invalid chroma_format_idc (CVE-2012-0851)
+- adpcm: ADPCM Electronic Arts has always two channels (CVE-2012-0852)
+- shorten: remove VLA and check for buffer overflow
+- shorten: Prevent block size from increasing
+- shorten: Fix out of bound writes in fix_bitshift()
+- shorten: check for realloc failure (CVE-2012-0858)
+- shorten: Use separate pointers for the allocated memory for decoded samples (CVE-2012-0858)
+- kmvc: Check palsize (CVE-2011-3952)
+- qdm2: clip array indices returned by qdm2_get_vlc()
+- configure: properly check for mingw-w64 through installed headers
+- mingw32: properly check if vfw capture is supported by the system headers
+- mingw32: merge checks for mingw-w64 and mingw32-runtime >= 3.15 into one
+- dxva2: define required feature selection macros
+- png: check bit depth for PAL8/Y400A pixel formats
+- ea: check chunk_size for validity
+- tqi: Pass errors from the MB decoder
+
+
+version 0.6.5:
+- vorbis: An additional defense in the Vorbis codec. (CVE-2011-3895)
+- vorbisdec: Fix decoding bug with channel handling.
+- matroskadec: Fix a bug where a pointer was cached to an array that might
+  later move due to a realloc(). (CVE-2011-3893)
+- vorbis: Avoid some out-of-bounds reads. (CVE-2011-3893)
+- vp3: fix oob read for negative tokens and memleaks on error, (CVE-2011-3892)
+- vp3: fix streams with non-zero last coefficient.
+
+
+version 0.6.4:
+- 4xm: Add a check in decode_i_frame to prevent buffer overreads
+- wma: initialize prev_block_len_bits, next_block_len_bits, and block_len_bits.
+- swscale: #include "libavutil/mathematics.h"
+- vp3dec: Check coefficient index in vp3_dequant() (CVE-2011-4352)
+- svq1dec: call avcodec_set_dimensions() after dimensions changed. (CVE-2011-4579)
+- commits related to CVE-2011-4353:
+  - vp6: Fix illegal read.
+  - vp6: Reset the internal state when aborting key frames header parsing
+  - vp6: Check for huffman tree build errors
+  - vp6: partially propagate huffman tree building errors during coeff model parsing and fix misspelling
+- commits related to CVE-2011-4351:
+  - qdm2: check output buffer size before decoding
+  - Fix qdm2 decoder packet handling to match the api
+  - Fix out of bound reads in the QDM2 decoder.
+  - Check for out of bound writes in the QDM2 decoder.
+- vmd: fix segfaults on corruped streams (CVE-2011-4364)
+- rv34: Check for invalid slice offsets
+- rv34: Fix potential overreads
+- rv34: Avoid NULL dereference on corrupted bitstream
+- rv10: Reject slices that does not have the same type as the first one
+- oggdec: fix out of bound write in the ogg demuxer
+- smacker: fix a few off by 1 errors
+- Check for invalid VLC value in smacker decoder.
+- Check and propagate errors when VLC trees cannot be built in smacker decoder.
+- Fixed off by one packet size allocation in the smacker demuxer.
+- Check for invalid packet size in the smacker demuxer.
+- ape demuxer: fix segfault on memory allocation failure.
+- Fixed size given to init_get_bits() in xan decoder.
+- smacker demuxer: handle possible av_realloc() failure.
+- Fixed segfault with wavpack decoder on corrupted decorrelation terms sub-blocks.
+- indeo2: fail if input buffer too small
+- indeo2: init_get_bits size in bits instead of bytes
+- wavpack: Check error codes rather than working around error conditions.
+- Fixed invalid writes and reads in wavpack decoder on corrupted bitstreams.
+- cpu detection: avoid a signed overflow
+- h264: correct implicit weight table computation for long ref pics
+- h264: correct the check for invalid long term frame index in MMCO decode
+- rv10/20: tell decoder to use edge emulation
+- flvenc: use int64_t to store offsets
+- VC-1: fix reading of custom PAR.
+- h264: notice memory allocation failure
+- libx264: do not set pic quality if no frame is output
+- mxfdec: Include FF_INPUT_BUFFER_PADDING_SIZE when allocating extradata.
+- rv30: return AVERROR(EINVAL) instead of EINVAL
+- Do not decode RV30 files if the extradata is too small
+- aacps: skip some memcpy() if src and dst would be equal
+- mpegts: fix Continuity Counter error detection
+- alsa: fallback to buffer_size/4 for period_size.
+- mxfenc: fix ignored drop flag in binary timecode representation.
+- dca: set AVCodecContext frame_size for DTS audio
+- H.264: fix overreads of qscale_table
+- postprocess.c: filter name needs to be double 0 terminated
+- Replace strncpy() with av_strlcpy() in libpostproc.
+- jpegdec: actually search for and parse RSTn
+- riff: Add mpgv MPEG-2 fourcc
+- Added M701 codec_tag for mpeg2video
+
+
+version 0.6.3:
+
+- fix compilation with --enable-hardcoded-tables
+- mjpeg: Detect overreads in mjpeg_decode_scan() and error out.
+- aac: add headers needed for log2f()
+- lavf: inspect more frames for fps when container time base is coarse
+- AMV: disable DR1 and don't override EMU_EDGE
+  (addresses http://seclists.org/bugtraq/2011/Apr/257)
+- Fix memory (re)allocation in matroskadec.c (MSVR11-011/CVE-2011-3504)
+- Fix some crashes with invalid bitstreams in the CAVS decoder
+  (CVE-2011-3362, CVE-2011-3973, CVE-2011-3974)
+- Compilation fixes for gcc-4.6, testsuite now passes again
+- Fix a heap corruption issue in the OGG decoder
+- Backported the Android VisualOn AAC encoder wrapper from 0.7.2
+
+
+version 0.6.3:
+
+- AMV: Fix possibly exploitable crash.
+- Fix apparently exploitable race condition.
+  (addresses http://seclists.org/bugtraq/2011/Apr/257)
+
+version 0.6.2:
+
+- fix compilation with --enable-hardcoded-tables
+- Fix invalid reads in VC-1 decoding (related to CVE-2011-0723)
+- Do not attempt to decode APE file with no frames
+  (adresses http://packetstorm.linuxsecurity.com/1103-exploits/vlc105-dos.txt)
+
+
+version 0.6.1:
+
+- fix autodetection of E-AC-3 substream samples
+- performance fix for seekable HTTP
+- backport AAC-HE v2 from trunk
+- add missing VP80 fourcc code for the VP8 codec
+- small documentation fixes
+- fix several potentially exploitable issues in the FLIC decoder
+  (addresses CVE-2010-3429)
+
+
+version 0.6:
+
+- PB-frame decoding for H.263
+- deprecated vhook subsystem removed
+- deprecated old scaler removed
+- VQF demuxer
+- alpha channel scaler
+- PCX encoder
+- RTP packetization of H.263
+- RTP packetization of AMR
+- RTP depacketization of Vorbis
+- CorePNG decoding support
+- Cook multichannel decoding support
+- introduced avlanguage helpers in libavformat
+- 8088flex TMV demuxer and decoder
+- per-stream language-tags extraction in asfdec
+- V210 decoder and encoder
+- remaining GPL parts in AC-3 decoder converted to LGPL
+- QCP demuxer
+- SoX native format muxer and demuxer
+- AMR-NB decoding/encoding, AMR-WB decoding via OpenCORE libraries
+- DPX image decoder
+- Electronic Arts Madcow decoder
+- DivX (XSUB) subtitle encoder
+- nonfree libamr support for AMR-NB/WB decoding/encoding removed
+- experimental AAC encoder
+- RTP depacketization of ASF and RTSP from WMS servers
+- RTMP support in libavformat
+- noX handling for OPT_BOOL X options
+- Wave64 demuxer
+- IEC-61937 compatible Muxer
+- TwinVQ decoder
+- Bluray (PGS) subtitle decoder
+- LPCM support in MPEG-TS (HDMV RID as found on Blu-ray disks)
+- WMA Pro decoder
+- Core Audio Format demuxer
+- Atrac1 decoder
+- MD STUDIO audio demuxer
+- RF64 support in WAV demuxer
+- MPEG-4 Audio Lossless Coding (ALS) decoder
+- -formats option split into -formats, -codecs, -bsfs, and -protocols
+- IV8 demuxer
+- CDG demuxer and decoder
+- R210 decoder
+- Auravision Aura 1 and 2 decoders
+- Deluxe Paint Animation playback system
+- SIPR decoder
+- Adobe Filmstrip muxer and demuxer
+- RTP depacketization of H.263
+- Bink demuxer and audio/video decoders
+- enable symbol versioning by default for linkers that support it
+- IFF PBM/ILBM bitmap decoder
+- concat protocol
+- Indeo 5 decoder
+- RTP depacketization of AMR
+- WMA Voice decoder
+- ffprobe tool
+- AMR-NB decoder
+- RTSP muxer
+- HE-AAC v1 decoder
+- Kega Game Video (KGV1) decoder
+- VorbisComment writing for FLAC, Ogg FLAC and Ogg Speex files
+- RTP depacketization of Theora
+- HTTP Digest authentication
+- RTMP/RTMPT/RTMPS/RTMPE/RTMPTE protocol support via librtmp
+- Psygnosis YOP demuxer and video decoder
+- spectral extension support in the E-AC-3 decoder
+- unsharp video filter
+- RTP hinting in the mov/3gp/mp4 muxer
+- Dirac in Ogg demuxing
+- seek to keyframes in Ogg
+- 4:2:2 and 4:4:4 Theora decoding
+- 35% faster VP3/Theora decoding
+- faster AAC decoding
+- faster H.264 decoding
+- WebM support in Matroska de/muxer
+- low overhead Ogg muxing
+- VP8 de/encoding via libvpx
+- CODEC_CAP_EXPERIMENTAL added
+
+
+
+version 0.5:
+
 - DV50 AKA DVCPRO50 encoder, decoder, muxer and demuxer
 - TechSmith Camtasia (TSCC) video decoder
 - IBM Ultimotion (ULTI) video decoder
@@ -20,7 +250,7 @@ version <next>
 - Fraps FPS1 video decoder
 - Snow video encoder/decoder
 - Sonic audio encoder/decoder
-- Vorbis audio encoder/decoder
+- Vorbis audio decoder
 - Macromedia ADPCM decoder
 - Duck TrueMotion 2 video decoder
 - support for decoding FLX and DTA extensions in FLIC files
@@ -31,22 +261,23 @@ version <next>
 - TrueSpeech audio decoder
 - WMA2 audio decoder fixed, now all files should play correctly
 - RealAudio 14.4 and 28.8 decoders fixed
-- JPEG-LS encoder and decoder
-- CamStudio video decoder
+- JPEG-LS decoder
 - build system improvements
 - tabs and trailing whitespace removed from the codebase
+- CamStudio video decoder
 - AIFF/AIFF-C audio format, encoding and decoding
 - ADTS AAC file reading and writing
 - Creative VOC file reading and writing
 - American Laser Games multimedia (*.mm) playback system
-- Zip Blocks Motion Video decoder and encoder
-- Improved Theora/VP3 decoder
+- Zip Motion Blocks Video decoder
+- improved Theora/VP3 decoder
 - True Audio (TTA) decoder
 - AVS demuxer and video decoder
+- JPEG-LS encoder
 - Smacker demuxer and decoder
 - NuppelVideo/MythTV demuxer and RTjpeg decoder
 - KMVC decoder
-- MPEG-2 intra vlc support
+- MPEG-2 intra VLC support
 - MPEG-2 4:2:2 encoder
 - Flash Screen Video decoder
 - GXF demuxer
@@ -61,12 +292,14 @@ version <next>
 - VP6 video decoder
 - WavPack lossless audio decoder
 - Targa (.TGA) picture decoder
+- Vorbis audio encoder
 - Delphine Software .cin demuxer/audio and video decoder
 - Tiertex .seq demuxer/video decoder
 - MTV demuxer
 - TIFF picture encoder and decoder
 - GIF picture decoder
-- Intel Music decoder
+- Intel Music Coder decoder
+- Zip Motion Blocks Video encoder
 - Musepack decoder
 - Flash Screen Video encoder
 - Theora encoding via libtheora
@@ -83,7 +316,7 @@ version <next>
 - CRYO APC demuxer
 - Atrac3 decoder
 - V.Flash PTX decoder
-- RoQ muxer, audio encoder
+- RoQ muxer, RoQ audio encoder
 - Renderware TXD demuxer and decoder
 - extern C declarations for C++ removed from headers
 - sws_flags command line option
@@ -92,11 +325,11 @@ version <next>
 - QTRLE encoder
 - OS/2 support removed and restored again
 - AC-3 decoder
-- NUT muxer (since r10052)
-- Matroska muxer
-- Slice-based parallel H.264 decoding
-- Monkey's Audio demuxer and decoder
+- NUT muxer
 - additional SPARC (VIS) optimizations
+- Matroska muxer
+- slice-based parallel H.264 decoding
+- Monkey's Audio demuxer and decoder
 - AMV audio and video decoder
 - DNxHD encoder
 - H.264 PAFF decoding
@@ -104,7 +337,8 @@ version <next>
 - Beam Software SIFF demuxer and decoder
 - libvorbis Vorbis decoding removed in favor of native decoder
 - IntraX8 (J-Frame) subdecoder for WMV2 and VC-1
-- Ogg muxer
+- Ogg (Theora, Vorbis and FLAC) muxer
+- The "device" muxers and demuxers are now in a new libavdevice library
 - PC Paintbrush PCX decoder
 - Sun Rasterfile decoder
 - TechnoTrend PVA demuxer
@@ -112,15 +346,50 @@ version <next>
 - AVM2 (Flash 9) SWF muxer
 - QT variant of IMA ADPCM encoder
 - VFW grabber
-- Ipod/Iphone compatible mp4 muxer
+- iPod/iPhone compatible mp4 muxer
 - Mimic decoder
 - MSN TCP Webcam stream demuxer
 - RL2 demuxer / decoder
 - IFF demuxer
 - 8SVX audio decoder
+- non-recursive Makefiles
 - BFI demuxer
 - MAXIS EA XA (.xa) demuxer / decoder
 - BFI video decoder
+- OMA demuxer
+- MLP/TrueHD decoder
+- Electronic Arts CMV decoder
+- Motion Pixels Video decoder
+- Motion Pixels MVI demuxer
+- removed animated GIF decoder/demuxer
+- D-Cinema audio muxer
+- Electronic Arts TGV decoder
+- Apple Lossless Audio Codec (ALAC) encoder
+- AAC decoder
+- floating point PCM encoder/decoder
+- MXF muxer
+- DV100 AKA DVCPRO HD decoder and demuxer
+- E-AC-3 support added to AC-3 decoder
+- Nellymoser ASAO encoder
+- ASS and SSA demuxer and muxer
+- liba52 wrapper removed
+- SVQ3 watermark decoding support
+- Speex decoding via libspeex
+- Electronic Arts TGQ decoder
+- RV40 decoder
+- QCELP / PureVoice decoder
+- RV30 decoder
+- hybrid WavPack support
+- R3D REDCODE demuxer
+- ALSA support for playback and record
+- Electronic Arts TQI decoder
+- OpenJPEG based JPEG 2000 decoder
+- NC (NC4600) camera file demuxer
+- Gopher client support
+- MXF D-10 muxer
+- generic metadata API
+
+
 
 version 0.4.9-pre1:
 
@@ -203,6 +472,9 @@ version 0.4.9-pre1:
 - more accurate deblock filter
 - padding support
 - many optimizations and bugfixes
+- FunCom ISS audio file demuxer and according ADPCM decoding
+
+
 
 version 0.4.8:
 
@@ -213,6 +485,8 @@ version 0.4.8:
 - Xan DPCM audio decoder (Mario Brito)
 - Interplay MVE playback subsystem (Mike Melanson)
 - Duck DK3 and DK4 ADPCM audio decoders (Mike Melanson)
+
+
 
 version 0.4.7:
 
@@ -254,6 +528,8 @@ version 0.4.7:
 
 .. And lots more new enhancements and fixes.
 
+
+
 version 0.4.6:
 
 - completely new integer only MPEG audio layer 1/2/3 decoder rewritten
@@ -290,6 +566,8 @@ version 0.4.6:
 - simple stats output (Juanjo)
 - 16-bit and 15-bit RGB/BGR/GBR support (Bisqwit)
 
+
+
 version 0.4.5:
 
 - some header fixes (Zdenek Kabelac <kabi at informatics.muni.cz>)
@@ -320,6 +598,8 @@ version 0.4.5:
 - added MJPEG raw format (input/ouput)
 - added JPEG image format support (input/output)
 
+
+
 version 0.4.4:
 
 - fixed some std header definitions (Bjorn Lindgren
@@ -344,6 +624,8 @@ version 0.4.4:
 - codecs are no longer searched by read_header() (should fix ffserver
   segfault)
 
+
+
 version 0.4.3:
 
 - BGR24 patch (initial patch by Jeroen Vreeken <pe1rxq at amsat.org>)
@@ -364,6 +646,8 @@ version 0.4.3:
   <lists at reserv.at>, but changed completely since we use a format
   instead of a protocol)
 
+
+
 version 0.4.2:
 
 - added H.263/MPEG-4/MSMPEG4 decoding support. MPEG-4 decoding support
@@ -380,6 +664,7 @@ version 0.4.2:
 - added file overwrite confirmation (can be disabled with -y)
 - added custom size picture to H.263 using H.263+ (Juanjo)
 
+
 version 0.4.1:
 
 - added MSMPEG4 (aka DivX) compatible encoder. Changed default codec
@@ -391,6 +676,8 @@ version 0.4.1:
 - fixed -an option
 - improved dct_quantize speed
 - factorized some motion estimation code
+
+
 
 version 0.4.0:
 
@@ -419,9 +706,13 @@ version 0.4.0:
 - changed directories: libav for format handling, libavcodec for
   codecs
 
+
+
 version 0.3.4:
 
 - added stereo in MPEG audio encoder
+
+
 
 version 0.3.3:
 
@@ -430,15 +721,21 @@ version 0.3.3:
 - fixed rounding problems which caused quality problems at high
   bitrates and large GOP size
 
+
+
 version 0.3.2: small fixes
 
 - ASF fixes
 - put_seek bug fix
+
+
 
 version 0.3.1: added avi/divx support
 
 - added AVI support
 - added MPEG-4 codec compatible with OpenDivX. It is based on the H.263 codec
 - added sound for flash format (not tested)
+
+
 
 version 0.3: initial public release

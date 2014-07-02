@@ -19,13 +19,13 @@
  */
 
 /**
- * @file cbook_gen.c
+ * @file
  * Codebook Generator using the ELBG algorithm
  */
 
 #include <string.h>
 
-#include "libavutil/random.h"
+#include "libavutil/lfg.h"
 #include "elbg.h"
 #include "avcodec.h"
 
@@ -52,7 +52,7 @@ typedef struct{
     int *utility_inc;
     int *nearest_cb;
     int *points;
-    AVRandomState *rand_state;
+    AVLFG *rand_state;
 } elbg_data;
 
 static inline int distance_limited(int *a, int *b, int dim, int limit)
@@ -105,9 +105,12 @@ static int get_high_utility_cell(elbg_data *elbg)
 {
     int i=0;
     /* Using linear search, do binary if it ever turns to be speed critical */
-    int r = av_random(elbg->rand_state)%elbg->utility_inc[elbg->numCB-1];
+    int r = av_lfg_get(elbg->rand_state)%elbg->utility_inc[elbg->numCB-1] + 1;
     while (elbg->utility_inc[i] < r)
         i++;
+
+    assert(!elbg->cells[i]);
+
     return i;
 }
 
@@ -246,8 +249,12 @@ static void try_shift_candidate(elbg_data *elbg, int idx[3])
     int j, k, olderror=0, newerror, cont=0;
     int newutility[3];
     int newcentroid[3][elbg->dim];
-    int *newcentroid_ptrs[3] = { newcentroid[0], newcentroid[1], newcentroid[2] };
+    int *newcentroid_ptrs[3];
     cell *tempcell;
+
+    newcentroid_ptrs[0] = newcentroid[0];
+    newcentroid_ptrs[1] = newcentroid[1];
+    newcentroid_ptrs[2] = newcentroid[2];
 
     for (j=0; j<3; j++)
         olderror += elbg->utility[idx[j]];
@@ -302,7 +309,8 @@ static void do_shiftings(elbg_data *elbg)
             idx[1] = get_high_utility_cell(elbg);
             idx[2] = get_closest_codebook(elbg, idx[0]);
 
-            try_shift_candidate(elbg, idx);
+            if (idx[1] != idx[0] && idx[1] != idx[2])
+                try_shift_candidate(elbg, idx);
         }
 }
 
@@ -310,7 +318,7 @@ static void do_shiftings(elbg_data *elbg)
 
 void ff_init_elbg(int *points, int dim, int numpoints, int *codebook,
                   int numCB, int max_steps, int *closest_cb,
-                  AVRandomState *rand_state)
+                  AVLFG *rand_state)
 {
     int i, k;
 
@@ -337,7 +345,7 @@ void ff_init_elbg(int *points, int dim, int numpoints, int *codebook,
 
 void ff_do_elbg(int *points, int dim, int numpoints, int *codebook,
                 int numCB, int max_steps, int *closest_cb,
-                AVRandomState *rand_state)
+                AVLFG *rand_state)
 {
     int dist;
     elbg_data elbg_d;
@@ -347,6 +355,7 @@ void ff_do_elbg(int *points, int dim, int numpoints, int *codebook,
     int *size_part = av_malloc(numCB*sizeof(int));
     cell *list_buffer = av_malloc(numpoints*sizeof(cell));
     cell *free_cells;
+    int best_dist, best_idx = 0;
 
     elbg->error = INT_MAX;
     elbg->dim = dim;
@@ -372,14 +381,16 @@ void ff_do_elbg(int *points, int dim, int numpoints, int *codebook,
         /* This loop evaluate the actual Voronoi partition. It is the most
            costly part of the algorithm. */
         for (i=0; i < numpoints; i++) {
-            dist_cb[i] = INT_MAX;
+            best_dist = distance_limited(elbg->points + i*elbg->dim, elbg->codebook + best_idx*elbg->dim, dim, INT_MAX);
             for (k=0; k < elbg->numCB; k++) {
-                dist = distance_limited(elbg->points + i*elbg->dim, elbg->codebook + k*elbg->dim, dim, dist_cb[i]);
-                if (dist < dist_cb[i]) {
-                    dist_cb[i] = dist;
-                    elbg->nearest_cb[i] = k;
+                dist = distance_limited(elbg->points + i*elbg->dim, elbg->codebook + k*elbg->dim, dim, best_dist);
+                if (dist < best_dist) {
+                    best_dist = dist;
+                    best_idx = k;
                 }
             }
+            elbg->nearest_cb[i] = best_idx;
+            dist_cb[i] = best_dist;
             elbg->error += dist_cb[i];
             elbg->utility[elbg->nearest_cb[i]] += dist_cb[i];
             free_cells->index = i;

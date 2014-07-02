@@ -20,7 +20,7 @@
  */
 
 /**
- * @file smacker.c
+ * @file
  * Smacker decoder
  */
 
@@ -34,7 +34,7 @@
 #include "avcodec.h"
 
 #define ALT_BITSTREAM_READER_LE
-#include "bitstream.h"
+#include "get_bits.h"
 #include "bytestream.h"
 
 #define SMKTREE_BITS 9
@@ -133,11 +133,13 @@ static int smacker_decode_bigtree(GetBitContext *gb, HuffContext *hc, DBCtx *ctx
             return -1;
         }
         b1 = get_bits_count(gb);
-        i1 = get_vlc2(gb, ctx->v1->table, SMKTREE_BITS, 3);
+        i1 = ctx->v1->table ? get_vlc2(gb, ctx->v1->table, SMKTREE_BITS, 3) : 0;
         b1 = get_bits_count(gb) - b1;
         b2 = get_bits_count(gb);
-        i2 = get_vlc2(gb, ctx->v2->table, SMKTREE_BITS, 3);
+        i2 = ctx->v2->table ? get_vlc2(gb, ctx->v2->table, SMKTREE_BITS, 3) : 0;
         b2 = get_bits_count(gb) - b2;
+        if (i1 < 0 || i2 < 0)
+            return -1;
         val = ctx->recode1[i1] | (ctx->recode2[i2] << 8);
         if(val == ctx->escapes[0]) {
             ctx->last[0] = hc->current;
@@ -289,7 +291,8 @@ static int decode_header_trees(SmackVContext *smk) {
         smk->mmap_tbl[0] = 0;
         smk->mmap_last[0] = smk->mmap_last[1] = smk->mmap_last[2] = 1;
     } else {
-        smacker_decode_header_tree(smk, &gb, &smk->mmap_tbl, smk->mmap_last, mmap_size);
+        if (smacker_decode_header_tree(smk, &gb, &smk->mmap_tbl, smk->mmap_last, mmap_size))
+            return -1;
     }
     if(!get_bits1(&gb)) {
         av_log(smk->avctx, AV_LOG_INFO, "Skipping MCLR tree\n");
@@ -297,7 +300,8 @@ static int decode_header_trees(SmackVContext *smk) {
         smk->mclr_tbl[0] = 0;
         smk->mclr_last[0] = smk->mclr_last[1] = smk->mclr_last[2] = 1;
     } else {
-        smacker_decode_header_tree(smk, &gb, &smk->mclr_tbl, smk->mclr_last, mclr_size);
+        if (smacker_decode_header_tree(smk, &gb, &smk->mclr_tbl, smk->mclr_last, mclr_size))
+            return -1;
     }
     if(!get_bits1(&gb)) {
         av_log(smk->avctx, AV_LOG_INFO, "Skipping FULL tree\n");
@@ -305,7 +309,8 @@ static int decode_header_trees(SmackVContext *smk) {
         smk->full_tbl[0] = 0;
         smk->full_last[0] = smk->full_last[1] = smk->full_last[2] = 1;
     } else {
-        smacker_decode_header_tree(smk, &gb, &smk->full_tbl, smk->full_last, full_size);
+        if (smacker_decode_header_tree(smk, &gb, &smk->full_tbl, smk->full_last, full_size))
+            return -1;
     }
     if(!get_bits1(&gb)) {
         av_log(smk->avctx, AV_LOG_INFO, "Skipping TYPE tree\n");
@@ -313,7 +318,8 @@ static int decode_header_trees(SmackVContext *smk) {
         smk->type_tbl[0] = 0;
         smk->type_last[0] = smk->type_last[1] = smk->type_last[2] = 1;
     } else {
-        smacker_decode_header_tree(smk, &gb, &smk->type_tbl, smk->type_last, type_size);
+        if (smacker_decode_header_tree(smk, &gb, &smk->type_tbl, smk->type_last, type_size))
+            return -1;
     }
 
     return 0;
@@ -345,8 +351,10 @@ static av_always_inline int smk_get_code(GetBitContext *gb, int *recode, int *la
     return v;
 }
 
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const uint8_t *buf, int buf_size)
+static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     SmackVContext * const smk = avctx->priv_data;
     uint8_t *out;
     uint32_t *pal;
@@ -457,8 +465,8 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, const
                 case 2:
                     for(i = 0; i < 2; i++) {
                         uint16_t pix1, pix2;
-                        pix1 = smk_get_code(&gb, smk->full_tbl, smk->full_last);
                         pix2 = smk_get_code(&gb, smk->full_tbl, smk->full_last);
+                        pix1 = smk_get_code(&gb, smk->full_tbl, smk->full_last);
                         AV_WL16(out,pix1);
                         AV_WL16(out+2,pix2);
                         out += stride;
@@ -512,12 +520,6 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     c->avctx = avctx;
 
-    c->pic.data[0] = NULL;
-
-    if (avcodec_check_dimensions(avctx, avctx->width, avctx->height) < 0) {
-        return 1;
-    }
-
     avctx->pix_fmt = PIX_FMT_PAL8;
 
 
@@ -527,8 +529,8 @@ static av_cold int decode_init(AVCodecContext *avctx)
         return -1;
     }
 
-    decode_header_trees(c);
-
+    if (decode_header_trees(c))
+        return -1;
 
     return 0;
 }
@@ -558,18 +560,23 @@ static av_cold int decode_end(AVCodecContext *avctx)
 
 static av_cold int smka_decode_init(AVCodecContext *avctx)
 {
+    avctx->channel_layout = (avctx->channels==2) ? CH_LAYOUT_STEREO : CH_LAYOUT_MONO;
+    avctx->sample_fmt = avctx->bits_per_coded_sample == 8 ? SAMPLE_FMT_U8 : SAMPLE_FMT_S16;
     return 0;
 }
 
 /**
  * Decode Smacker audio data
  */
-static int smka_decode_frame(AVCodecContext *avctx, void *data, int *data_size, const uint8_t *buf, int buf_size)
+static int smka_decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     GetBitContext gb;
     HuffContext h[4];
     VLC vlc[4];
     int16_t *samples = data;
+    int8_t *samples8 = data;
     int val;
     int i, res;
     int unp_size;
@@ -587,7 +594,7 @@ static int smka_decode_frame(AVCodecContext *avctx, void *data, int *data_size, 
     }
     stereo = get_bits1(&gb);
     bits = get_bits1(&gb);
-    if (unp_size & 0xC0000000 || (unp_size << !bits) > *data_size) {
+    if (unp_size & 0xC0000000 || unp_size > *data_size) {
         av_log(avctx, AV_LOG_ERROR, "Frame is too large to fit in buffer\n");
         return -1;
     }
@@ -618,9 +625,9 @@ static int smka_decode_frame(AVCodecContext *avctx, void *data, int *data_size, 
     if(bits) { //decode 16-bit data
         for(i = stereo; i >= 0; i--)
             pred[i] = bswap_16(get_bits(&gb, 16));
-        for(i = 0; i < stereo; i++)
+        for(i = 0; i <= stereo; i++)
             *samples++ = pred[i];
-        for(i = 0; i < unp_size / 2; i++) {
+        for(; i < unp_size / 2; i++) {
             if(i & stereo) {
                 if(vlc[2].table)
                     res = get_vlc2(&gb, vlc[2].table, SMKTREE_BITS, 3);
@@ -652,26 +659,25 @@ static int smka_decode_frame(AVCodecContext *avctx, void *data, int *data_size, 
     } else { //8-bit data
         for(i = stereo; i >= 0; i--)
             pred[i] = get_bits(&gb, 8);
-        for(i = 0; i < stereo; i++)
-            *samples++ = (pred[i] - 0x80) << 8;
-        for(i = 0; i < unp_size; i++) {
+        for(i = 0; i <= stereo; i++)
+            *samples8++ = pred[i];
+        for(; i < unp_size; i++) {
             if(i & stereo){
                 if(vlc[1].table)
                     res = get_vlc2(&gb, vlc[1].table, SMKTREE_BITS, 3);
                 else
                     res = 0;
                 pred[1] += (int8_t)h[1].values[res];
-                *samples++ = (pred[1] - 0x80) << 8;
+                *samples8++ = pred[1];
             } else {
                 if(vlc[0].table)
                     res = get_vlc2(&gb, vlc[0].table, SMKTREE_BITS, 3);
                 else
                     res = 0;
                 pred[0] += (int8_t)h[0].values[res];
-                *samples++ = (pred[0] - 0x80) << 8;
+                *samples8++ = pred[0];
             }
         }
-        unp_size *= 2;
     }
 
     for(i = 0; i < 4; i++) {
@@ -691,25 +697,26 @@ static int smka_decode_frame(AVCodecContext *avctx, void *data, int *data_size, 
 
 AVCodec smacker_decoder = {
     "smackvid",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_SMACKVIDEO,
     sizeof(SmackVContext),
     decode_init,
     NULL,
     decode_end,
     decode_frame,
-    .long_name = "Smacker video",
+    CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("Smacker video"),
 };
 
 AVCodec smackaud_decoder = {
     "smackaud",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_SMACKAUDIO,
     0,
     smka_decode_init,
     NULL,
     NULL,
     smka_decode_frame,
-    .long_name = "Smacker audio",
+    .long_name = NULL_IF_CONFIG_SMALL("Smacker audio"),
 };
 

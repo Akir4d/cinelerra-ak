@@ -18,6 +18,8 @@
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 #include "rle.h"
 
@@ -74,7 +76,7 @@ static int targa_encode_frame(AVCodecContext *avctx,
                               unsigned char *outbuf,
                               int buf_size, void *data){
     AVFrame *p = data;
-    int bpp, picsize, datasize;
+    int bpp, picsize, datasize = -1;
     uint8_t *out;
 
     if(avctx->width > 0xffff || avctx->height > 0xffff) {
@@ -102,7 +104,7 @@ static int targa_encode_frame(AVCodecContext *avctx,
         outbuf[2] = 3;           /* uncompressed grayscale image */
         outbuf[16] = 8;          /* bpp */
         break;
-    case PIX_FMT_RGB555:
+    case PIX_FMT_RGB555LE:
         outbuf[2] = 2;           /* uncompresses true-color image */
         outbuf[16] = 16;         /* bpp */
         break;
@@ -118,7 +120,8 @@ static int targa_encode_frame(AVCodecContext *avctx,
     out = outbuf + 18;  /* skip past the header we just output */
 
     /* try RLE compression */
-    datasize = targa_encode_rle(out, picsize, p, bpp, avctx->width, avctx->height);
+    if (avctx->coder_type != FF_CODER_TYPE_RAW)
+        datasize = targa_encode_rle(out, picsize, p, bpp, avctx->width, avctx->height);
 
     /* if that worked well, mark the picture as RLE compressed */
     if(datasize >= 0)
@@ -150,11 +153,11 @@ static av_cold int targa_encode_init(AVCodecContext *avctx)
 
 AVCodec targa_encoder = {
     .name = "targa",
-    .type = CODEC_TYPE_VIDEO,
+    .type = AVMEDIA_TYPE_VIDEO,
     .id = CODEC_ID_TARGA,
     .priv_data_size = sizeof(TargaContext),
     .init = targa_encode_init,
     .encode = targa_encode_frame,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_BGR24, PIX_FMT_RGB555, PIX_FMT_GRAY8, PIX_FMT_NONE},
-    .long_name= "Truevision Targa image",
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_BGR24, PIX_FMT_RGB555LE, PIX_FMT_GRAY8, PIX_FMT_NONE},
+    .long_name= NULL_IF_CONFIG_SMALL("Truevision Targa image"),
 };

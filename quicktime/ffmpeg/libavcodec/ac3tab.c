@@ -1,5 +1,5 @@
 /*
- * AC3 tables
+ * AC-3 tables
  * copyright (c) 2001 Fabrice Bellard
  *
  * This file is part of FFmpeg.
@@ -20,10 +20,11 @@
  */
 
 /**
- * @file ac3tab.c
- * tables taken directly from AC3 spec.
+ * @file
+ * tables taken directly from the AC-3 spec.
  */
 
+#include "avcodec.h"
 #include "ac3tab.h"
 
 /**
@@ -79,6 +80,48 @@ const uint8_t ff_ac3_channels_tab[8] = {
     2, 1, 2, 3, 3, 4, 4, 5
 };
 
+/**
+ * Maps audio coding mode (acmod) to channel layout mask.
+ */
+const uint16_t ff_ac3_channel_layout_tab[8] = {
+    CH_LAYOUT_STEREO,
+    CH_LAYOUT_MONO,
+    CH_LAYOUT_STEREO,
+    CH_LAYOUT_SURROUND,
+    CH_LAYOUT_2_1,
+    CH_LAYOUT_4POINT0,
+    CH_LAYOUT_2_2,
+    CH_LAYOUT_5POINT0
+};
+
+#define COMMON_CHANNEL_MAP \
+    { { 0, 1,          }, { 0, 1, 2,         } },\
+    { { 0,             }, { 0, 1,            } },\
+    { { 0, 1,          }, { 0, 1, 2,         } },\
+    { { 0, 2, 1,       }, { 0, 2, 1, 3,      } },\
+    { { 0, 1, 2,       }, { 0, 1, 3, 2,      } },\
+    { { 0, 2, 1, 3,    }, { 0, 2, 1, 4, 3,   } },
+
+/**
+ * Table to remap channels from SMPTE order to AC-3 order.
+ * [channel_mode][lfe][ch]
+ */
+const uint8_t ff_ac3_enc_channel_map[8][2][6] = {
+    COMMON_CHANNEL_MAP
+    { { 0, 1, 2, 3,    }, { 0, 1, 3, 4, 2,   } },
+    { { 0, 2, 1, 3, 4, }, { 0, 2, 1, 4, 5, 3 } },
+};
+
+/**
+ * Table to remap channels from from AC-3 order to SMPTE order.
+ * [channel_mode][lfe][ch]
+ */
+const uint8_t ff_ac3_dec_channel_map[8][2][6] = {
+    COMMON_CHANNEL_MAP
+    { { 0, 1, 2, 3,    }, { 0, 1, 4, 2, 3,   } },
+    { { 0, 2, 1, 3, 4, }, { 0, 2, 1, 5, 3, 4 } },
+};
+
 /* possible frequencies */
 const uint16_t ff_ac3_sample_rate_tab[3] = { 48000, 44100, 32000 };
 
@@ -88,7 +131,7 @@ const uint16_t ff_ac3_bitrate_tab[19] = {
     160, 192, 224, 256, 320, 384, 448, 512, 576, 640
 };
 
-/* AC3 MDCT window */
+/* AC-3 MDCT window */
 
 /* MDCT window */
 const int16_t ff_ac3_window[256] = {

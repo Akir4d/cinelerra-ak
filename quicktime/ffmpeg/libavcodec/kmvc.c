@@ -20,7 +20,7 @@
  */
 
 /**
- * @file kmvc.c
+ * @file
  * Karl Morton's Video Codec decoder
  */
 
@@ -33,6 +33,7 @@
 #define KMVC_KEYFRAME 0x80
 #define KMVC_PALETTE  0x40
 #define KMVC_METHOD   0x0F
+#define MAX_PALSIZE   256
 
 /*
  * Decoder context
@@ -43,7 +44,7 @@ typedef struct KmvcContext {
 
     int setpal;
     int palsize;
-    uint32_t pal[256];
+    uint32_t pal[MAX_PALSIZE];
     uint8_t *cur, *prev;
     uint8_t *frm0, *frm1;
 } KmvcContext;
@@ -224,9 +225,10 @@ static void kmvc_decode_inter_8x8(KmvcContext * ctx, const uint8_t * src, int w,
         }
 }
 
-static int decode_frame(AVCodecContext * avctx, void *data, int *data_size, const uint8_t * buf,
-                        int buf_size)
+static int decode_frame(AVCodecContext * avctx, void *data, int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     KmvcContext *const ctx = avctx->priv_data;
     uint8_t *out, *src;
     int i;
@@ -345,8 +347,6 @@ static av_cold int decode_init(AVCodecContext * avctx)
 
     c->avctx = avctx;
 
-    c->pic.data[0] = NULL;
-
     if (avctx->width > 320 || avctx->height > 200) {
         av_log(avctx, AV_LOG_ERROR, "KMVC supports frames <= 320x200\n");
         return -1;
@@ -366,6 +366,10 @@ static av_cold int decode_init(AVCodecContext * avctx)
         c->palsize = 127;
     } else {
         c->palsize = AV_RL16(avctx->extradata + 10);
+        if (c->palsize >= MAX_PALSIZE) {
+            av_log(avctx, AV_LOG_ERROR, "KMVC palette too large\n");
+            return AVERROR_INVALIDDATA;
+        }
     }
 
     if (avctx->extradata_size == 1036) {        // palette in extradata
@@ -404,12 +408,13 @@ static av_cold int decode_end(AVCodecContext * avctx)
 
 AVCodec kmvc_decoder = {
     "kmvc",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_KMVC,
     sizeof(KmvcContext),
     decode_init,
     NULL,
     decode_end,
     decode_frame,
-    .long_name = "Karl Morton's video codec",
+    CODEC_CAP_DR1,
+    .long_name = NULL_IF_CONFIG_SMALL("Karl Morton's video codec"),
 };

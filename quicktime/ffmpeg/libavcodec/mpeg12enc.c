@@ -1,6 +1,6 @@
 /*
  * MPEG1/2 encoder
- * Copyright (c) 2000,2001 Fabrice Bellard.
+ * Copyright (c) 2000,2001 Fabrice Bellard
  * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * This file is part of FFmpeg.
@@ -21,7 +21,7 @@
  */
 
 /**
- * @file mpeg12enc.c
+ * @file
  * MPEG1/2 encoder
  */
 
@@ -184,7 +184,7 @@ static void put_header(MpegEncContext *s, int header)
 {
     align_put_bits(&s->pb);
     put_bits(&s->pb, 16, header>>16);
-    put_bits(&s->pb, 16, header&0xFFFF);
+    put_sbits(&s->pb, 16, header);
 }
 
 /* put sequence header if needed */
@@ -206,8 +206,8 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
             /* mpeg1 header repeated every gop */
             put_header(s, SEQ_START_CODE);
 
-            put_bits(&s->pb, 12, s->width);
-            put_bits(&s->pb, 12, s->height);
+            put_sbits(&s->pb, 12, s->width );
+            put_sbits(&s->pb, 12, s->height);
 
             for(i=1; i<15; i++){
                 float error= aspect_ratio;
@@ -242,9 +242,9 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
                 vbv_buffer_size = (( 20 * s->bit_rate) / (1151929 / 2)) * 8 * 1024;
             vbv_buffer_size= (vbv_buffer_size + 16383) / 16384;
 
-            put_bits(&s->pb, 18, v & 0x3FFFF);
+            put_sbits(&s->pb, 18, v);
             put_bits(&s->pb, 1, 1); /* marker */
-            put_bits(&s->pb, 10, vbv_buffer_size & 0x3FF);
+            put_sbits(&s->pb, 10, vbv_buffer_size);
 
             constraint_parameter_flag=
                 s->width <= 768 && s->height <= 576 &&
@@ -272,8 +272,8 @@ static void mpeg1_encode_sequence_header(MpegEncContext *s)
 
                 put_bits(&s->pb, 1, s->progressive_sequence);
                 put_bits(&s->pb, 2, s->chroma_format);
-                put_bits(&s->pb, 2, 0); //horizontal size ext
-                put_bits(&s->pb, 2, 0); //vertical size ext
+                put_bits(&s->pb, 2, s->width >>12);
+                put_bits(&s->pb, 2, s->height>>12);
                 put_bits(&s->pb, 12, v>>18); //bitrate ext
                 put_bits(&s->pb, 1, 1); //marker
                 put_bits(&s->pb, 8, vbv_buffer_size >>10); //vbv buffer ext
@@ -327,7 +327,12 @@ static av_always_inline void put_qscale(MpegEncContext *s)
 }
 
 void ff_mpeg1_encode_slice_header(MpegEncContext *s){
-    put_header(s, SLICE_MIN_START_CODE + s->mb_y);
+    if (s->height > 2800) {
+        put_header(s, SLICE_MIN_START_CODE + (s->mb_y & 127));
+        put_bits(&s->pb, 3, s->mb_y >> 7);  /* slice_vertical_position_extension */
+    } else {
+        put_header(s, SLICE_MIN_START_CODE + s->mb_y);
+    }
     put_qscale(s);
     put_bits(&s->pb, 1, 0); /* slice extra information */
 }
@@ -557,7 +562,7 @@ static av_always_inline void mpeg1_encode_mb_internal(MpegEncContext *s,
                     put_bits(&s->pb, ff_mpeg12_mbPatTable[cbp][1], ff_mpeg12_mbPatTable[cbp][0]);
                 } else {
                     put_bits(&s->pb, ff_mpeg12_mbPatTable[cbp>>2][1], ff_mpeg12_mbPatTable[cbp>>2][0]);
-                    put_bits(&s->pb, 2, cbp & 3);
+                    put_sbits(&s->pb, 2, cbp);
                 }
             }
             s->f_count++;
@@ -640,7 +645,7 @@ static av_always_inline void mpeg1_encode_mb_internal(MpegEncContext *s,
                     put_bits(&s->pb, ff_mpeg12_mbPatTable[cbp][1], ff_mpeg12_mbPatTable[cbp][0]);
                 } else {
                     put_bits(&s->pb, ff_mpeg12_mbPatTable[cbp>>2][1], ff_mpeg12_mbPatTable[cbp>>2][0]);
-                    put_bits(&s->pb, 2, cbp & 3);
+                    put_sbits(&s->pb, 2, cbp);
                 }
             }
         }
@@ -666,19 +671,17 @@ void mpeg1_encode_mb(MpegEncContext *s, DCTELEM block[6][64], int motion_x, int 
 // RAL: Parameter added: f_or_b_code
 static void mpeg1_encode_motion(MpegEncContext *s, int val, int f_or_b_code)
 {
-    int code, bit_size, l, bits, range, sign;
-
     if (val == 0) {
         /* zero vector */
-        code = 0;
         put_bits(&s->pb,
                  ff_mpeg12_mbMotionVectorTable[0][1],
                  ff_mpeg12_mbMotionVectorTable[0][0]);
     } else {
-        bit_size = f_or_b_code - 1;
-        range = 1 << bit_size;
+        int code, sign, bits;
+        int bit_size = f_or_b_code - 1;
+        int range = 1 << bit_size;
         /* modulo encoding */
-        l= INT_BIT - 5 - bit_size;
+        int l= INT_BIT - 5 - bit_size;
         val= (val<<l)>>l;
 
         if (val >= 0) {
@@ -908,16 +911,16 @@ static void mpeg1_encode_block(MpegEncContext *s,
                 put_bits(&s->pb, 6, run);
                 if(s->codec_id == CODEC_ID_MPEG1VIDEO){
                     if (alevel < 128) {
-                        put_bits(&s->pb, 8, level & 0xff);
+                        put_sbits(&s->pb, 8, level);
                     } else {
                         if (level < 0) {
                             put_bits(&s->pb, 16, 0x8001 + level + 255);
                         } else {
-                            put_bits(&s->pb, 16, level & 0xffff);
+                            put_sbits(&s->pb, 16, level);
                         }
                     }
                 }else{
-                    put_bits(&s->pb, 12, level & 0xfff);
+                    put_sbits(&s->pb, 12, level);
                 }
             }
             last_non_zero = i;
@@ -929,28 +932,28 @@ static void mpeg1_encode_block(MpegEncContext *s,
 
 AVCodec mpeg1video_encoder = {
     "mpeg1video",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_MPEG1VIDEO,
     sizeof(MpegEncContext),
     encode_init,
     MPV_encode_picture,
     MPV_encode_end,
     .supported_framerates= ff_frame_rate_tab+1,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
     .capabilities= CODEC_CAP_DELAY,
-    .long_name= "MPEG-1 video",
+    .long_name= NULL_IF_CONFIG_SMALL("MPEG-1 video"),
 };
 
 AVCodec mpeg2video_encoder = {
     "mpeg2video",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_MPEG2VIDEO,
     sizeof(MpegEncContext),
     encode_init,
     MPV_encode_picture,
     MPV_encode_end,
     .supported_framerates= ff_frame_rate_tab+1,
-    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_YUV422P, PIX_FMT_NONE},
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_YUV422P, PIX_FMT_NONE},
     .capabilities= CODEC_CAP_DELAY,
-    .long_name= "MPEG-2 video",
+    .long_name= NULL_IF_CONFIG_SMALL("MPEG-2 video"),
 };

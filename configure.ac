@@ -542,16 +542,8 @@ if test "x$with_external_ffmpeg" = "xyes"; then
 	echo Using external ffmpeg - no configuration needed
 else
 	ff_conf_args="--disable-ffmpeg --disable-ffserver --disable-ffplay \
-		--disable-static --enable-shared --build-suffix=-cinelerra"
-
-	if test "x$enable_mmx" = "xno"; then
-		ff_conf_args="$ff_conf_args --disable-mmx"
-	fi
-
-	# Where altivec is not present
-	if test "x$enable_altivec" = "xno"; then
-		ff_conf_args="$ff_conf_args --disable-altivec"
-	fi
+		--disable-static --enable-shared --disable-mmx --disable-altivec \
+		--build-suffix=-cinelerra"
 
 
 	srcdir_c=$(readlink -f $srcdir) &&

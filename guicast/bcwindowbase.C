@@ -941,7 +941,7 @@ int BC_WindowBase::dispatch_event()
 			if(test_keypress) printf("BC_WindowBase::dispatch_event %lx\n", (long int)keysym);
 #ifdef X_HAVE_UTF8_STRING
 			//It's Ascii or UTF8?
-			if ( (keys_return[0] & 0xff) >= 0x7f ) {
+			if ( ((keys_return[1] & 0xff) > 0x80) && ((keys_return[0] & 0xff) > 0xC0) ) {
 				key_pressed_utf8 = keys_return;
 				key_pressed = keysym & 0xff;
 			}

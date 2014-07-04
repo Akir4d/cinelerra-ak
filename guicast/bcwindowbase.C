@@ -935,13 +935,11 @@ int BC_WindowBase::dispatch_event()
 // event->xkey.state);
 // block out control keys
 			if(keysym > 0xffe0 && keysym < 0xffff) break;
-// block out Alt_GR key			
-			if(keysym == 0xfe03) break;
-			
+
 			if(test_keypress) printf("BC_WindowBase::dispatch_event %lx\n", (long int)keysym);
 #ifdef X_HAVE_UTF8_STRING
 			//It's Ascii or UTF8?
-			if ( ((keys_return[1] & 0xff) > 0x80) && ((keys_return[0] & 0xff) > 0xC0) ) {
+			if ( (keys_return[0] & 0xff) >= 0x7f ) {
 				key_pressed_utf8 = keys_return;
 				key_pressed = keysym & 0xff;
 			}
@@ -2350,7 +2348,7 @@ int BC_WindowBase::get_single_text_width(int font, const char *text, int length)
 		{
 			XftTextExtentsUtf8(top_level->display,
 				get_xft_struct(font),
-				(const FcChar8*)text,
+				(const XftChar8 *)text,
 				length,
 				&extents);
 		}
@@ -2359,7 +2357,7 @@ int BC_WindowBase::get_single_text_width(int font, const char *text, int length)
 		{
 			XftTextExtents8(top_level->display,
 				get_xft_struct(font),
-				(const FcChar8*)text,
+				(const XftChar8 *)text,
 				length,
 				&extents);
 		}
@@ -2427,17 +2425,17 @@ int BC_WindowBase::get_text_ascent(int font)
 		if(get_resources()->locale_utf8)
 		{
 			XftTextExtentsUtf8(top_level->display,
-				get_xft_struct(font),
-				(const FcChar8*)"O",
-				1,
-				&extents);
+			get_xft_struct(font),
+			(const XftChar8 *)"O",
+			1,
+			&extents);
 		}
 		else
 #endif
 		{
 			XftTextExtents8(top_level->display,
 				get_xft_struct(font),
-				(const FcChar8*)"O",
+				(const XftChar8 *)"O",
 				1,
 				&extents);
 		}
@@ -2474,14 +2472,23 @@ int BC_WindowBase::get_text_descent(int font)
 	{
 		XGlyphInfo extents;
 #ifdef X_HAVE_UTF8_STRING
-		XftTextExtentsUtf8(top_level->display,
-#else
-		XftTextExtents8(top_level->display,
+		if(get_resources()->locale_utf8)
+		{
+			XftTextExtentsUtf8(top_level->display,
+				get_xft_struct(font),
+				(const XftChar8 *)"j",
+				1,
+				&extents);
+		}
+		else
 #endif
-			get_xft_struct(font),
-			(const XftChar8 *)"j",
-			1,
-			&extents);
+		{
+			XftTextExtents8(top_level->display,
+				get_xft_struct(font),
+				(const XftChar8 *)"j",
+				1,
+				&extents);
+		}
 		return extents.height - extents.y;
 	}
 	else

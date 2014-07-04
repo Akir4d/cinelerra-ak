@@ -111,6 +111,7 @@ int BC_Resources::x_error_handler(Display *display, XErrorEvent *event)
 
 	BC_Resources::error = 1;
 
+	return 0;
 }
 
 
@@ -532,6 +533,7 @@ BC_Resources::BC_Resources()
 
 // Xft has priority over font set
 #ifdef HAVE_XFT
+// But Xft dies in 32 bit mode after some amount of drawing.
 	use_xft = 1;
 #else
 	use_xft = 0;

@@ -22,7 +22,6 @@
 #include "arraylist.h"
 #include "batchrender.h"
 #include "bcsignals.h"
-#include "bcresources.h"
 #include "edl.h"
 #include "filexml.h"
 #include "filesystem.h"

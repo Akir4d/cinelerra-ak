@@ -263,7 +263,6 @@ void BC_WindowBase::draw_text(int x,
 		}
 	}
 }
-
 void BC_WindowBase::draw_utf8_text(int x,
 	int y,
 	const char *text,
@@ -280,14 +279,14 @@ void BC_WindowBase::draw_utf8_text(int x,
 
 	for(int k = (boldface ? 1 : 0); k >= 0; k--)
 	{
-		for(int i = 0, j = 0, x2 = x, y2 = y; 
-			i <= length; 
+		for(int i = 0, j = 0, x2 = x, y2 = y;
+			i <= length;
 			i++)
 		{
 			if(text[i] == '\n' || text[i] == 0)
 			{
 #ifdef HAVE_XFT
-				if(get_resources()->use_xft && 
+				if(get_resources()->use_xft &&
 					top_level->get_xft_struct(top_level->current_font))
 				{
 #ifdef X_HAVE_UTF8_STRING
@@ -340,7 +339,6 @@ void BC_WindowBase::draw_utf8_text(int x,
 	}
 }
 
-
 void BC_WindowBase::draw_xft_text(int x, 
 	int y, 
 	const char *text, 
@@ -387,9 +385,9 @@ void BC_WindowBase::draw_xft_text(int x,
 		XftDrawStringUtf8((XftDraw*)(pixmap ? pixmap->opaque_xft_draw : this->pixmap->opaque_xft_draw),
 			&xft_color,
 			top_level->get_xft_struct(top_level->current_font),
-			x2 + k, 
+			x2 + k,
 			y2 + k,
-			(const FcChar8*)&text[j],
+			(const FcChar8 *)&text[j],
 			i - j);
 	}
 	else
@@ -398,17 +396,14 @@ void BC_WindowBase::draw_xft_text(int x,
 		XftDrawString8((XftDraw*)(pixmap ? pixmap->opaque_xft_draw : this->pixmap->opaque_xft_draw),
 			&xft_color,
 			top_level->get_xft_struct(top_level->current_font),
-			x2 + k, 
+			x2 + k,
 			y2 + k,
-			(const FcChar8*)&text[j],
+			(const FcChar8 *)&text[j],
 			i - j);
 	}
-	XftColorFree(top_level->display,
-		top_level->vis,
-		top_level->cmap,
-		&xft_color);
 #endif
 }
+
 
 void BC_WindowBase::draw_center_text(int x, int y, char *text, int length)
 {

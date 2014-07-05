@@ -54,10 +54,10 @@ CFLAGS   += $(ECFLAGS)
 
 %.c %.h: TAG = GEN
 
-install: install-libs install-headers
+install: install-libs
 install-libs: install-libs-yes
 
-uninstall: uninstall-libs uninstall-headers
+uninstall: uninstall-libs
 
 .PHONY: all depend dep *clean install* uninstall* examples testprogs
 

@@ -99,7 +99,6 @@ SUBDIRS= \
 	shiftinterlace \
 	slide \
 	spectrogram \
-	svg \
 	swapchannels \
 	synthesizer \
 	threshold \
@@ -117,6 +116,7 @@ SUBDIRS= \
 	zoomblur \
 	$(MAYBE_FINDOBJECT) \
 	fonts
+#	svg 
 
 AUTOMAKE_OPTIONS=foreign
 

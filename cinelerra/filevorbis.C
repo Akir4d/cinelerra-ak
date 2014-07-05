@@ -324,7 +324,7 @@ int FileVorbis::read_samples(double *buffer, int64_t len)
 
 	if(len > 0x100000)
 	{
-		eprintf("FileVorbis::read_samples max samples=%d\n", HISTORY_MAX);
+		eprintf("FileVorbis::read_samples max samples=%d\n", VORBIS_HISTORY_MAX);
 		return 1;
 	}
 
@@ -332,7 +332,7 @@ int FileVorbis::read_samples(double *buffer, int64_t len)
 	{
 		pcm_history = new double*[asset->channels];
 		for(int i = 0; i < asset->channels; i++)
-			pcm_history[i] = new double[HISTORY_MAX];
+			pcm_history[i] = new double[VORBIS_HISTORY_MAX];
 		history_start = 0;
 		history_size = 0;
 	}
@@ -350,13 +350,13 @@ int FileVorbis::read_samples(double *buffer, int64_t len)
 // Shift history forward to make room for new samples
 	if(file->current_sample + len > history_start + history_size)
 	{
-		if(file->current_sample + len > history_start + HISTORY_MAX)
+		if(file->current_sample + len > history_start + VORBIS_HISTORY_MAX)
 		{
-			int diff = file->current_sample + len - (history_start + HISTORY_MAX);
+			int diff = file->current_sample + len - (history_start + VORBIS_HISTORY_MAX);
 			for(int i = 0; i < asset->channels; i++)
 			{
 				double *temp = pcm_history[i];
-				for(int j = 0; j < HISTORY_MAX - diff; j++)
+				for(int j = 0; j < VORBIS_HISTORY_MAX - diff; j++)
 				{
 					temp[j] = temp[j + diff];
 				}
@@ -441,7 +441,7 @@ int FileVorbis::read_samples_float(float *buffer, int64_t len)
 
 	if(len > 0x100000)
 	{
-		eprintf("FileVorbis::read_samples max samples=%d\n", HISTORY_MAX);
+		eprintf("FileVorbis::read_samples max samples=%d\n", VORBIS_HISTORY_MAX);
 		return 1;
 	}
 
@@ -449,7 +449,7 @@ int FileVorbis::read_samples_float(float *buffer, int64_t len)
 	{
 		pcm_history_float = new float*[asset->channels];
 		for(int i = 0; i < asset->channels; i++)
-			pcm_history_float[i] = new float[HISTORY_MAX];
+			pcm_history_float[i] = new float[VORBIS_HISTORY_MAX];
 		history_start = 0;
 		history_size = 0;
 	}
@@ -467,17 +467,17 @@ int FileVorbis::read_samples_float(float *buffer, int64_t len)
 // Shift history forward to make room for new samples
 	if(file->current_sample + len > history_start + history_size)
 	{
-		if(file->current_sample + len > history_start + HISTORY_MAX)
+		if(file->current_sample + len > history_start + VORBIS_HISTORY_MAX)
 		{
-			int diff = file->current_sample + len - (history_start + HISTORY_MAX);
+			int diff = file->current_sample + len - (history_start + VORBIS_HISTORY_MAX);
 			for(int i = 0; i < asset->channels; i++)
 			{
 				float *temp = pcm_history_float[i];
-//				for(int j = 0; j < HISTORY_MAX - diff; j++)
+//				for(int j = 0; j < VORBIS_HISTORY_MAX - diff; j++)
 //				{
 //					temp[j] = temp[j + diff];
 //				}
-				bcopy(temp, temp + diff, (HISTORY_MAX - diff) * sizeof(float));
+				bcopy(temp, temp + diff, (VORBIS_HISTORY_MAX - diff) * sizeof(float));
 			}
 			history_start += diff;
 			history_size -= diff;

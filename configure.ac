@@ -548,18 +548,21 @@ if test "x$with_external_ffmpeg" = "xyes"; then
      AC_MSG_RESULT($enable_ffmpeg_swscale)
      if test x"$enable_ffmpeg_swscale" = xyes; then
 	     dnl AC_DEFINE(HAVE_SWSCALER)
-	     PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc libswscale])
+	     PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc libswscale libavformat])
 	     FFMPEG_CFLAGS="$FFMPEG_CFLAGS -I/usr/include/libavcodec -I/usr/include/libswscale -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
      else
-	     PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc])
+	   PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc libavformat])
      fi
      FFMPEG_EXTERNALTEXT="External ffmpeg"
 else
      FFMPEG_FOLDER=ffmpeg
+
      FFMPEG_CFLAGS="-I\$(top_srcdir)/quicktime/ffmpeg -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
+
      FFMPEG_LIBS="-L\$(top_builddir)/quicktime/ffmpeg/libavcodec -lavcodec-cinelerra \
+		-L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerra \
 		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerra"
+		-L\$(top_builddir)/quicktime/ffmpeg/libavformat -lavformat-cinelerra"
      FFMPEG_EXTERNALTEXT="Internal ffmpeg"
 fi
 

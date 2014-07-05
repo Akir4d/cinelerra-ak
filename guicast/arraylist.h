@@ -66,7 +66,11 @@ public:
 // Call this if the TYPE is a pointer to an array which must be
 // deleted by delete [].
 	void set_array_delete();
+	int size();
 	void set_free();
+
+	TYPE get(int number);
+	TYPE set(int number, TYPE value);
 
 	void sort();
 
@@ -354,6 +358,38 @@ int ArrayList<TYPE>::number_of(TYPE object)
 	}
 	return 0;
 }
+
+template<class TYPE>
+int ArrayList<TYPE>::size()
+{
+	return total;
+}
+
+template<class TYPE>
+TYPE ArrayList<TYPE>::get(int number)
+{
+	if(number < total) return values[number];
+	printf("ArrayList<TYPE>::get number=%d total=%d\n",
+		number,
+		total);
+	return 0;
+}
+
+template<class TYPE>
+TYPE ArrayList<TYPE>::set(int number, TYPE value)
+{
+	if(number < total)
+	{
+		values[number] = value;
+		return values[number];
+	}
+
+	printf("ArrayList<TYPE>::set number=%d total=%d\n",
+		number,
+		total);
+	return 0;
+}
+
 
 
 #endif

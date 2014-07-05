@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "fileyuv.h"
 #include "asset.h"
 #include "bchash.h"

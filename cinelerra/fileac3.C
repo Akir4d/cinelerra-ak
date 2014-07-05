@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "clip.h"
 #include "fileac3.h"
@@ -216,7 +217,7 @@ int FileAC3::write_samples(double **buffer, int64_t len)
 			codec_context, 
 			temp_compressed + output_size, 
 			compressed_allocated - output_size, 
-            temp_raw + current_sample * asset->channels);
+		temp_raw + current_sample * asset->channels);
 		output_size += compressed_size;
 	}
 

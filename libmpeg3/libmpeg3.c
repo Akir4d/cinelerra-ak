@@ -171,19 +171,18 @@ int mpeg3_check_sig(char *path)
 
 		if(ext)
 		{
-/* Test file extension. */
-			if(strncasecmp(ext, ".ifo", 4) && 
-            	strncasecmp(ext, ".mp2", 4) && 
-				strncasecmp(ext, ".mp3", 4) &&
-				strncasecmp(ext, ".m1v", 4) &&
-				strncasecmp(ext, ".m2v", 4) &&
-				strncasecmp(ext, ".m2s", 4) &&
-				strncasecmp(ext, ".mpg", 4) &&
-				strncasecmp(ext, ".vob", 4) &&
-				strncasecmp(ext, ".mpeg", 4) &&
-				strncasecmp(ext, ".m2t", 4) &&
-				strncasecmp(ext, ".ac3", 4))
-				result = 0;
+		/* Test file extension. */
+		if(strncasecmp(ext, ".ifo", 4) && 
+		   strncasecmp(ext, ".mp2", 4) && 
+		   strncasecmp(ext, ".mp3", 4) &&
+		   strncasecmp(ext, ".m1v", 4) &&
+		   strncasecmp(ext, ".m2v", 4) &&
+		   strncasecmp(ext, ".m2s", 4) &&
+		   strncasecmp(ext, ".mpg", 4) &&
+		   strncasecmp(ext, ".vob", 4) &&
+		   strncasecmp(ext, ".mpeg", 4) &&
+		   strncasecmp(ext, ".ac3", 4))
+		  result = 0;
 		}
 	}
 

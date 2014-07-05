@@ -61,7 +61,7 @@ public:
 	FILE *fd;
 	double **pcm_history;
 	float **pcm_history_float;
-#define HISTORY_MAX 0x100000
+#define VORBIS_HISTORY_MAX 0x100000
 	int history_size;
 	int history_start;
 

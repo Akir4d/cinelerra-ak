@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "bcsignals.h"
 #include "byteorder.h"
@@ -47,6 +48,7 @@
 #include "filetiff.h"
 #include "filevorbis.h"
 #include "fileyuv.h"
+#include "fileffmpeg.h"
 #include "formatwindow.h"
 #include "formattools.h"
 #include "framecache.h"
@@ -446,13 +448,13 @@ int File::open_file(Preferences *preferences,
 				file = new FileOGG(this->asset, this);
 			}
 			else
-			if(FileMPEG::check_sig(this->asset))
-			{
+			//if(FileMPEG::check_sig(this->asset))
+			//{
 // MPEG file
-				fclose(stream);
-				file = new FileMPEG(this->asset, this);
-			}
-			else
+			//			fclose(stream);
+			//	file = new FileMPEG(this->asset, this);
+			//}
+			//else
 			if(test[0] == '<' && test[1] == 'E' && test[2] == 'D' && test[3] == 'L' && test[4] == '>' ||
 				test[0] == '<' && test[1] == 'H' && test[2] == 'T' && test[3] == 'A' && test[4] == 'L' && test[5] == '>' ||
 				test[0] == '<' && test[1] == '?' && test[2] == 'x' && test[3] == 'm' && test[4] == 'l')
@@ -462,12 +464,18 @@ int File::open_file(Preferences *preferences,
 				return FILE_IS_XML;
 			}    // can't load project file
 			else
-			if(FileMOV::check_sig(this->asset))
-			{
+			//if(FileMOV::check_sig(this->asset))
+			//{
 // MOV file
 // should be last because quicktime lacks a magic number
+			//	fclose(stream);
+			//	file = new FileMOV(this->asset, this);
+			//}
+			//else
+			if(FileFFMPEG::check_sig(this->asset))
+			{
 				fclose(stream);
-				file = new FileMOV(this->asset, this);
+				file = new FileFFMPEG(this->asset, this);
 			}
 			else
 			{
@@ -480,6 +488,10 @@ int File::open_file(Preferences *preferences,
 // format already determined
 		case FILE_AC3:
 			file = new FileAC3(this->asset, this);
+			break;
+
+		case FILE_FFMPEG:
+			file = new FileFFMPEG(this->asset, this);
 			break;
 
 		case FILE_PCM:
@@ -1228,6 +1240,8 @@ int File::strtoformat(ArrayList<PluginServer*> *plugindb, char *format)
 	if(!strcasecmp(format, _(VORBIS_NAME))) return FILE_VORBIS;
 	else
 	if(!strcasecmp(format, _(RAWDV_NAME))) return FILE_RAWDV;
+	else
+	if(!strcasecmp(format, _(FFMPEG_NAME))) return FILE_FFMPEG;
 	return 0;
 }
 
@@ -1329,6 +1343,9 @@ const char* File::formattostr(ArrayList<PluginServer*> *plugindb, int format)
 			break;
 		case FILE_RAWDV:
 			return _(RAWDV_NAME);
+			break;
+		case FILE_FFMPEG:
+			return _(FFMPEG_NAME);
 			break;
 		default:
 			return _("Unknown");
@@ -1444,7 +1461,7 @@ int File::get_best_colormodel(Asset *asset, int driver)
 			return FileMOV::get_best_colormodel(asset, driver);
 			break;
 		
-        case FILE_AVI:
+	case FILE_AVI:
 			return FileMOV::get_best_colormodel(asset, driver);
 			break;
 
@@ -1536,7 +1553,7 @@ int File::supports_video(int format)
 		case FILE_CR2:
 		case FILE_EXR:
 		case FILE_EXR_LIST:
-	        case FILE_YUV:
+		case FILE_YUV:
 		case FILE_PNG:
 		case FILE_PNG_LIST:
 		case FILE_TGA:
@@ -1591,29 +1608,29 @@ const char* File::get_tag(int format)
 {
 	switch(format)
 	{
-		case FILE_AC3:          return "ac3";
+		case FILE_AC3:		return "ac3";
 		case FILE_AIFF:         return "aif";
 		case FILE_AMPEG:        return "mp3";
-		case FILE_AU:           return "au";
-		case FILE_AVI:          return "avi";
+		case FILE_AU:		return "au";
+		case FILE_AVI:		return "avi";
 		case FILE_RAWDV:        return "dv";
-		case FILE_EXR:          return "exr";
+		case FILE_EXR:		return "exr";
 		case FILE_EXR_LIST:     return "exr";
 		case FILE_JPEG:         return "jpg";
 		case FILE_JPEG_LIST:    return "jpg";
-		case FILE_MOV:          return "mov";
-		case FILE_OGG:          return "ogg";
-		case FILE_PCM:          return "pcm";
-		case FILE_PNG:          return "png";
+		case FILE_MOV:		return "mov";
+		case FILE_OGG:		return "ogg";
+		case FILE_PCM:		return "pcm";
+		case FILE_PNG:		return "png";
 		case FILE_PNG_LIST:     return "png";
-		case FILE_TGA:          return "tga";
+		case FILE_TGA:		return "tga";
 		case FILE_TGA_LIST:     return "tga";
 		case FILE_TIFF:         return "tif";
 		case FILE_TIFF_LIST:    return "tif";
 		case FILE_VMPEG:        return "m2v";
 		case FILE_VORBIS:       return "ogg";
-		case FILE_WAV:          return "wav";
-		case FILE_YUV:          return "m2v";
+		case FILE_WAV:		return "wav";
+		case FILE_YUV:		return "m2v";
 	}
 	return 0;
 }

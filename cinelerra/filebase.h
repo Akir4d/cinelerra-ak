@@ -35,6 +35,9 @@
 
 #include <sys/types.h>
 
+// Number of samples saved before the current read position
+#define HISTORY_MAX 0x10000
+
 // inherited by every file interpreter
 class FileBase
 {
@@ -105,6 +108,19 @@ public:
 	virtual int can_copy_from(Edit *edit, int64_t position) { return 0; }; 
 	virtual int get_render_strategy(ArrayList<int>* render_strategies) { return VRENDER_VPIXEL; };
 
+// Manages an audio history buffer
+	void update_pcm_history(int64_t len);
+// contiguous float
+	void append_history(float **new_data, int len);
+// Interleaved short
+	void append_history(short *new_data, int len);
+	void pad_history(int len);
+	void read_history(double *dst,
+		int64_t start_sample, 
+		int channel,
+		int64_t len);
+	void allocate_history(int len);
+
 protected:
 // Return 1 if the render_strategy is present on the list.
 	static int search_render_strategies(ArrayList<int>* render_strategies, int render_strategy);
@@ -152,8 +168,8 @@ protected:
 	int64_t ima4_samples_to_bytes(int64_t samples, int channels);
 	int64_t ima4_bytes_to_samples(int64_t bytes, int channels);
 
-	char *audio_buffer_in, *audio_buffer_out;    // for raw audio reads and writes
-	float *float_buffer;          // for floating point feathering
+	char *audio_buffer_in, *audio_buffer_out;	// for raw audio reads and writes
+	float *float_buffer;	// for floating point feathering
 	unsigned char *video_buffer_in, *video_buffer_out;
 	unsigned char **row_pointers_in, **row_pointers_out;
 	int64_t prev_buffer_position;  // for audio determines if reading raw data is necessary
@@ -168,11 +184,25 @@ protected:
 	int internal_byte_order;
 	File *file;
 
-private:
 
 
 
 // ================================= Audio compression
+	double **pcm_history;
+	int64_t history_allocated;
+	int64_t history_size;
+	int64_t history_start;
+	int history_channels;
+// Range to decode to fill history buffer.  Maintained by FileBase.
+	int64_t decode_start;
+	int64_t decode_len;
+// End of last decoded sample.  Maintained by user for seeking.
+	int64_t decode_end;
+
+
+private:
+
+
 // ULAW
 	float ulawtofloat(char ulaw);
 	char floattoulaw(float value);

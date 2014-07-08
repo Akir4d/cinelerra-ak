@@ -22,6 +22,7 @@
 // Originally developed by Heroine Virtual Ltd.
 // Support for multiple encodings, outline (stroke) by 
 // Andraz Tori <Andraz.tori1@guest.arnes.si>
+// UTF-8 support by Paolo Rampino aka Akirad <info at tuttoainternet.it>
 
 
 #include "clip.h"
@@ -171,86 +172,136 @@ void TitleConfig::interpolate(TitleConfig &prev,
 	this->dropshadow = prev.dropshadow;
 }
 
-#ifdef X_HAVE_UTF8_STRING 
+#ifdef X_HAVE_UTF8_STRING
 // this is a little routine that converts 8 bit string to FT_ULong array // akirad
 void TitleConfig::convert_text()
 {
 	int text_len = strlen(text);
 	int total_packages = 0;
 	tlen = 0;
-	for(int i = 0; i < text_len; i++)
+	if(!strcmp(encoding,"UTF-8"))
 	{
-		tlen++;
-		int x = 0;  
-		int z = (unsigned char)text[i];
-		if (!(z & 0x80))
+		for(int i = 0;i < text_len;i++)
 		{
-			x = 0;
-	 	} else if (!(z & 0x20))
-	 	{
-	 		x = 1;
-         	} else if (!(z & 0x10))
-         	{
-         		x = 2;
-         	} else if (!(z & 0x08))
-         	{
-         		x = 3;
-         	} else if (!(z & 0x04))
-         	{
-         		x = 4;
-         	} else if (!(z & 0x02))
-         	{
-         		x = 5;
+			tlen++;
+			int x = 0;
+			int z = (unsigned char)text[i];
+			if(!(z & 0x80))
+			{
+				x = 0;
+			}else if(!(z & 0x20))
+			{
+				x = 1;
+			}else if(!(z & 0x10))
+			{
+				x = 2;
+			}else if(!(z & 0x08))
+			{
+				x = 3;
+			}else if(!(z & 0x04))
+			{
+				x = 4;
+			}else if(!(z & 0x02))
+			{
+				x = 5;
+			}
+			i += x;
 		}
-		i += x;
 	}
-	ucs4text = new FT_ULong [tlen + 1];
-	FcChar32 retunucs4;
+	else
+	{
+		tlen = strlen(text);
+	}
+	ucs4text = NULL;
+	ucs4text = new FT_ULong [tlen+1];
+	FcChar32 return_ucs4;
 	int count = 0;
+	iconv_t cd;
 	for(int i = 0; i < text_len; i++)
 	{
-		int x = 0;  
-		int z = (unsigned char)text[i];
-		FcChar8 loadutf8[5];
-		if (!(z & 0x80))
+		int z = (char)text[i];
+		if(!strcmp(encoding,"UTF-8"))
 		{
-			x = 0;
-	 	} else if (!(z & 0x20))
-	 	{
-	 		x = 2;
-         	} else if (!(z & 0x10))
-         	{
-			x = 3;
-		} else if (!(z & 0x08))
+			int x = 0;
+			FcChar8 loadutf8[6];
+			if(!(z & 0x80))
+			{
+				x = 0;
+			}else if(!(z & 0x20))
+			{
+				x = 2;
+			}else if(!(z & 0x10))
+			{
+				x = 3;
+			}else if(!(z & 0x08))
+			{
+				x = 4;
+			}else if(!(z & 0x04))
+			{
+				x = 5;
+			}else if(!(z & 0x02))
+			{
+				x = 6;
+			}
+			//delete array
+			for(int r = 0;r < 5;r++)
+					loadutf8[r] = 0;
+			if( x > 0 ){
+				//fill array
+				for(int p = 0;p < x;p++)
+					loadutf8[p] = text[i+p];
+				i += (x-1);
+			}else{
+				//fill array
+				loadutf8[0] = z;
+			}
+			FcUtf8ToUcs4(loadutf8,&return_ucs4,6);
+			ucs4text[count] = (FT_ULong)return_ucs4;
+			count++;
+		}
+		else
 		{
-			x = 4;
-		} else if (!(z & 0x04))
-         	{
-			x = 5;
-		} else if (!(z & 0x02))
-		{
-			x = 6;
+			cd = iconv_open("UCS-4",encoding);
+			if(cd == (iconv_t)-1)
+			{
+				/* Something went wrong. */
+				fprintf(stderr, ("Iconv conversion from %s to Unicode UCS-4 not available\n"),encoding);
+			};
+			int textc = text[i];
+			/* if iconv is working ok for current encoding */
+			if(cd != (iconv_t) -1)
+			{
+				char inbuf = 0;
+				return_ucs4 = 0;
+				char *inp = (char*)&inbuf;
+				char *outp = (char *)&return_ucs4;
+				inbuf = (char)textc;
+				size_t inbytes = sizeof(inp);
+				size_t outbytes = sizeof(outp);
+
+				iconv(cd,&inp,&inbytes,&outp,&outbytes);
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+				return_ucs4 = bswap_32(return_ucs4);
+#endif				/* Big endian.*/
+			}
+			else
+			{
+				//failed
+				return_ucs4 = (FcChar32)textc;
+			}
+			int iconv_closed = iconv_close(cd);
+			if(iconv_closed != 0)
+			{
+				fprintf(stderr,"iconv_close failed: %s\n",strerror(errno));
+			}
+			ucs4text[count] = (FT_ULong)return_ucs4;
+			count++;
+
 		}
-		if ( x > 0 ) {
-			for (int r = 0; r < 5; r++) loadutf8[r] = 0;  
-			loadutf8[0] = text[i];
-			int p = 0;
-		  	for (; p < x; p++ )  
-		  		loadutf8[p] = text[i + p];
-		  	loadutf8[p + x] = 0;
-		  	loadutf8[p + x + 1] = 0;
-		  	i += (x - 1);
-		} else {
-			loadutf8[0] = z;
-			loadutf8[1] = 0;
-		}
-		FcUtf8ToUcs4 (loadutf8, &retunucs4, 6);
-		ucs4text[count] = (FT_ULong)retunucs4;
-		count++;
-		}
+	}
+
 }
 #endif
-
 
 FontEntry::FontEntry()
 {
@@ -570,7 +621,7 @@ void GlyphUnit::process_package(LoadPackage *package)
 				&bm);	
 			bm.buffer=glyph->data_stroke->get_data();
 			FT_Outline_Get_Bitmap( freetype_library,
-           		&outline,
+			&outline,
 				&bm);
 			FT_Outline_Done(freetype_library,&outline);
 			FT_Stroker_Done(stroker);
@@ -1574,7 +1625,7 @@ void TitleMain::draw_glyphs()
 	config.convert_text();
 	for(int i = 0; i < config.tlen; i++)
 	{
-		FT_ULong char_code;	
+		FT_ULong char_code;
 		int c = config.ucs4text[i];
 		int exists = 0;
 		char_code = config.ucs4text[i];
@@ -1607,6 +1658,9 @@ void TitleMain::draw_glyphs()
 			outbytes = 4;
 	
 			iconv (cd, &inp, &inbytes, &outp, &outbytes);
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+				char_code = bswap_32(char_code);
+#endif				/* Big endian. */
 
 		} else {
 			char_code = c;

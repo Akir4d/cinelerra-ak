@@ -1480,6 +1480,89 @@ void TitleMain::build_fonts()
 		}
 		pclose(in);
 
+		FcPattern *pat;
+		FcFontSet *fs;
+		FcObjectSet *os;
+		FcChar8 *family,
+			*style,
+			*file,
+			*foundry,
+			*format;
+		double	size;
+		FcConfig *config;
+		FcBool resultfc;
+		int i;
+
+		resultfc = FcInit();
+		config = FcConfigGetCurrent();
+		FcConfigSetRescanInterval(config, 0);
+
+		pat = FcPatternCreate();
+		os = FcObjectSetBuild ( FC_FAMILY,
+					FC_FILE,
+					FC_FOUNDRY,
+					FC_STYLE,
+					FC_SIZE,
+					FC_FONTFORMAT,
+					FC_CAPABILITY,
+					(char *) 0);
+		fs = FcFontList(config, pat, os);
+		FcPattern *font;
+
+		for (i=0; fs && i < fs->nfont; i++)
+		{
+			char tmpstring[200];
+			font = fs->fonts[i];
+			FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
+			if(!strcmp((char *)format, "TrueType"))
+			{
+				sprintf(tmpstring, "%s", format);
+
+				FontEntry *entry = new FontEntry;
+
+				if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
+				{
+					sprintf(tmpstring, "%s", file);
+					entry->path = new char[strlen(tmpstring) + 1];
+					sprintf(entry->path, "%s", tmpstring);
+				}
+
+				if(FcPatternGetString(font, FC_FOUNDRY, 0, &foundry) == FcResultMatch)
+				{
+					sprintf(tmpstring, "%s", foundry);
+					entry->foundary = new char[strlen(tmpstring) + 2];
+					strcpy(entry->foundary, tmpstring);
+				}
+
+				if(FcPatternGetString(font, FC_FAMILY, 0, &family) == FcResultMatch)
+				{
+					sprintf(tmpstring, "%s", family);
+					entry->family = new char[strlen(tmpstring) + 2];
+					strcpy(entry->family, tmpstring);
+				}
+
+				if(FcPatternGetString(font, FC_STYLE, 0, &style) == FcResultMatch)
+				{
+					sprintf(tmpstring, "%s", style);
+					entry->swidth = new char[strlen(tmpstring) + 1];
+					strcpy(entry->swidth, tmpstring);
+				}
+
+				if(FcPatternGetDouble(font, FC_SIZE, 0, &size) == FcResultMatch)
+				{
+					sprintf(tmpstring, "%f", size);
+					entry->pixelsize = atol(tmpstring);
+				}
+
+				sprintf(tmpstring, "%s", entry->family);
+				entry->fixed_title = new char[strlen(tmpstring) + 1];
+				strcpy(entry->fixed_title, tmpstring);
+
+				fonts->append(entry);
+			}
+		}
+		if(fs) FcFontSetDestroy(fs);
+
 		if(freetype_library) FT_Done_FreeType(freetype_library);
 	}
 

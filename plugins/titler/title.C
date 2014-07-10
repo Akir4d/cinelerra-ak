@@ -2504,7 +2504,9 @@ void TitleMain::save_data(KeyFrame *keyframe)
 	FileXML output;
 
 // cause data to be stored directly in text
+#ifdef X_HAVE_UTF8_STRING
 	convert_encoding();
+#endif
 	output.set_shared_string(keyframe->data, MESSAGESIZE);
 	output.tag.set_title("TITLE");
 	output.tag.set_property("FONT", config.font);
@@ -2589,7 +2591,9 @@ void TitleMain::read_data(KeyFrame *keyframe)
 			}
 		}
 	}
+#ifdef X_HAVE_UTF8_STRING
 	convert_encoding();
+#endif
 }
 
 

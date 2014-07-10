@@ -365,9 +365,10 @@ public:
 	int load_freetype_face(FT_Library &freetype_library,
 		FT_Face &freetype_face,
 		char *path);
-
-
-
+#ifdef X_HAVE_UTF8_STRING
+	//backward compatibility
+	void convert_encoding();
+#endif
 
 
 	static char* motion_to_text(int motion);

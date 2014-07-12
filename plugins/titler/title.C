@@ -399,13 +399,19 @@ void GlyphUnit::process_package(LoadPackage *package)
 	TitleGlyph *glyph = pkg->glyph;
 	int result = 0;
 
-	if(!freetype_library)
+	int altfont = 0;
+	//if(!freetype_library)
+	if(1)
 	{
 		current_font = plugin->get_font();
 
+		plugin->check_char_code_path(current_font->path,
+						glyph->char_code,
+						(char *)new_path);
+
 		if(plugin->load_freetype_face(freetype_library,
 			freetype_face,
-			current_font->path))
+			new_path))
 		{
 			printf(_("GlyphUnit::process_package FT_New_Face failed.\n"));
 			result = 1;
@@ -1565,6 +1571,91 @@ void TitleMain::build_fonts()
 // for(int i = 0; i < fonts->total; i++)
 //	fonts->values[i]->dump();
 
+
+}
+
+//This checks if char_code is on the selected font, else it changes font to the first compatible //Akirad
+int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
+		char *path_new)
+{
+	FT_Library temp_freetype_library;
+	FT_Face temp_freetype_face;
+	FcPattern *pat;
+	FcFontSet *fs;
+	FcObjectSet *os;
+	FcChar8 *file, *format;
+	FcConfig *config;
+	FcBool resultfc;
+	int i;
+
+	resultfc = FcInit();
+	config = FcConfigGetCurrent();
+	FcConfigSetRescanInterval(config, 0);
+
+	pat = FcPatternCreate();
+	os = FcObjectSetBuild ( FC_FILE, FC_FONTFORMAT, (char *) 0);
+	fs = FcFontList(config, pat, os);
+	FcPattern *font;
+	int notfindit = 1;
+	int test = 0;
+	char tmpstring[200];
+	FT_Init_FreeType(&temp_freetype_library);
+	if(!FT_New_Face(temp_freetype_library,
+					path_old,
+					0,
+					&temp_freetype_face))
+	{
+		FT_Set_Pixel_Sizes(temp_freetype_face, 128, 0);
+		int gindex = FT_Get_Char_Index(temp_freetype_face, char_code);
+		if((!gindex == 0) && (!char_code != 10)) test = 1;
+	}
+	if(!test)
+	{
+	for (i=0; fs && i < fs->nfont; i++)
+	{
+		font = fs->fonts[i];
+		FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
+		if(!strcmp((char *)format, "TrueType"))
+		{
+		if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
+		{
+
+			sprintf(tmpstring, "%s", file);
+			if(!FT_New_Face(temp_freetype_library,
+						tmpstring,
+						0,
+						&temp_freetype_face))
+			{
+				FT_Set_Pixel_Sizes(temp_freetype_face, 128, 0);
+				int gindex = FT_Get_Char_Index(temp_freetype_face, char_code);
+				if((!gindex == 0) && (!char_code != 10))
+				{
+					sprintf(path_new, "%s", tmpstring);
+					if(!temp_freetype_library) FT_Init_FreeType(&temp_freetype_library);
+					if(temp_freetype_face) FT_Done_Face(temp_freetype_face);
+					temp_freetype_face = 0;
+					notfindit = 0;
+					return 0;
+					break;
+
+				}
+			}
+		}
+		}
+	}
+	}
+
+	if(notfindit)
+	{
+		sprintf(path_new, "%s", path_old);
+		return 1;
+	}
+	if(fs) FcFontSetDestroy(fs);
+	if(temp_freetype_face) FT_Done_Face(temp_freetype_face);
+	FT_Done_FreeType(temp_freetype_library);
+	temp_freetype_face = 0;
+	temp_freetype_library = 0;
+	delete [] tmpstring;
 
 }
 

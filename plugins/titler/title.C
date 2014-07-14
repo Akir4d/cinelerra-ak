@@ -22,7 +22,8 @@
 // Originally developed by Heroine Virtual Ltd.
 // Support for multiple encodings, outline (stroke) by 
 // Andraz Tori <Andraz.tori1@guest.arnes.si>
-// UTF-8 support by Paolo Rampino aka Akirad <info at tuttoainternet.it>
+// UTF-8 and System fonts support added by
+// Paolo Rampino aka Akirad <info at tuttoainternet.it>
 
 
 #include "clip.h"
@@ -30,7 +31,7 @@
 #include "filexml.h"
 #include "filesystem.h"
 #include "transportque.inc"
-#include "ft2build.h"
+#include <freetype2/ft2build.h>
 #include FT_GLYPH_H
 #include FT_BBOX_H
 #include FT_OUTLINE_H
@@ -91,6 +92,10 @@ TitleConfig::TitleConfig()
 	pixels_per_second = 1.0;
 	timecode = 0;
 	stroke_width = 1.0;
+	ucs4text = 0;
+	tlen = 0;
+	next_keyframe_position = 0;
+	prev_keyframe_position = 0;
 }
 
 // Does not test equivalency but determines if redrawing text is necessary.
@@ -175,16 +180,16 @@ void TitleConfig::interpolate(TitleConfig &prev,
 #ifdef X_HAVE_UTF8_STRING
 void TitleMain::convert_encoding()
 {
-	iconv_t cd;
-	char utf8text[BCTEXTLEN];
 	if(strcmp(config.encoding,"UTF-8"))
 	{
+		iconv_t cd;
+		char utf8text[sizeof(config.text)*6];
 		FcChar8 return_utf8;
 		cd = iconv_open("UTF-8",config.encoding);
 		if(cd == (iconv_t)-1)
 		{
 			// Something went wrong.
-			fprintf(stderr, ("Iconv conversion from %s to Unicode UCS-4 not available\n"),config.encoding);
+			fprintf(stderr, ("Iconv conversion from %s to UTF-8 not available\n"),config.encoding);
 		}
 
 		// if iconv is working ok for current encoding
@@ -193,24 +198,32 @@ void TitleMain::convert_encoding()
 			char *inbuf = &config.text[0];
 			char *outbuf = &utf8text[0];
 			size_t inbytes = sizeof(config.text) - 1;
-			size_t outbytes = BCTEXTLEN - 1;
+			size_t outbytes = sizeof(config.text)*6 - 1;
+			int noconv = 0;
 
 			do {
 				if(iconv(cd,&inbuf,&inbytes,&outbuf,&outbytes) == (size_t) -1)
 				{
-					printf("iconv failed!");
+					printf("iconv failed!\n");
+					noconv = 1;
 				}
 			} while (inbytes > 0 && outbytes > 0);
 
 			outbytes = 0;
-			strcpy(config.text, utf8text);
-			strcpy(config.encoding, "UTF-8");
+			if(!noconv)
+			{
+				config.text[sizeof(utf8text)] = 0;
+				strcpy(config.text, utf8text);
+				strcpy(config.encoding, "UTF-8");
+				//printf("iconv success!");
+			}
 
-		}
-		int iconv_closed = iconv_close(cd);
-		if(iconv_closed != 0)
-		{
-			fprintf(stderr,"iconv_close failed: %s\n",strerror(errno));
+			int iconv_closed = iconv_close(cd);
+			if(iconv_closed != 0)
+			{
+				fprintf(stderr,"iconv_close failed: %s\n",strerror(errno));
+			}
+
 		}
 
 	}
@@ -312,6 +325,12 @@ FontEntry::FontEntry()
 	encoding = 0;
 	fixed_title = 0;
 	fixed_style = 0;
+	pixelsize = 0;
+	avg_width = 0;
+	xres = 0;
+	pointsize = 0;
+	yres = 0;
+
 }
 
 FontEntry::~FontEntry()
@@ -352,9 +371,16 @@ void FontEntry::dump()
 TitleGlyph::TitleGlyph()
 {
 	char_code = 0;
-	c=0;
+	c = 0;
 	data = 0;
 	data_stroke = 0;
+	freetype_index = 0;
+	height = 0;
+	top = 0;
+	width = 0;
+	advance_w = 0;
+	pitch = 0;
+	left = 0;
 }
 
 
@@ -377,6 +403,7 @@ TitleGlyph::~TitleGlyph()
 
 GlyphPackage::GlyphPackage() : LoadPackage()
 {
+	glyph = 0;
 }
 
 GlyphUnit::GlyphUnit(TitleMain *plugin, GlyphEngine *server)
@@ -404,7 +431,7 @@ void GlyphUnit::process_package(LoadPackage *package)
 	if(1)
 	{
 		current_font = plugin->get_font();
-
+		char new_path[200];
 		plugin->check_char_code_path(current_font->path,
 						glyph->char_code,
 						(char *)new_path);
@@ -675,6 +702,9 @@ LoadPackage* GlyphEngine::new_package()
 TitlePackage::TitlePackage()
  : LoadPackage()
 {
+	x = 0;
+	y = 0;
+	c = 0;
 }
 
 
@@ -799,6 +829,8 @@ LoadPackage* TitleEngine::new_package()
 TitleTranslatePackage::TitleTranslatePackage()
  : LoadPackage()
 {
+	y2 = 0;
+	y1 = 0;
 }
 
 
@@ -1065,6 +1097,16 @@ TitleTranslate::TitleTranslate(TitleMain *plugin, int cpus)
 {
 	this->plugin = plugin;
 	x_table = y_table = 0;
+	out_y1 = 0;
+	out_y2 = 0;
+	out_y1_int = 0;
+	out_y2_int = 0;
+	output_h = 0;
+	out_x1 = 0;
+	out_x2 = 0;
+	out_x1_int = 0;
+	out_x2_int = 0;
+	output_w = 0;
 }
 
 TitleTranslate::~TitleTranslate()
@@ -1493,7 +1535,7 @@ void TitleMain::build_fonts()
 		FcConfig *config;
 		FcBool resultfc;
 		int i;
-
+		char tmpstring[200];
 		resultfc = FcInit();
 		config = FcConfigGetCurrent();
 		FcConfigSetRescanInterval(config, 0);
@@ -1512,7 +1554,6 @@ void TitleMain::build_fonts()
 
 		for (i=0; fs && i < fs->nfont; i++)
 		{
-			char tmpstring[200];
 			font = fs->fonts[i];
 			FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
 			if(!strcmp((char *)format, "TrueType"))
@@ -1555,7 +1596,7 @@ void TitleMain::build_fonts()
 					entry->pixelsize = atol(tmpstring);
 				}
 
-				sprintf(tmpstring, "%s", entry->family);
+				sprintf(tmpstring, "%s (%s)", entry->family, entry->swidth);
 				entry->fixed_title = new char[strlen(tmpstring) + 1];
 				strcpy(entry->fixed_title, tmpstring);
 
@@ -1563,7 +1604,6 @@ void TitleMain::build_fonts()
 			}
 		}
 		if(fs) FcFontSetDestroy(fs);
-
 		if(freetype_library) FT_Done_FreeType(freetype_library);
 	}
 
@@ -2261,6 +2301,7 @@ char* TitleMain::motion_to_text(int motion)
 		case RIGHT_TO_LEFT: return _("Right to left"); break;
 		case LEFT_TO_RIGHT: return _("Left to right"); break;
 	}
+	return 0;
 }
 
 int TitleMain::text_to_motion(char *text)

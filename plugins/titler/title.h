@@ -209,7 +209,6 @@ public:
 	FontEntry *current_font;       // Current font configured by freetype
 	FT_Library freetype_library;      	// Freetype library
 	FT_Face freetype_face;
-	char new_path[200];
 };
 
 class GlyphEngine : public LoadServer

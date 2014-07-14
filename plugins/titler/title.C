@@ -31,7 +31,7 @@
 #include "filexml.h"
 #include "filesystem.h"
 #include "transportque.inc"
-#include <freetype2/ft2build.h>
+#include "ft2build.h"
 #include FT_GLYPH_H
 #include FT_BBOX_H
 #include FT_OUTLINE_H

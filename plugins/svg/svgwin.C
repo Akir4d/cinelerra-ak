@@ -266,7 +266,7 @@ void NewSvgButton::run()
 	window->flush();
 	strcpy(client->config.svg_file, filename);
 	client->need_reconfigure = 1;
-	client->force_raw_render = 1;
+	client->force_png_render = 1;
 	client->send_configure_change();
 
 // save it
@@ -391,12 +391,12 @@ void SvgInkscapeThread::run()
 {
 // Runs the inkscape
 	char command[1024];
-	char filename_raw[1024];
-	strcpy(filename_raw, client->config.svg_file);
-	strcat(filename_raw, ".raw");
+	char filename_png[1024];
+	strcpy(filename_png, client->config.svg_file);
+	strcat(filename_png, ".png");
 
-	sprintf(command, "inkscape --cinelerra-export-file=%s %s",
-		filename_raw, client->config.svg_file);
+	sprintf(command, "inkscape %s && rm %s",
+			client->config.svg_file, filename_png);
 	printf(_("Running external SVG editor: %s\n"), command);		
 	enable_cancel();
 	system(command);
@@ -407,6 +407,7 @@ void SvgInkscapeThread::run()
 		fifo_buf.action = 2;
 		write (fh_fifo, &fifo_buf, sizeof(fifo_buf));
 	}
+	client->force_png_render = 1;
 	disable_cancel();
 	return;
 }

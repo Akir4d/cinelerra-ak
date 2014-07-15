@@ -31,7 +31,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/mman.h>
-
+#include <png.h>
 
 #include <libintl.h>
 #define _(String) gettext(String)
@@ -39,18 +39,6 @@
 #define N_(String) gettext_noop (String)
 
 #include "empty_svg.h"
-
-struct raw_struct {
-	char rawc[5];        // Null terminated "RAWC" string
-	int32_t struct_version;  // currently 1 (bumped at each destructive change) 
-	int32_t struct_size;     // size of this struct in bytes
-	int32_t width;               // logical width of image
-	int32_t height;
-	int32_t pitch;           // physical width of image in memory
-	int32_t color_model;      // as BC_ constant, currently only BC_RGBA8888 is supported
-	int64_t time_of_creation; // in milliseconds - calculated as (tv_sec * 1000 + tv_usec / 1000);
-				// we can't trust date on the file, due to different reasons
-};	
 
 
 REGISTER_PLUGIN(SvgMain)
@@ -129,7 +117,7 @@ SvgMain::SvgMain(PluginServer *server)
 	temp_frame = 0;
 	overlayer = 0;
 	need_reconfigure = 0;
-	force_raw_render = 0;
+	force_png_render = 0;
 	PLUGIN_CONSTRUCTOR_MACRO
 }
 
@@ -253,14 +241,15 @@ void SvgMain::read_data(KeyFrame *keyframe)
 
 int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 {
-	char filename_raw[1024];
-	int fh_raw;
-	struct stat st_raw;
+	char filename_png[1024];
+	int fh_png;
+	struct stat st_png;
 	VFrame *input, *output;
 	input = input_ptr;
 	output = output_ptr;
-	unsigned char * raw_buffer;
-	struct raw_struct *raw_data;
+	unsigned char ** png_rows;
+	int have_row = 0;
+	uint32_t height, width, color_model, pitch, time_of_creation;
 
 	need_reconfigure |= load_configuration();
 
@@ -269,54 +258,93 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 		return(0);
 	}
 
-	strcpy(filename_raw, config.svg_file);
-	strcat(filename_raw, ".raw");
-	fh_raw = open(filename_raw, O_RDWR); // in order for lockf to work it has to be open for writing
+	strcpy(filename_png, config.svg_file);
+	strcat(filename_png, ".png");
+	fh_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
 
-	if (fh_raw == -1 || force_raw_render) // file does not exist, export it
+	if (fh_png == -1 || force_png_render) // file does not exist, export it
 	{
 		need_reconfigure = 1;
 		char command[1024];
 		sprintf(command,
-			"inkscape --without-gui --cinelerra-export-file=%s %s",
-			filename_raw, config.svg_file);
+			"inkscape --without-gui -e %s %s",
+			filename_png, config.svg_file);
 		printf(_("Running command %s\n"), command);
 		system(command);
-		stat(filename_raw, &st_raw);
-		force_raw_render = 0;
-		fh_raw = open(filename_raw, O_RDWR); // in order for lockf to work it has to be open for writing
-		if (!fh_raw) {
-			printf(_("Export of %s to %s failed\n"), config.svg_file, filename_raw);
+		stat(filename_png, &st_png);
+		force_png_render = 0;
+
+		fh_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
+		if (!fh_png)
+		{
+			printf(_("Export of %s to %s failed\n"), config.svg_file, filename_png);
 			return 0;
 		}
+		have_row = 0;
 	}
+		if(!have_row)
+		{
+			// Read png file
+			FILE* fo_png;
 
 
-	// file exists, ... lock it, mmap it and check time_of_creation
-	lockf(fh_raw, F_LOCK, 0);    // Blocking call - will wait for inkscape to finish!
-	fstat (fh_raw, &st_raw);
-	raw_buffer = (unsigned char *)mmap (NULL, st_raw.st_size, PROT_READ, MAP_SHARED, fh_raw, 0); 
-	raw_data = (struct raw_struct *) raw_buffer;
+			if(!(fo_png = fopen(filename_png, "rb")))
+			{
+				printf("Error while opening \"%s\" for reading. \n%m\n", filename_png);
+				return 1;
+			}
+			lockf(fh_png, F_LOCK, 0);    // Blocking call - will wait for inkscape to finish!
+			fstat (fh_png, &st_png);
 
-	if (strcmp(raw_data->rawc, "RAWC")) 
-	{
-		printf (_("The file %s that was generated from %s is not in RAWC format. Try to delete all *.raw files.\n"), filename_raw, config.svg_file);	
-		lockf(fh_raw, F_ULOCK, 0);
-		close(fh_raw);
-		return (0);
+			//Initialize png struct and info
+			png_structp png_ptr;
+			png_infop info_ptr;
+			png_infop end_info = 0;
+			png_time * mod_time;
+			unsigned char header[8];
+
+			png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
+			info_ptr = png_create_info_struct(png_ptr);
+			fread(header, 1, 8, fo_png);
+			png_sig_cmp(header, 0, 8);
+			png_init_io(png_ptr, fo_png);
+			png_set_sig_bytes(png_ptr, 8);
+			png_read_info(png_ptr, info_ptr);
+			png_get_tIME(png_ptr, info_ptr, &mod_time);
+
+			//build png_data
+			height = png_get_image_height(png_ptr, info_ptr);
+			width = png_get_image_width(png_ptr, info_ptr);
+			color_model = png_get_color_type(png_ptr, info_ptr);
+			pitch = png_get_rowbytes(png_ptr, info_ptr);
+			//printf("\nTime: %s\n", info_ptr->mod_time);
+			//convert color model before read rows
+			int png_color_type = png_get_color_type(png_ptr, info_ptr);
+			if (png_color_type == PNG_COLOR_TYPE_GRAY ||
+				png_color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+			{
+				png_set_gray_to_rgb(png_ptr);
+			}
+
+			//allocate memory for raw image and read it
+			png_rows = (png_bytep*) malloc(sizeof(png_bytep) * height);
+			for (int y=0; y<height; y++)
+				png_rows[y] = (png_byte*) malloc(pitch);
+			png_read_image(png_ptr, png_rows);
+			png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+
+			fclose(fo_png);
+			lockf(fh_png, F_ULOCK, 0);
+			have_row = 1;
+			need_reconfigure = 1;
+
 	}
-	if (raw_data->struct_version > 1) 
-	{
-		printf (_("Unsupported version of RAWC file %s. This means your Inkscape uses newer RAWC format than Cinelerra. Please upgrade Cinelerra.\n"), filename_raw);
-		lockf(fh_raw, F_ULOCK, 0);
-		close(fh_raw);
-		return (0);
-	}
+
 	// Ok, we can now be sure we have valid RAWC file on our hands
-	if (need_reconfigure || config.last_load < raw_data->time_of_creation) {    // the file was updated or is new (then last_load is zero)
-
+	if (need_reconfigure)
+	{
 		if (temp_frame && 
-		  !temp_frame->params_match(raw_data->width, raw_data->height, output_ptr->get_color_model()))
+		  !temp_frame->params_match(width, height, output_ptr->get_color_model()))
 		{
 			// parameters don't match
 			delete temp_frame;
@@ -324,18 +352,13 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 		}
 		if (!temp_frame)			
 			temp_frame = new VFrame(0, 
-				        raw_data->width,
-					raw_data->height,
-					output_ptr->get_color_model());
+				        width,
+				        height,
+				        output_ptr->get_color_model());
 
-		// temp_frame is ready by now, we can do the loading
-		unsigned char ** raw_rows;
-		raw_rows = new unsigned char*[raw_data->height]; // this could be optimized, so new isn't used every time
-		for (int i = 0; i < raw_data->height; i++) {
-			raw_rows[i] = raw_buffer + raw_data->struct_size + raw_data->pitch * i * 4;
-		}
+			// temp_frame is ready by now, we can do the loading
 	        cmodel_transfer(temp_frame->get_rows(),
-	                raw_rows,
+	                png_rows,
 	                0,
 	                0,
 	                0,
@@ -344,8 +367,8 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 	                0,
 	                0,
 	                0,
-	                raw_data->width,
-	                raw_data->height,
+	                width,
+	                height,
 	                0,
 	                0,
 	                temp_frame->get_w(),
@@ -353,12 +376,10 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 	               	BC_RGBA8888,
 	                temp_frame->get_color_model(),
 	                0,
-	                raw_data->pitch,
+	                pitch,
 	                temp_frame->get_w());
-		delete [] raw_rows;
-		munmap(raw_buffer, st_raw.st_size);
-		lockf(fh_raw, F_ULOCK, 0);
-		close(fh_raw);
+		delete [] png_rows;
+		close(fh_png);
 
 
 	}	

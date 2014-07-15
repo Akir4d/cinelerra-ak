@@ -144,15 +144,15 @@ int FormatTools::create_objects(int &init_x,
 
 // Set w for user.
 		w = x + path_button->get_w() + 5;
-		x -= 305;
 
-		y += 35;
+		y += path_textbox->get_h() + 10;
 	}
 	else
 		w = x + 305;
 
+	x = init_x;
 	window->add_subwindow(format_title = new BC_Title(x, y, _("File Format:")));
-	x += 90;
+	y += format_title->get_h() + 5;
 	window->add_subwindow(format_text = new BC_TextBox(x, 
 		y, 
 		200, 
@@ -192,15 +192,19 @@ int FormatTools::create_objects(int &init_x,
 // 			x = init_x;
 // 		}
 
+//printf("FormatTools::create_objects 6\n");
 		aparams_thread = new FormatAThread(this);
 	}
 
+//printf("FormatTools::create_objects 7\n");
 	if(do_video)
 	{
 		if(horizontal_layout && do_audio){
 			x += 370;
 			y = ylev;
 		}
+
+//printf("FormatTools::create_objects 8\n");
 		window->add_subwindow(video_title = new BC_Title(x, y, _("Video:"), LARGEFONT,  BC_WindowBase::get_resources()->audiovideo_color));
 		x += 80;
 		if(prompt_video_compression)
@@ -209,6 +213,7 @@ int FormatTools::create_objects(int &init_x,
 			x += vparams_button->get_w() + 10;
 		}
 
+//printf("FormatTools::create_objects 9\n");
 		if(prompt_video)
 		{
 			window->add_subwindow(video_switch = new FormatVideo(x, y, this, asset->video_data));
@@ -219,9 +224,12 @@ int FormatTools::create_objects(int &init_x,
 			y += vparams_button->get_h();
 		}
 
+//printf("FormatTools::create_objects 10\n");
 		y += 10;
 		vparams_thread = new FormatVThread(this);
 	}
+
+//printf("FormatTools::create_objects 11\n");
 
 	x = init_x;
 	if(strategy)
@@ -229,6 +237,8 @@ int FormatTools::create_objects(int &init_x,
 		window->add_subwindow(multiple_files = new FormatMultiple(mwindow, x, y, strategy));
 		y += multiple_files->get_h() + 10;
 	}
+
+//printf("FormatTools::create_objects 12\n");
 
 	init_y = y;
 	return 0;

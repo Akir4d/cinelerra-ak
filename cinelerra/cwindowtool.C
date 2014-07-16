@@ -257,6 +257,7 @@ CWindowToolGUI::CWindowToolGUI(MWindow *mwindow,
 	this->mwindow = mwindow;
 	this->thread = thread;
 	current_operation = 0;
+	event_caller = 0;
 }
 
 CWindowToolGUI::~CWindowToolGUI()
@@ -368,6 +369,10 @@ CWindowCropGUI::CWindowCropGUI(MWindow *mwindow, CWindowTool *thread)
 	330,
 	100)
 {
+	y1 = 0;
+	x1 = 0;
+	width = 0;
+	height = 0;
 }
 
 
@@ -479,6 +484,10 @@ CWindowEyedropGUI::CWindowEyedropGUI(MWindow *mwindow, CWindowTool *thread)
 	150,
 	150)
 {
+	red = 0;
+	green = 0;
+	sample = 0;
+	blue = 0;
 }
 
 CWindowEyedropGUI::~CWindowEyedropGUI()
@@ -635,6 +644,11 @@ CWindowCameraGUI::CWindowCameraGUI(MWindow *mwindow, CWindowTool *thread)
 	170,
 	170)
 {
+	t_smooth = 0;
+	t_linear = 0;
+	x = 0;
+	z = 0;
+	y = 0;
 }
 CWindowCameraGUI::~CWindowCameraGUI()
 {
@@ -1089,6 +1103,11 @@ CWindowProjectorGUI::CWindowProjectorGUI(MWindow *mwindow, CWindowTool *thread)
 	170,
 	170)
 {
+	z = 0;
+	y = 0;
+	x = 0;
+	t_linear = 0;
+	t_smooth = 0;
 }
 CWindowProjectorGUI::~CWindowProjectorGUI()
 {
@@ -1916,6 +1935,14 @@ CWindowMaskGUI::CWindowMaskGUI(MWindow *mwindow, CWindowTool *thread)
 	330,
 	280)
 {
+	apply_before_plugins = 0;
+	x = 0;
+	y = 0;
+	value = 0;
+	number = 0;
+	mode = 0;
+	feather = 0;
+	delete_point = 0;
 	this->mwindow = mwindow;
 	this->thread = thread;
 }
@@ -2103,6 +2130,11 @@ CWindowRulerGUI::CWindowRulerGUI(MWindow *mwindow, CWindowTool *thread)
 	320,
 	240)
 {
+	point1 = 0;
+	distance = 0;
+	current = 0;
+	angle = 0;
+	point2 = 0;
 }
 
 CWindowRulerGUI::~CWindowRulerGUI()

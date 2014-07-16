@@ -53,6 +53,10 @@
 CWindow::CWindow(MWindow *mwindow)
  : Thread()
 {
+	destination = 0;
+	gui = 0;
+	playback_engine = 0;
+	playback_cursor = 0;
 	this->mwindow = mwindow;
 }
 

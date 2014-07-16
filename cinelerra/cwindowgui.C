@@ -91,6 +91,34 @@ CWindowGUI::CWindowGUI(MWindow *mwindow, CWindow *cwindow)
 {
 	this->mwindow = mwindow;
     this->cwindow = cwindow;
+    current_tool = 0;
+    ruler_translate = 0;
+    center_x = 0;
+    center_y = 0;
+    center_z = 0;
+    edit_panel = 0;
+    zoom_panel = 0;
+    crop_handle = 0;
+    transport = 0;
+    meters = 0;
+    ruler_handle = 0;
+    reset = 0;
+    ruler_origin_x = 0;
+    ruler_origin_y = 0;
+    canvas = 0;
+    crop_origin_x = 0;
+    crop_origin_y = 0;
+    slider = 0;
+    timebar = 0;
+    composite_panel = 0;
+    control_in_x = 0;
+    control_in_y = 0;
+    control_out_x = 0;
+    control_out_y = 0;
+    crop_origin_y1 = 0;
+    crop_origin_y2 = 0;
+    crop_origin_x1 = 0;
+    crop_origin_x2 = 0;
 	affected_track = 0;
 	affected_x = 0;
 	affected_y = 0;
@@ -317,8 +345,8 @@ int CWindowGUI::cursor_motion_event()
 
 void CWindowGUI::draw_status()
 {
-	if(canvas->get_canvas() && 
-		canvas->get_canvas()->get_video_on() ||
+	if((canvas->get_canvas() &&
+		canvas->get_canvas()->get_video_on()) ||
 		canvas->is_processing)
 	{
 		draw_pixmap(active, 

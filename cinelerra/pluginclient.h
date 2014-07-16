@@ -91,6 +91,7 @@ public: \
 thread_class::thread_class(plugin_class *plugin) \
  : Thread(0, 0, 1) \
 { \
+	window = 0; \
 	this->plugin = plugin; \
 } \
  \

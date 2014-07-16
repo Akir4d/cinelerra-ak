@@ -40,6 +40,18 @@
 PluginArray::PluginArray(int data_type)
  : ArrayList<PluginServer*>()
 {
+	cache = 0;
+	modules = 0;
+	file = 0;
+	done = 0;
+	plugin_server = 0;
+	end = 0;
+	buffer_size = 0;
+	keyframe = 0;
+	mwindow = 0;
+	start = 0;
+	error = 0;
+	edl = 0;
 	this->data_type = data_type;
 }
 

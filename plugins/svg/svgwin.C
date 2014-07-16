@@ -318,21 +318,28 @@ void EditSvgButton::run()
 	long delay;
 	int result;
 	time_t last_update;
-	struct stat st_raw;
-	char filename_raw[1024];
+	int32_t last_time;
+	int32_t new_time;
+	struct stat st_svg;
+	char filename_svg[1024];
+	char filename_png[1024];
 	char filename_fifo[1024];
 	struct fifo_struct fifo_buf;
 	SvgInkscapeThread *inkscape_thread = new SvgInkscapeThread(client, window);
 	
-	strcpy(filename_raw, client->config.svg_file);
-	strcat(filename_raw, ".raw");
-	result = stat (filename_raw, &st_raw);
-	last_update = st_raw.st_mtime;
+	strcpy(filename_svg, client->config.svg_file);
+	result = stat (filename_svg, &st_svg);
+	last_update = st_svg.st_mtime;
+	last_time = st_svg.st_mtim.tv_sec;
 	if (result) 
 		last_update = 0;	
 
-	strcpy(filename_fifo, filename_raw);
-	strcat(filename_fifo, ".fifo");	
+	strcpy(filename_fifo, filename_svg);
+	strcpy(filename_png, filename_svg);
+
+	strcat(filename_fifo, ".fifo");
+	strcat(filename_png, ".png");
+
 	if (mkfifo(filename_fifo, S_IRWXU) != 0) {
 		perror("Error while creating fifo file");
 	} 
@@ -340,21 +347,19 @@ void EditSvgButton::run()
 	fifo_buf.action = 0;
 	inkscape_thread->fh_fifo = fh_fifo;
 	inkscape_thread->start();
-	while (inkscape_thread->running() && (!quit_now)) { 
-//		pausetimer.delay(200); // poll file every 200ms
-		read(fh_fifo, &fifo_buf, sizeof(fifo_buf));
-
-		if (fifo_buf.action == 1) {
-			result = stat (filename_raw, &st_raw);
-			// Check if PNG is newer then what we have in memory
-//			printf("action1\n");
-//			if (last_update < st_raw.st_mtime) { // FIXME this seems to work odd sometimes when fast-refreshing
-//				printf("newer pict\n");
-				// UPDATE IMAGE
-				client->config.last_load = 1;
+	printf("\nrunning state: %d\n", inkscape_thread->running());
+	printf("\nquit_now_ %d\n", quit_now);
+	while (inkscape_thread->running() && (!quit_now)) {
+		result = stat (filename_svg, &st_svg);
+		new_time = st_svg.st_mtim.tv_sec;
+		//read(fh_fifo, &fifo_buf, sizeof(fifo_buf));
+		pausetimer.delay(200);
+		if (last_time != new_time) {
+			printf(_("Inkscape has Update file\n"));
+			result = stat (filename_svg, &st_svg);
+				remove(filename_png);
 				client->send_configure_change();
-				last_update = st_raw.st_mtime;
-//			}
+				last_time = new_time;
 		} else 
 		if (fifo_buf.action == 2) {
 			printf(_("Inkscape has exited\n"));
@@ -395,7 +400,7 @@ void SvgInkscapeThread::run()
 	strcpy(filename_png, client->config.svg_file);
 	strcat(filename_png, ".png");
 
-	sprintf(command, "inkscape %s && rm %s",
+	sprintf(command, "inkscape %s",
 			client->config.svg_file, filename_png);
 	printf(_("Running external SVG editor: %s\n"), command);		
 	enable_cancel();
@@ -407,7 +412,8 @@ void SvgInkscapeThread::run()
 		fifo_buf.action = 2;
 		write (fh_fifo, &fifo_buf, sizeof(fifo_buf));
 	}
-	client->force_png_render = 1;
+	remove(filename_png);
+	client->send_configure_change();
 	disable_cancel();
 	return;
 }

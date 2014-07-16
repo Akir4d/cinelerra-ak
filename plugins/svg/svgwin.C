@@ -56,14 +56,26 @@ SvgWin::SvgWin(SvgMain *client, int x, int y)
  : BC_Window(client->gui_string, 
  	x,
 	y,
+	320,
+	180,
 	300, 
-	280, 
-	300, 
-	280, 
+	180,
 	0, 
 	0,
 	1)
 { 
+	dpi = 0;
+	out_y = 0;
+	out_h = 0;
+	in_w = 0;
+	in_h = 0;
+	edit_svg_button= 0;
+	new_svg_button= 0;
+	in_y= 0;
+	out_x= 0;
+	svg_file_title= 0;
+	out_w= 0;
+	new_svg_thread= 0;
 	this->client = client; 
 	this->editing = 0;
 }
@@ -76,10 +88,10 @@ int SvgWin::create_objects()
 {
 	int x = 10, y = 10;
 
-//	add_tool(new BC_Title(x, y, _("In X:")));
+	add_tool(new BC_Title(x, y, _("DPI")));
 	y += 20;
-//	in_x = new SvgCoord(this, client, x, y, &client->config.in_x);
-//	in_x->create_objects();
+	dpi = new SvgCoord(this, client, x, y, &client->config.dpi);
+	dpi->create_objects();
 	y += 30;
 
 //	add_tool(new BC_Title(x, y, _("In Y:")));
@@ -281,6 +293,7 @@ void NewSvgButton::run()
 EditSvgButton::EditSvgButton(SvgMain *client, SvgWin *window, int x, int y)
  : BC_GenericButton(x, y, _("Edit"))
 {
+	fh_fifo = 0;
 	this->client = client;
 	this->window = window;
 	quit_now = 0;
@@ -350,10 +363,11 @@ void EditSvgButton::run()
 	printf("\nrunning state: %d\n", inkscape_thread->running());
 	printf("\nquit_now_ %d\n", quit_now);
 	while (inkscape_thread->running() && (!quit_now)) {
+
 		result = stat (filename_svg, &st_svg);
 		new_time = st_svg.st_mtim.tv_sec;
-		//read(fh_fifo, &fifo_buf, sizeof(fifo_buf));
-		pausetimer.delay(200);
+		pausetimer.delay(300);
+
 		if (last_time != new_time) {
 			printf(_("Inkscape has Update file\n"));
 			result = stat (filename_svg, &st_svg);
@@ -382,6 +396,7 @@ void EditSvgButton::run()
 SvgInkscapeThread::SvgInkscapeThread(SvgMain *client, SvgWin *window)
  : Thread(1)
 {
+	fh_fifo = 0;
 	this->client = client;
 	this->window = window;
 }

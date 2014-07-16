@@ -48,7 +48,7 @@ public:
 	int create_objects();
 	int close_event();
 
-	SvgCoord *in_x, *in_y, *in_w, *in_h, *out_x, *out_y, *out_w, *out_h;
+	SvgCoord *dpi, *in_y, *in_w, *in_h, *out_x, *out_y, *out_w, *out_h;
 	SvgMain *client;
 	BC_Title *svg_file_title;
 	NewSvgButton *new_svg_button;

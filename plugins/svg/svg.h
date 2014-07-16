@@ -46,7 +46,7 @@ public:
 		long next_frame, 
 		long current_frame);
 
-	float in_x, in_y, in_w, in_h, out_x, out_y, out_w, out_h;
+	float dpi, in_y, in_w, in_h, out_x, out_y, out_w, out_h;
 	char svg_file[BCTEXTLEN];
 	int64_t last_load;
 };
@@ -81,6 +81,7 @@ public:
 	VFrame *temp_frame;        // Used if buffers are the same
 	BC_Hash *defaults;
 	SvgConfig config;
+	float last_dpi;
 	int need_reconfigure;
 	int force_png_render;     //force rendering of PNG on first start
 };

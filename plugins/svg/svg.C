@@ -45,7 +45,7 @@ REGISTER_PLUGIN(SvgMain)
 
 SvgConfig::SvgConfig()
 {
-	in_x = 0;
+	dpi = 90;
 	in_y = 0;
 	in_w = 720;
 	in_h = 480;
@@ -60,7 +60,7 @@ SvgConfig::SvgConfig()
 
 int SvgConfig::equivalent(SvgConfig &that)
 {
-	return EQUIV(in_x, that.in_x) && 
+	return EQUIV(dpi, that.dpi) && 
 		EQUIV(in_y, that.in_y) && 
 		EQUIV(in_w, that.in_w) && 
 		EQUIV(in_h, that.in_h) &&
@@ -73,7 +73,7 @@ int SvgConfig::equivalent(SvgConfig &that)
 
 void SvgConfig::copy_from(SvgConfig &that)
 {
-	in_x = that.in_x;
+	dpi = that.dpi;
 	in_y = that.in_y;
 	in_w = that.in_w;
 	in_h = that.in_h;
@@ -94,7 +94,7 @@ void SvgConfig::interpolate(SvgConfig &prev,
 	double next_scale = (double)(current_frame - prev_frame) / (next_frame - prev_frame);
 	double prev_scale = (double)(next_frame - current_frame) / (next_frame - prev_frame);
 
-	this->in_x = prev.in_x * prev_scale + next.in_x * next_scale;
+	this->dpi = prev.dpi * prev_scale + next.dpi * next_scale;
 	this->in_y = prev.in_y * prev_scale + next.in_y * next_scale;
 	this->in_w = prev.in_w * prev_scale + next.in_w * next_scale;
 	this->in_h = prev.in_h * prev_scale + next.in_h * next_scale;
@@ -149,7 +149,7 @@ int SvgMain::load_defaults()
 	defaults->load();
 
 
-	config.in_x = defaults->get("IN_X", config.in_x);
+	config.dpi = defaults->get("DPI", config.dpi);
 	config.in_y = defaults->get("IN_Y", config.in_y);
 	config.in_w = defaults->get("IN_W", config.in_w);
 	config.in_h = defaults->get("IN_H", config.in_h);
@@ -163,7 +163,7 @@ int SvgMain::load_defaults()
 
 int SvgMain::save_defaults()
 {
-	defaults->update("IN_X", config.in_x);
+	defaults->update("DPI", config.dpi);
 	defaults->update("IN_Y", config.in_y);
 	defaults->update("IN_W", config.in_w);
 	defaults->update("IN_H", config.in_h);
@@ -187,7 +187,7 @@ void SvgMain::save_data(KeyFrame *keyframe)
 
 // Store data
 	output.tag.set_title("SVG");
-	output.tag.set_property("IN_X", config.in_x);
+	output.tag.set_property("DPI", config.dpi);
 	output.tag.set_property("IN_Y", config.in_y);
 	output.tag.set_property("IN_W", config.in_w);
 	output.tag.set_property("IN_H", config.in_h);
@@ -220,7 +220,7 @@ void SvgMain::read_data(KeyFrame *keyframe)
 		{
 			if(input.tag.title_is("SVG"))
 			{
- 				config.in_x = input.tag.get_property("IN_X", config.in_x);
+ 				config.dpi = input.tag.get_property("DPI", config.dpi);
 				config.in_y = input.tag.get_property("IN_Y", config.in_y);
 				config.in_w = input.tag.get_property("IN_W", config.in_w);
 				config.in_h = input.tag.get_property("IN_H", config.in_h);
@@ -262,6 +262,11 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 
 	strcpy(filename_png, config.svg_file);
 	strcat(filename_png, ".png");
+	if(config.dpi != last_dpi)
+	{
+		last_dpi = config.dpi;
+		remove(filename_png);
+	}
 	fh_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
 
 	if (fh_png == -1 || force_png_render) // file does not exist, export it
@@ -269,8 +274,8 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 		need_reconfigure = 1;
 		char command[1024];
 		sprintf(command,
-			"inkscape --without-gui -e %s %s",
-			filename_png, config.svg_file);
+			"inkscape --without-gui -d %f -e %s %s",
+			config.dpi, filename_png, config.svg_file);
 		printf(_("Running command %s\n"), command);
 		system(command);
 		stat(filename_png, &st_png);
@@ -440,7 +445,7 @@ void SvgMain::update_gui()
 	{
 		load_configuration();
 		thread->window->lock_window();
-//		thread->window->in_x->update(config.in_x);
+		thread->window->dpi->update(config.dpi);
 //		thread->window->in_y->update(config.in_y);
 //		thread->window->in_w->update(config.in_w);
 //		thread->window->in_h->update(config.in_h);

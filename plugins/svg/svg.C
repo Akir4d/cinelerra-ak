@@ -119,6 +119,7 @@ SvgMain::SvgMain(PluginServer *server)
 	overlayer = 0;
 	need_reconfigure = 0;
 	force_png_render = 0;
+	last_dpi = 0;
 	PLUGIN_CONSTRUCTOR_MACRO
 }
 

@@ -263,7 +263,6 @@ void TitleConfig::convert_text()
 		}
 		i += x;
 	}
-	ucs4text = NULL;
 	ucs4text = new FT_ULong [tlen+1];
 	int count = 0;
 	FcChar32 return_ucs4;

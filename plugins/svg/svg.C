@@ -54,6 +54,7 @@ SvgConfig::SvgConfig()
 	out_w = 720;
 	out_h = 480;
 	last_load = 0;
+	svg_file[0] = 0;
 	strcpy(svg_file, "");
 }
 
@@ -172,6 +173,7 @@ int SvgMain::save_defaults()
 	defaults->update("OUT_H", config.out_h);
 	defaults->update("SVG_FILE", config.svg_file);
 	defaults->save();
+	return 0;
 }
 
 LOAD_CONFIGURATION_MACRO(SvgMain, SvgConfig)
@@ -378,7 +380,7 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 	                0,
 	                pitch,
 	                temp_frame->get_w());
-		delete [] png_rows;
+		free(png_rows);
 		close(fh_png);
 
 
@@ -406,7 +408,6 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 // 	out_y1, 
 // 	out_x2, 
 // 	out_y2);
-		output->copy_from(input);
 		overlayer->overlay(output, 
 			temp_frame,
 			0, 

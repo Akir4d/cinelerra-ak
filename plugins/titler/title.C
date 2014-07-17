@@ -1522,15 +1522,21 @@ void TitleMain::build_fonts()
 		}
 		pclose(in);
 
+//now starting add fonts from fontconfig
 		FcPattern *pat;
 		FcFontSet *fs;
 		FcObjectSet *os;
 		FcChar8 *family,
-			*style,
 			*file,
 			*foundry,
+			*style,
 			*format;
-		double	size;
+		int slant,
+			spacing,
+			width,
+			weight;
+		int force_style = 0;
+		int limit_to_trutype = 0; // if you want limit search to TrueType put 1
 		FcConfig *config;
 		FcBool resultfc;
 		int i;
@@ -1543,10 +1549,12 @@ void TitleMain::build_fonts()
 		os = FcObjectSetBuild ( FC_FAMILY,
 					FC_FILE,
 					FC_FOUNDRY,
-					FC_STYLE,
-					FC_SIZE,
+					FC_WEIGHT,
+					FC_WIDTH,
+					FC_SLANT,
 					FC_FONTFORMAT,
-					FC_CAPABILITY,
+					FC_SPACING,
+					FC_STYLE,
 					(char *) 0);
 		fs = FcFontList(config, pat, os);
 		FcPattern *font;
@@ -1554,8 +1562,9 @@ void TitleMain::build_fonts()
 		for (i=0; fs && i < fs->nfont; i++)
 		{
 			font = fs->fonts[i];
+			force_style = 0;
 			FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
-			if(!strcmp((char *)format, "TrueType"))
+			if((!strcmp((char *)format, "TrueType")) || limit_to_trutype) //on this point you can limit font search
 			{
 				sprintf(tmpstring, "%s", format);
 
@@ -1575,6 +1584,45 @@ void TitleMain::build_fonts()
 					strcpy(entry->foundary, tmpstring);
 				}
 
+				if(FcPatternGetInteger(font, FC_WEIGHT, 0, &weight) == FcResultMatch)
+				{
+					switch(weight)
+					{
+						case FC_WEIGHT_THIN:
+						case FC_WEIGHT_EXTRALIGHT:
+						case FC_WEIGHT_LIGHT:
+						case FC_WEIGHT_BOOK:
+							force_style = 1;
+							entry->weight = new char[strlen("medium") + 1];
+							strcpy(entry->weight, "medium");
+							break;
+
+						case FC_WEIGHT_NORMAL:
+						case FC_WEIGHT_MEDIUM:
+						default:
+							entry->weight = new char[strlen("medium") + 1];
+							strcpy(entry->weight, "medium");
+							break;
+
+						case FC_WEIGHT_BLACK:
+						case FC_WEIGHT_SEMIBOLD:
+						case FC_WEIGHT_BOLD:
+							entry->weight = new char[strlen("bold") + 1];
+							strcpy(entry->weight, "bold");
+							entry->fixed_style |= FONT_BOLD;
+							break;
+
+						case FC_WEIGHT_EXTRABOLD:
+						case FC_WEIGHT_EXTRABLACK:
+							force_style = 1;
+							entry->weight = new char[strlen("bold") + 1];
+							strcpy(entry->weight, "bold");
+							entry->fixed_style |= FONT_BOLD;
+							break;
+						break;
+					}
+				}
+
 				if(FcPatternGetString(font, FC_FAMILY, 0, &family) == FcResultMatch)
 				{
 					sprintf(tmpstring, "%s", family);
@@ -1582,23 +1630,146 @@ void TitleMain::build_fonts()
 					strcpy(entry->family, tmpstring);
 				}
 
-				if(FcPatternGetString(font, FC_STYLE, 0, &style) == FcResultMatch)
+				if(FcPatternGetInteger(font, FC_SLANT, 0, &slant) == FcResultMatch)
 				{
-					sprintf(tmpstring, "%s", style);
-					entry->swidth = new char[strlen(tmpstring) + 1];
-					strcpy(entry->swidth, tmpstring);
+					switch(slant)
+					{
+						case FC_SLANT_ROMAN:
+						default:
+							entry->slant = new char[strlen("r") + 1];
+							strcpy(entry->slant, "r");
+							break;
+						case FC_SLANT_ITALIC:
+							entry->slant = new char[strlen("i") + 1];
+							strcpy(entry->slant, "i");
+							entry->fixed_style |= FONT_ITALIC;
+							break;
+						case FC_SLANT_OBLIQUE:
+							entry->slant = new char[strlen("o") + 1];
+							strcpy(entry->slant, "o");
+							entry->fixed_style |= FONT_ITALIC;
+							break;
+					}
 				}
 
-				if(FcPatternGetDouble(font, FC_SIZE, 0, &size) == FcResultMatch)
+				if(FcPatternGetInteger(font, FC_WIDTH, 0, &width) == FcResultMatch)
 				{
-					sprintf(tmpstring, "%f", size);
-					entry->pixelsize = atol(tmpstring);
+					switch(width)
+					{
+						case FC_WIDTH_ULTRACONDENSED:
+							entry->swidth = new char[strlen("ultracondensed") + 1];
+							strcpy(entry->swidth, "ultracondensed");
+							break;
+
+						case FC_WIDTH_EXTRACONDENSED:
+							entry->swidth = new char[strlen("extracondensed") + 1];
+							strcpy(entry->swidth, "extracondensed");
+							break;
+
+						case FC_WIDTH_CONDENSED:
+							entry->swidth = new char[strlen("condensed") + 1];
+							strcpy(entry->swidth, "condensed");
+							break;
+						case FC_WIDTH_SEMICONDENSED:
+							entry->swidth = new char[strlen("semicondensed") + 1];
+							strcpy(entry->swidth, "semicondensed");
+							break;
+
+						case FC_WIDTH_NORMAL:
+						default:
+							entry->swidth = new char[strlen("normal") + 1];
+							strcpy(entry->swidth, "normal");
+							break;
+
+						case FC_WIDTH_SEMIEXPANDED:
+							entry->swidth = new char[strlen("semiexpanded") + 1];
+							strcpy(entry->swidth, "semiexpanded");
+							break;
+
+						case FC_WIDTH_EXPANDED:
+							entry->swidth = new char[strlen("expanded") + 1];
+							strcpy(entry->swidth, "expanded");
+							break;
+
+						case FC_WIDTH_EXTRAEXPANDED:
+							entry->swidth = new char[strlen("extraexpanded") + 1];
+							strcpy(entry->swidth, "extraexpanded");
+							break;
+
+						case FC_WIDTH_ULTRAEXPANDED:
+							entry->swidth = new char[strlen("ultraexpanded") + 1];
+							strcpy(entry->swidth, "ultraexpanded");
+							break;
+					}
 				}
 
-				sprintf(tmpstring, "%s (%s)", entry->family, entry->swidth);
-				entry->fixed_title = new char[strlen(tmpstring) + 1];
-				strcpy(entry->fixed_title, tmpstring);
+				if(FcPatternGetInteger(font, FC_SPACING, 0, &spacing) == FcResultMatch)
+				{
+					switch(spacing)
+					{
+						case 0:
+						default:
+							entry->spacing = new char[strlen("p") + 1];
+							strcpy(entry->spacing, "p");
+							break;
 
+						case 90:
+							entry->spacing = new char[strlen("d") + 1];
+							strcpy(entry->spacing, "d");
+							break;
+
+						case 100:
+							entry->spacing = new char[strlen("m") + 1];
+							strcpy(entry->spacing, "m");
+							break;
+
+						case 110:
+							entry->spacing = new char[strlen("c") + 1];
+							strcpy(entry->spacing, "c");
+							break;
+					}
+
+				}
+
+				// Add fake stuff for compatibility
+				entry->adstyle = new char[strlen(" ") + 1];
+				strcpy(entry->adstyle, " ");
+				entry->pixelsize = 0;
+				entry->pointsize = 0;
+				entry->xres = 0;
+				entry->yres = 0;
+				entry->avg_width = 0;
+				entry->registry = new char[strlen("utf") + 1];
+				strcpy(entry->registry, "utf");
+				entry->encoding = new char[strlen("8") + 1];
+				strcpy(entry->encoding, "8");
+
+				if(!FcPatternGetString(font, FC_STYLE, 0, &style) == FcResultMatch) force_style = 0;
+
+				// If font has a style unmanaged by titler plugin, force style to be displayed on name
+				// in this way we can shown all available fonts styles.
+				if(force_style)
+				{
+					sprintf(tmpstring, "%s (%s)", entry->family, style);
+					entry->fixed_title = new char[strlen(tmpstring) + 1];
+					strcpy(entry->fixed_title, tmpstring);
+				}
+				else
+				{
+					if(strcmp(entry->foundary, "unknown"))
+					{
+						sprintf(tmpstring, "%s (%s)", entry->family, entry->foundary);
+						entry->fixed_title = new char[strlen(tmpstring) + 1];
+						strcpy(entry->fixed_title, tmpstring);
+					}
+					else
+					{
+						sprintf(tmpstring, "%s", entry->family);
+						entry->fixed_title = new char[strlen(tmpstring) + 1];
+						strcpy(entry->fixed_title, tmpstring);
+					}
+
+				}
 				fonts->append(entry);
 			}
 		}
@@ -1607,7 +1778,7 @@ void TitleMain::build_fonts()
 	}
 
 
-// for(int i = 0; i < fonts->total; i++)
+//for(int i = 0; i < fonts->total; i++)
 //	fonts->values[i]->dump();
 
 
@@ -1638,6 +1809,7 @@ int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 	int notfindit = 1;
 	int test = 0;
 	char tmpstring[200];
+	int limit_to_truetype = 0; //if you want to limit search to truetype put 1
 	FT_Init_FreeType(&temp_freetype_library);
 	if(!FT_New_Face(temp_freetype_library,
 					path_old,
@@ -1654,7 +1826,7 @@ int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 	{
 		font = fs->fonts[i];
 		FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
-		if(!strcmp((char *)format, "TrueType"))
+		if((!strcmp((char *)format, "TrueType")) || limit_to_truetype)
 		{
 		if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
 		{

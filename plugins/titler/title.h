@@ -125,7 +125,8 @@ public:
 	int64_t next_keyframe_position;
 // Stamp timecode
 	int timecode;
-
+//temp utf8 text for no utf8 system
+	char *textutf8;
 // Text to display
 	char text[BCTEXTLEN];
 // Encoding to convert from 
@@ -134,11 +135,9 @@ public:
 	char timecodeformat[BCTEXTLEN];
 // Width of the stroke
 	double stroke_width;
-#ifdef X_HAVE_UTF8_STRING
 	int tlen;
 	FT_ULong *ucs4text;
 	void convert_text();
-#endif
 };
 
 class FontEntry
@@ -173,9 +172,9 @@ class TitleGlyph
 public:
 	TitleGlyph();
 	~TitleGlyph();
-	// character in 8 bit charset
+	// character counter
 	int c;
-	// character in UCS-4
+	// UCS-4 array
 	FT_ULong char_code;
 	int width, height, pitch, advance_w, left, top, freetype_index;
 	VFrame *data;
@@ -367,10 +366,8 @@ public:
 	int load_freetype_face(FT_Library &freetype_library,
 		FT_Face &freetype_face,
 		char *path);
-#ifdef X_HAVE_UTF8_STRING
 	//backward compatibility
 	void convert_encoding();
-#endif
 
 
 	static char* motion_to_text(int motion);

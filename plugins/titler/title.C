@@ -93,6 +93,7 @@ TitleConfig::TitleConfig()
 	timecode = 0;
 	stroke_width = 1.0;
 	ucs4text = 0;
+	textutf8 = 0;
 	tlen = 0;
 	next_keyframe_position = 0;
 	prev_keyframe_position = 0;
@@ -177,9 +178,14 @@ void TitleConfig::interpolate(TitleConfig &prev,
 	this->dropshadow = prev.dropshadow;
 }
 
-#ifdef X_HAVE_UTF8_STRING
+// this is a little routine that converts no-utf8 text to utf8 // akirad
 void TitleMain::convert_encoding()
 {
+#ifdef X_HAVE_UTF8_STRING
+int utf8 = 1;
+#else
+int utf8 = 0;
+#endif
 	if(strcmp(config.encoding,"UTF-8"))
 	{
 		iconv_t cd;
@@ -206,16 +212,31 @@ void TitleMain::convert_encoding()
 				{
 					printf("iconv failed!\n");
 					noconv = 1;
+					break;
 				}
 			} while (inbytes > 0 && outbytes > 0);
 
 			outbytes = 0;
-			if(!noconv)
+			if(!noconv || utf8)
 			{
-				config.text[sizeof(utf8text)] = 0;
-				strcpy(config.text, utf8text);
-				strcpy(config.encoding, "UTF-8");
-				//printf("iconv success!");
+				if(utf8)
+				{
+					config.text[sizeof(utf8text)] = 0;
+					strcpy(config.text, utf8text);
+					strcpy(config.encoding, "UTF-8");
+				}
+				else
+				{
+					if(!noconv)
+					{
+						config.textutf8[sizeof(utf8text)] = 0;
+						strcpy(config.textutf8, utf8text);
+					}
+					else
+					{
+						config.textutf8 = config.text;
+					}
+				}
 			}
 
 			int iconv_closed = iconv_close(cd);
@@ -227,21 +248,37 @@ void TitleMain::convert_encoding()
 		}
 
 	}
+	else if(!utf8)
+	{
+		config.textutf8 = config.text;	
+	}
 
 }
 
 // this is a little routine that converts 8 bit string to FT_ULong array // akirad
 void TitleConfig::convert_text()
 {
-
+#ifdef X_HAVE_UTF8_STRING
+int utf8 = 1;
+#else
+int utf8 = 0;
+#endif
 	int total_packages = 0;
 	tlen = 0;
-	int text_len = strlen(text);
+	int text_len;
+	if(utf8) 
+		text_len = strlen(text);
+	else
+		text_len = strlen(textutf8);
 	for(int i = 0;i < text_len;i++)
 	{
 		tlen++;
 		int x = 0;
-		int z = (unsigned char)text[i];
+		int z;
+		if(utf8)
+			z = (unsigned char)text[i];
+		else
+			z = (unsigned char)textutf8[i];
 		if(!(z & 0x80))
 		{
 			x = 0;
@@ -268,7 +305,11 @@ void TitleConfig::convert_text()
 	FcChar32 return_ucs4;
 	for(int i = 0; i < text_len; i++)
 	{
-		int z = (char)text[i];
+		int z;
+		if(utf8)
+			z = (char)text[i];
+		else
+			z = (char)textutf8[i];
 		int x = 0;
 		FcChar8 loadutf8[6];
 		if(!(z & 0x80))
@@ -296,7 +337,12 @@ void TitleConfig::convert_text()
 		if( x > 0 ){
 			//fill array
 			for(int p = 0;p < x;p++)
-				loadutf8[p] = text[i+p];
+			{
+				if(utf8)
+					loadutf8[p] = text[i+p];
+				else
+					loadutf8[p] = textutf8[i+p];
+			}
 			i += (x-1);
 		}else{
 			//fill array
@@ -308,7 +354,6 @@ void TitleConfig::convert_text()
 	}
 
 }
-#endif
 
 FontEntry::FontEntry()
 {
@@ -795,11 +840,7 @@ void TitleEngine::init_packages()
 //printf("TitleEngine::init_packages 1\n");
 		pkg->y = char_position->y - visible_y1;
 //printf("TitleEngine::init_packages 1\n");
-#ifdef X_HAVE_UTF8_STRING
 		pkg->c = plugin->config.ucs4text[i];
-#else
-		pkg->c = plugin->config.text[i];
-#endif
 //printf("TitleEngine::init_packages 2\n");
 		current_package++;
 	}
@@ -1784,7 +1825,7 @@ void TitleMain::build_fonts()
 
 }
 
-//This checks if char_code is on the selected font, else it changes font to the first compatible //Akirad
+//This checks if char_code is on the selected font and changes font with the first compatible //Akirad
 int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 		char *path_new)
 {
@@ -1866,7 +1907,7 @@ int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 	FT_Done_FreeType(temp_freetype_library);
 	temp_freetype_face = 0;
 	temp_freetype_library = 0;
-	delete [] tmpstring;
+	free(tmpstring);
 
 }
 
@@ -1999,9 +2040,12 @@ int TitleMain::get_char_advance(int current, int next)
 void TitleMain::draw_glyphs()
 {
 // Build table of all glyphs needed
-#ifdef X_HAVE_UTF8_STRING
 	int total_packages = 0;
 	// now convert text to FT_Ulong array
+#ifndef X_HAVE_UTF8_STRING
+	//temp conversion to utf8
+	convert_encoding();
+#endif
 	config.convert_text();
 	for(int i = 0; i < config.tlen; i++)
 	{
@@ -2009,43 +2053,7 @@ void TitleMain::draw_glyphs()
 		int c = config.ucs4text[i];
 		int exists = 0;
 		char_code = config.ucs4text[i];
-#else
-	int text_len = strlen(config.text);
-	int total_packages = 0;
-	iconv_t cd;
-	cd = iconv_open ("UCS-4", config.encoding);
-	if (cd == (iconv_t) -1)
-	{
-			/* Something went wrong.  */
-		fprintf (stderr, _("Iconv conversion from %s to Unicode UCS-4 not available\n"),config.encoding);
-	};
 
-	for(int i = 0; i < text_len; i++)
-	{
-		FT_ULong char_code;	
-		int c = config.text[i];
-		int exists = 0;
-		/* if iconv is working ok for current encoding */
-		if (cd != (iconv_t) -1)
-		{
-
-			size_t inbytes,outbytes;
-			char inbuf;
-			char *inp = (char*)&inbuf, *outp = (char *)&char_code;
-			
-			inbuf = (char)c;
-			inbytes = 1;
-			outbytes = 4;
-	
-			iconv (cd, &inp, &inbytes, &outp, &outbytes);
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-				char_code = bswap_32(char_code);
-#endif				/* Big endian. */
-
-		} else {
-			char_code = c;
-		}
-#endif
 		for(int j = 0; j < glyphs.total; j++)
 		{
 			if(glyphs.values[j]->char_code == char_code)
@@ -2066,10 +2074,6 @@ void TitleMain::draw_glyphs()
 			glyph->char_code = char_code;
 		}
 	}
-#ifndef X_HAVE_UTF8_STRING
-	iconv_close(cd);
-#endif
-
 
 	if(!glyph_engine)
 		glyph_engine = new GlyphEngine(this, PluginClient::smp + 1);
@@ -2085,12 +2089,7 @@ void TitleMain::get_total_extents()
 // Determine extents of total text
 	int current_w = 0;
 	int row_start = 0;
-#ifdef X_HAVE_UTF8_STRING
 	text_len = config.tlen;
-#else
-	text_len = strlen(config.text);
-	const char config.ucs4text = config.text;
-#endif
 	if(!char_positions) char_positions = new title_char_position_t[text_len];
 	text_rows = 0;
 	text_w = 0;

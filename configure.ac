@@ -188,6 +188,38 @@ AC_SUBST(XFT_CFLAGS)
 AC_SUBST(XFT_LIBS)
 ############## END XLIB
 
+############# GTK3 - EXPERIMENTAL
+AC_MSG_CHECKING([experimental gtkmm-3.0 support])
+AC_ARG_ENABLE(gtk, AC_HELP_STRING([--enable-gtk],
+	[use gtkmm-3.0 experimental support (default: no)]),
+	[enable_gtk=$enableval], [enable_gtk=no])
+GTK_CFLAGS=""
+GTK_LIBS=""
+if test "x$enable_gtk" = "xyes" ; then
+	
+	found_gtk="no"
+	
+	GTK_CFLAGS=`pkg-config gtkmm-3.0 --cflags 2>/dev/null` && found_gtk="yes"
+	GTK_LIBS=`pkg-config gtkmm-3.0 --libs 2>/dev/null` && found_gtk="yes"
+	AC_MSG_RESULT([$found_gtk])
+	
+	if test "x$found_gtk" = "xno" ; then
+		AC_MSG_WARN([Can't find gtkmm-3.0 configuration, or gtkmm-3.0 is unusable $enable_gtk $found_gtk])
+		enable_gtk="no"
+		GTK_CFLAGS=""
+		GTK_LIBS=""
+	else
+		found_gtk="yes"
+		enable_gtk=ok
+		CXXFLAGS="$GTK_CFLAGS $CXXFLAGS"
+		AH_TEMPLATE(HAVE_GTK, [Define to 1 if gtkmm-3.0 is available.])
+		AC_DEFINE(HAVE_GTK)
+	fi
+fi
+AC_SUBST(GTK_CFLAGS)
+AC_SUBST(GTK_LIBS)
+############## END GTK3
+
 ############## SOUND
 # the sound options are propagated by SOUND_CFLAGS and SOUND_LDFLAGS
 AC_ARG_ENABLE(oss, 
@@ -854,6 +886,11 @@ ORPT(enable_findobject,findobject plugin using OpenCV 2.0,--disable-findobject,
 	RPT(opencv,opencv libraries)
 	RPT(opencvh,opencv headers)
 )
+
+ORPT(enable_gtk,GTK3 EXPERIMENTAL support,--disable-gtk,
+	RPT(found_gtk,gtkmm-3.0 support)
+)
+
 
 if test "x$mandatory" = "xno"; then
 	echo

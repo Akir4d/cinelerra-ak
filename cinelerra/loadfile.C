@@ -19,6 +19,7 @@
  * 
  */
 
+
 #include "assets.h"
 #include "bchash.h"
 #include "edl.h"
@@ -36,8 +37,10 @@
 #include "mwindow.h"
 #include "mwindowgui.h"
 #include "theme.h"
-
-
+#ifdef HAVE_GTK
+#include "gtkwrapper.h"
+#include <libgen.h>
+#endif
 
 #include <string.h>
 
@@ -97,10 +100,95 @@ void LoadFileThread::run()
 	const char *reel_name = 0;
 	int reel_number = 0;
 	int overwrite_reel = 0;
-	
+
 	sprintf(default_path, "~");
 	mwindow->defaults->get("DEFAULT_LOADPATH", default_path);
 	load_mode = mwindow->defaults->get("LOAD_MODE", LOAD_REPLACE);
+#ifdef HAVE_GTK
+	std::vector<std::string> filenames;
+	int loadmodeout;
+	char* path_defaultout;
+	int have_path = 0;
+	int filterin = mwindow->defaults->get("FILTER_MODE", LOAD_REPLACE);
+	int filterout;
+	GtkWrapper *gtkload;
+	result = gtkload->loadfiles_wrapper(filenames,
+			load_mode,
+			loadmodeout,
+			default_path,
+			filterin,
+			filterout);
+
+	// if it's a dir,it's not handled yet, this prevents crash and gets dir name.
+	if(!result)
+	{
+		char dirname_spot[filenames[0].size()];
+		strcpy(dirname_spot, (char*)filenames[0].c_str());
+		struct stat s;
+		if( stat(dirname_spot,&s) == 0 )
+		{
+			if(S_ISDIR(s.st_mode))
+			{
+
+				path_defaultout = new char[strlen(dirname_spot) + 1];
+				strcpy(path_defaultout, dirname_spot);
+				have_path = 1;
+			}
+			else if(S_ISREG(s.st_mode))
+			{
+				dirname(dirname_spot);
+				path_defaultout = new char[strlen(dirname_spot) + 1];
+				strcpy(path_defaultout, dirname_spot);
+				have_path = 1;
+			}
+			else
+			{
+				result = 1;
+			}
+
+		}
+	}
+    if (!result) load_mode = loadmodeout;
+	if ((!result) && (load_mode == LOAD_REPLACE)) {
+		char temp_filename[filenames[0].size()];
+		strcpy(temp_filename, filenames[0].c_str());
+		mwindow->set_filename(temp_filename);
+	}
+
+	if(!result)
+	{
+		char *out_path;
+		int i;
+		int z = filenames.size();
+		for(i = 0; i < z; i++)
+		{
+			char in_path[filenames[i].size()];
+			strcpy(in_path, (char*)filenames[i].c_str());
+
+			int j;
+			for(j = 0; j < path_list.total; j++)
+			{
+				if(!strcmp(in_path, path_list.values[j])) break;
+			}
+
+			if(j == path_list.total)
+			{
+				path_list.append(out_path = new char[strlen(in_path) + 1]);
+				strcpy(out_path, in_path);
+			}
+
+		}
+	}
+
+	mwindow->defaults->update("LOAD_MODE",
+			loadmodeout);
+
+	if(have_path) mwindow->defaults->update("DEFAULT_LOADPATH",
+			path_defaultout);
+
+	mwindow->defaults->update("FILTER_MODE", filterout);
+
+#else
 
 	{
 		LoadFileWindow window(mwindow, this, default_path);
@@ -139,6 +227,7 @@ void LoadFileThread::run()
 		mwindow->defaults->update("LOAD_MODE", 
 			load_mode);
 	}
+#endif
 
 // No file selected
 	if(path_list.total == 0 || result == 1)
@@ -160,7 +249,6 @@ void LoadFileThread::run()
 //		reel_number = atol(rwindow.reel_number->get_text());
 //		overwrite_reel = rwindow.overwrite_reel;
 //	}
-
 	reel_name = "none";
 	reel_number = 0;
 	overwrite_reel = 0;
@@ -182,7 +270,10 @@ void LoadFileThread::run()
 		mwindow->session->changes_made = 0;
 	else
 		mwindow->session->changes_made = 1;
-
+#ifdef HAVE_GTK
+    for(int i = 0; i < filenames.size(); i++) filenames[i].clear();
+    filenames.clear();
+#endif
 	return;
 }
 

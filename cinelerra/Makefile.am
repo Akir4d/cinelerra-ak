@@ -1,5 +1,16 @@
 BUILDDATE=$(shell LC_ALL=C date)
 
+if ENABLE_GTK
+
+MAYBE_GTKSOURCES = \
+        gtkwrapper.C \
+	gtkfilechooser.C
+ 
+MAYBE_GTKNOINSTALLHEADERS = \
+	gtkfilechooser.h
+
+endif
+
 if BUILDINFO_RECOMPILE
 BUILDINFO_NONRC_S=
 
@@ -167,6 +178,7 @@ cinelerra_SOURCES = aattachmentpoint.C \
 		    garbage.C \
 		    gwindow.C \
 		    gwindowgui.C \
+		    $(MAYBE_GTKSOURCES) \
 		    indexfile.C \
 		    indexthread.C \
 		    intauto.C \
@@ -479,6 +491,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 garbage.h \
 		 gwindow.h \
 		 gwindowgui.h \
+		 $(MAYBE_GTKNOINSTALLHEADERS) \
 		 headers.h \
 		 iec61883input.h \
 		 iec61883output.h \
@@ -679,6 +692,7 @@ cinelerra_LDADD = \
 	$(top_builddir)/quicktime/libquicktimehv.la \
 	$(top_builddir)/guicast/libguicast.la \
 	$(top_builddir)/libmpeg3/libmpeg3hv.la \
+	$(GTK_LIBS) \
 	@FFMPEG_LIBS@ \
 	$(XIPH_LIBS) \
 	$(A52DEC_LIBS) \

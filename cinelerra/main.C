@@ -37,11 +37,16 @@
 #include "renderfarmclient.h"
 #include "versioninfo.h"
 
+#include <langinfo.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <locale.h>
+
+#ifdef HAVE_GTK
+#include "gtkwrapper.h"
+#endif
 
 enum
 {
@@ -57,7 +62,7 @@ enum
 
 int main(int argc, char *argv[])
 {
-// handle command line arguments first
+	// handle command line arguments first
 	srand(time(0));
 	ArrayList<char*> filenames;
 	FileSystem fs;
@@ -77,18 +82,13 @@ int main(int argc, char *argv[])
 	bindtextdomain (PACKAGE, LOCALE_DIR);
 	textdomain (PACKAGE);
 	setlocale (LC_MESSAGES, "");
-
-	char *curlocale = setlocale(LC_CTYPE, "");
-	if(curlocale)
-	{
-		char *p;
-		if((p = strchr(curlocale, '.')) &&
-			(!strcasecmp(p, ".utf8") || !strcasecmp(p, ".utf-8")))
-				BC_Resources::locale_utf8 = 1;
-	}
+#ifdef X_HAVE_UTF8_STRING
+	if(setlocale(LC_CTYPE, ""))
+		BC_Resources::locale_utf8 = !strcmp(nl_langinfo(CODESET), "UTF-8");
 	else
-		printf(PROGRAM_NAME ": Could not set locale.\n");
 
+		printf(PROGRAM_NAME ": Could not set locale.\n");
+#endif
 	for(int i = 1; i < argc; i++)
 	{
 		if(!strcmp(argv[i], "-h"))
@@ -263,6 +263,12 @@ PROGRAM_NAME " is free software, covered by the GNU General Public License,\n"
 
 		case DO_GUI:
 		{
+#ifdef HAVE_GTK
+			// This does nothing else that to save argc and argv
+			// for Gtk Wrapper
+			GtkWrapper *gtkwrapper;// = new GtkWrapper;
+			gtkwrapper->init(argc,argv);
+#endif
 			MWindow mwindow;
 			mwindow.create_objects(1, 
 				!filenames.total,

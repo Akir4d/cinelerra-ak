@@ -216,6 +216,7 @@ if test "x$enable_gtk" = "xyes" ; then
 		AC_DEFINE(HAVE_GTK)
 	fi
 fi
+AM_CONDITIONAL(ENABLE_GTK,test "x$enable_gtk" = "xok")
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 ############## END GTK3

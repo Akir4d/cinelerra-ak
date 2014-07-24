@@ -20,12 +20,16 @@
 #include <gtkmm.h>
 #include "gtkwrapper.h"
 #include "gtkfilechooser.h"
-//FixMe dirty joke to make fixed argc, argv and gtk_wrapper
+// Gtk Wrapper has to identify itself as cinelerra and
+// so it has to read argc and argv as main.C does.
+// This solution at this moment is best to prevent
+// random gtk crash and freeze, also remove
+// lot of warning form gtkmm.
+// Dirty job to have fixed link to argc, argv
 #ifndef FIXEDARG
 #define FIXEDARG
 int fixedargc;
 char **fixedargv;
-Glib::RefPtr<Gtk::Application> gtk_wrapper;
 #endif
 
 GtkWrapper::GtkWrapper()
@@ -34,7 +38,6 @@ GtkWrapper::GtkWrapper()
 
 GtkWrapper::~GtkWrapper()
 {
-	if(gtk_wrapper) gtk_wrapper->quit();
 }
 
 void GtkWrapper::init(int argc, char* argv[])
@@ -50,14 +53,19 @@ int GtkWrapper::loadfiles_wrapper(std::vector<std::string> &filenames,
 		int filterin,
 		int &filterout)
 {
-	//Identify application as Cinelerra Main
+	//Init Gtk_wrapper
+	Glib::RefPtr<Gtk::Application> gtk_wrapper;
+
+	//Identify wrapper as cinelerra
 	gtk_wrapper = Gtk::Application::create(fixedargc,fixedargv, "org.cinelerra-cv");
-	//("Cinelerra-",Gio::APPLICATION_FLAGS_NONE);
+
+	// This is an alternative line to not do argc and argv dirty joke
+	//gtk_wrapper = Gtk::Application::create ("cinelerra-cv",Gio::APPLICATION_FLAGS_NONE);
 
 	int returnval = 0;
 	if(gtk_wrapper)
 	{
-		//Because Gtk::Application::create staring with main window, first release it.
+		//Because Gtk::Application::create starting with a main window, first release it.
 		gtk_wrapper->release();
 
 		GtkFileChooserWindow loadwindow;

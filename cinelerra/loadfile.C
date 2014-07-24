@@ -109,7 +109,7 @@ void LoadFileThread::run()
 	int loadmodeout;
 	char* path_defaultout;
 	int have_path = 0;
-	int filterin = mwindow->defaults->get("FILTER_MODE", LOAD_REPLACE);
+	int filterin = mwindow->defaults->get("GTKFILTER_MODE", LOAD_REPLACE);
 	int filterout;
 	GtkWrapper *gtkload;
 	result = gtkload->loadfiles_wrapper(filenames,
@@ -183,10 +183,20 @@ void LoadFileThread::run()
 	mwindow->defaults->update("LOAD_MODE",
 			loadmodeout);
 
-	if(have_path) mwindow->defaults->update("DEFAULT_LOADPATH",
+	if(have_path)
+	{
+		mwindow->defaults->update("DEFAULT_LOADPATH",
 			path_defaultout);
+	}
+	else
+	{
+		mwindow->defaults->update("DEFAULT_LOADPATH",
+				default_path);
+	}
 
-	mwindow->defaults->update("FILTER_MODE", filterout);
+	mwindow->defaults->update("GTKFILTER_MODE", filterout);
+
+	if(result) return;
 
 #else
 
@@ -228,7 +238,6 @@ void LoadFileThread::run()
 			load_mode);
 	}
 #endif
-
 // No file selected
 	if(path_list.total == 0 || result == 1)
 	{
@@ -298,7 +307,7 @@ LoadFileWindow::LoadFileWindow(MWindow *mwindow,
 		mwindow->theme->loadfile_pad)
 {
 	this->thread = thread;
-	this->mwindow = mwindow; 
+	this->mwindow = mwindow;
 }
 
 LoadFileWindow::~LoadFileWindow() 
@@ -436,7 +445,7 @@ LocateFileWindow::LocateFileWindow(MWindow *mwindow,
 		PROGRAM_NAME ": Locate file", 
 		old_filename)
 { 
-	this->mwindow = mwindow; 
+	this->mwindow = mwindow;
 }
 
 LocateFileWindow::~LocateFileWindow()
@@ -610,7 +619,7 @@ int ReelWindow::create_objects()
 	}
 	show_window();
 
-	return 0;	
+	return 0;
 }
 
 int ReelWindow::resize_event(int w, int h)

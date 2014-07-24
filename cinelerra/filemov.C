@@ -1043,12 +1043,6 @@ int FileMOV::read_frame(VFrame *frame)
 //for(int i = 0; i < 10000; i++) frame->get_rows()[0][i] = 0xff;
 			break;
 	}
-	if (result)
-	{
-		eprintf("quicktime_read_frame/quicktime_decode_video failed, result:\n");
-	}
-
-
 
 	return result;
 }

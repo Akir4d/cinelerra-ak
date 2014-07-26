@@ -21,11 +21,18 @@
 
 #include "bcdisplayinfo.h"
 #include "titlewindow.h"
+
 #include <string.h>
 #include <libintl.h>
 #define _(String) gettext(String)
 #define gettext_noop(String) String
-#define N_(String) gettext_noop(String)
+#define N_(String) gettext_noop (String)
+
+
+
+
+
+
 
 
 
@@ -47,62 +54,11 @@ TitleWindow::TitleWindow(TitleMain *client, int x, int y)
 	client->window_w, 
 	client->window_h, 
 	100, 
-	100,
+	100, 
 	1, 
 	0,
 	1)
 { 
-	font_tumbler = 0;
-	justify_title = 0;
-	style_title = 0;
-	size_title = 0;
-	title_y = 0;
-	bottom = 0;
-	size = 0;
-	loop = 0;
-	title_x = 0;
-	dropshadow = 0;
-	motion = 0;
-	dropshadow_title = 0;
-	text = 0;
-	timecode = 0;
-	fade_in = 0;
-	encoding_title = 0;
-	x_title = 0;
-	bold = 0;
-	color_y = 0;
-	speed = 0;
-	center = 0;
-	italic = 0;
-	text_title = 0;
-	timecodeformat = 0;
-	motion_title = 0;
-	fadeout_title = 0;
-	font_title = 0;
-	fadein_title = 0;
-	fade_out = 0;
-	color_button = 0;
-	left = 0;
-	speed_title = 0;
-	top = 0;
-	font = 0;
-	right = 0;
-	color_x = 0;
-	color_y = 0;
-	y_title = 0;
-	color_thread = 0;
-	encoding = 0;
-	mid = 0;
-#ifdef USE_OUTLINE
-	color_stroke_thread = 0;
-	stroke = 0;
-	color_stroke_y = 0;
-	color_stroke_x = 0;
-	stroke_width = 0;
-	color_stroke_button = 0;
-	stroke_width = 0;
-	strokewidth_title = 0;
-#endif
 	this->client = client; 
 }
 
@@ -260,7 +216,7 @@ int TitleWindow::create_objects()
 	add_tool(top = new TitleTop(client, this, x, y + 20));
 	add_tool(mid = new TitleMid(client, this, x, y + 50));
 	add_tool(bottom= new TitleBottom(client, this, x, y + 80));
-
+	
 
 
 	y += 50;
@@ -313,31 +269,28 @@ int TitleWindow::create_objects()
 	color_thread = new TitleColorThread(client, this);
 #ifndef X_HAVE_UTF8_STRING
 	x = 10;
-	y += 20;
+	y += 50;
 	add_tool(encoding_title = new BC_Title(x, y + 3, _("Encoding:")));
 	encoding = new TitleEncoding(client, this, x, y + 20);
 	encoding->create_objects();
 #endif
 #ifdef USE_OUTLINE
-	x -= color_button->get_w();
-	y += 20;
-	add_tool(color_stroke_button = new TitleColorStrokeButton(client,
-		this,
-		x,
-		y + 20));
-	x += color_button->get_w();
-	color_stroke_x = x;
-	color_stroke_y = y + 20;
-	color_stroke_thread = new TitleColorStrokeThread(client, this);
-	y += 40;
-	x -= color_button->get_w();
+	x += 160;
 	add_tool(strokewidth_title = new BC_Title(x, y, _("Outline width:")));
 	stroke_width = new TitleStrokeW(client, 
 		this, 
-		x + strokewidth_title->get_w(),
-		y);
+		x, 
+		y + 20);
 	stroke_width->create_objects();
-	y -= 60;
+
+	x += 210;
+	add_tool(color_stroke_button = new TitleColorStrokeButton(client, 
+		this, 
+		x, 
+		y + 20));
+	color_stroke_x = color_x;
+	color_stroke_y = y + 20;
+	color_stroke_thread = new TitleColorStrokeThread(client, this);
 #endif
 
 
@@ -346,7 +299,7 @@ int TitleWindow::create_objects()
 
 	add_tool(text_title = new BC_Title(x, y + 3, _("Text:")));
 
-	x += 60;
+	x += 100;
 	add_tool(timecode = new TitleTimecode(client, x, y));
 
 
@@ -419,7 +372,7 @@ int TitleWindow::resize_event(int w, int h)
 #endif
 	timecode->reposition_window(timecode->get_x(), timecode->get_y());
 
-	text->reposition_window(text->get_x(),
+	text->reposition_window(text->get_x(), 
 		text->get_y(), 
 		w - text->get_x() - 10,
 		BC_TextBox::pixels_to_rows(this, MEDIUMFONT, h - text->get_y() - 10));
@@ -631,7 +584,6 @@ void TitleSize::update(int size)
 	sprintf(string, "%d", size);
 	BC_PopupTextBox::update(string);
 }
-#ifndef X_HAVE_UTF8_STRING
 TitleEncoding::TitleEncoding(TitleMain *client, TitleWindow *window, int x, int y)
  : BC_PopupTextBox(window, 
 		&window->encodings,
@@ -648,7 +600,6 @@ TitleEncoding::TitleEncoding(TitleMain *client, TitleWindow *window, int x, int 
 TitleEncoding::~TitleEncoding()
 {
 }
-#endif
 int TitleEncoding::handle_event()
 {
 	strcpy(client->config.encoding, get_text());
@@ -667,15 +618,13 @@ int TitleColorButton::handle_event()
 	window->color_thread->start_window(client->config.color, 0);
 	return 1;
 }
-#ifdef USE_OUTLINE
+
 TitleColorStrokeButton::TitleColorStrokeButton(TitleMain *client, TitleWindow *window, int x, int y)
  : BC_GenericButton(x, y, _("Outline color..."))
 {
 	this->client = client;
 	this->window = window;
 }
-#endif
-
 int TitleColorStrokeButton::handle_event()
 {
 #ifdef USE_OUTLINE
@@ -706,7 +655,6 @@ int TitleMotion::handle_event()
 TitleLoop::TitleLoop(TitleMain *client, int x, int y)
  : BC_CheckBox(x, y, client->config.loop, _("Loop"))
 {
-	window = 0;
 	this->client = client;
 }
 int TitleLoop::handle_event()
@@ -719,7 +667,6 @@ int TitleLoop::handle_event()
 TitleTimecode::TitleTimecode(TitleMain *client, int x, int y)
  : BC_CheckBox(x, y, client->config.timecode, _("Stamp timecode"))
 {
-	window = 0;
 	this->client = client;
 }
 int TitleTimecode::handle_event()

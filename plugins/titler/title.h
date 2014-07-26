@@ -361,11 +361,14 @@ public:
 	int get_char_height();
 	void get_total_extents();
 	void clear_glyphs();
-	int check_char_code_path(char *path_old, FT_ULong &char_code,
-						char *path_new);
+	int check_char_code_path(char *path_old,
+				FT_ULong &char_code,
+				char *path_new);
 	int load_freetype_face(FT_Library &freetype_library,
 		FT_Face &freetype_face,
 		char *path);
+
+
 	//backward compatibility
 	void convert_encoding();
 

@@ -22,8 +22,6 @@
 // Originally developed by Heroine Virtual Ltd.
 // Support for multiple encodings, outline (stroke) by 
 // Andraz Tori <Andraz.tori1@guest.arnes.si>
-// UTF-8 and System fonts support added by
-// Paolo Rampino aka Akirad <info at tuttoainternet.it>
 
 
 #include "clip.h"
@@ -92,11 +90,6 @@ TitleConfig::TitleConfig()
 	pixels_per_second = 1.0;
 	timecode = 0;
 	stroke_width = 1.0;
-	ucs4text = 0;
-	textutf8 = 0;
-	tlen = 0;
-	next_keyframe_position = 0;
-	prev_keyframe_position = 0;
 }
 
 // Does not test equivalency but determines if redrawing text is necessary.
@@ -182,20 +175,20 @@ void TitleConfig::interpolate(TitleConfig &prev,
 void TitleMain::convert_encoding()
 {
 #ifdef X_HAVE_UTF8_STRING
-int utf8 = 1;
+	int utf8 = 1;
 #else
-int utf8 = 0;
+	int utf8 = 0;
 #endif
 	if(strcmp(config.encoding,"UTF-8"))
 	{
 		iconv_t cd;
-		char utf8text[sizeof(config.text)*6];
+		char utf8text[sizeof(config.text) * 6];
 		FcChar8 return_utf8;
-		cd = iconv_open("UTF-8",config.encoding);
-		if(cd == (iconv_t)-1)
+		cd = iconv_open("UTF-8", config.encoding);
+		if(cd == (iconv_t) - 1)
 		{
 			// Something went wrong.
-			fprintf(stderr, ("Iconv conversion from %s to UTF-8 not available\n"),config.encoding);
+			fprintf(stderr, ("Iconv conversion from %s to UTF-8 not available\n"), config.encoding);
 		}
 
 		// if iconv is working ok for current encoding
@@ -203,12 +196,12 @@ int utf8 = 0;
 		{
 			char *inbuf = &config.text[0];
 			char *outbuf = &utf8text[0];
-			size_t inbytes = sizeof(config.text) - 1;
-			size_t outbytes = sizeof(config.text)*6 - 1;
+			size_t inbytes = strlen(config.text);
+			size_t outbytes = strlen(config.text) * 6;
 			int noconv = 0;
 
 			do {
-				if(iconv(cd,&inbuf,&inbytes,&outbuf,&outbytes) == (size_t) -1)
+				if(iconv(cd, &inbuf, &inbytes, &outbuf, &outbytes) == (size_t) -1)
 				{
 					printf("iconv failed!\n");
 					noconv = 1;
@@ -221,15 +214,18 @@ int utf8 = 0;
 			{
 				if(utf8)
 				{
-					config.text[sizeof(utf8text)] = 0;
-					strcpy(config.text, utf8text);
+					// Needs rewrite to not use char text[BCTEXTLEN];
+					// I suspect that is a guicast limit, for now all that
+					// I can do is to limit damn, anyway over BCTEXTLEN titler
+					// crashes. //Akirad
+					strncpy(config.text, utf8text, BCTEXTLEN);
 					strcpy(config.encoding, "UTF-8");
 				}
 				else
 				{
 					if(!noconv)
 					{
-						config.textutf8[sizeof(utf8text)] = 0;
+						config.textutf8 = new char[strlen(utf8text) + 1];
 						strcpy(config.textutf8, utf8text);
 					}
 					else
@@ -238,19 +234,13 @@ int utf8 = 0;
 					}
 				}
 			}
-
-			int iconv_closed = iconv_close(cd);
-			if(iconv_closed != 0)
-			{
-				fprintf(stderr,"iconv_close failed: %s\n",strerror(errno));
-			}
-
+			iconv_close(cd);
 		}
 
 	}
 	else if(!utf8)
 	{
-		config.textutf8 = config.text;	
+		config.textutf8 = config.text;
 	}
 
 }
@@ -259,14 +249,14 @@ int utf8 = 0;
 void TitleConfig::convert_text()
 {
 #ifdef X_HAVE_UTF8_STRING
-int utf8 = 1;
+	int utf8 = 1;
 #else
-int utf8 = 0;
+	int utf8 = 0;
 #endif
 	int total_packages = 0;
 	tlen = 0;
 	int text_len;
-	if(utf8) 
+	if(utf8)
 		text_len = strlen(text);
 	else
 		text_len = strlen(textutf8);
@@ -276,65 +266,65 @@ int utf8 = 0;
 		int x = 0;
 		int z;
 		if(utf8)
-			z = (unsigned char)text[i];
+			z = text[i];
 		else
-			z = (unsigned char)textutf8[i];
+			z = textutf8[i];
 		if(!(z & 0x80))
 		{
 			x = 0;
-		}else if(!(z & 0x20))
+		} else if (!(z & 0x20))
 		{
 			x = 1;
-		}else if(!(z & 0x10))
+		} else if (!(z & 0x10))
 		{
 			x = 2;
-		}else if(!(z & 0x08))
+		} else if (!(z & 0x08))
 		{
 			x = 3;
-		}else if(!(z & 0x04))
+		} else if (!(z & 0x04))
 		{
 			x = 4;
-		}else if(!(z & 0x02))
+		} else if (!(z & 0x02))
 		{
 			x = 5;
 		}
 		i += x;
 	}
-	ucs4text = new FT_ULong [tlen+1];
+	if(ucs4text) delete [] ucs4text;
+	ucs4text = new FT_ULong [tlen + 1];
 	int count = 0;
 	FcChar32 return_ucs4;
 	for(int i = 0; i < text_len; i++)
 	{
 		int z;
 		if(utf8)
-			z = (char)text[i];
+			z = text[i];
 		else
-			z = (char)textutf8[i];
+			z = textutf8[i];
 		int x = 0;
 		FcChar8 loadutf8[6];
-		if(!(z & 0x80))
+		if (!(z & 0x80))
 		{
 			x = 0;
-		}else if(!(z & 0x20))
+		} else if (!(z & 0x20))
 		{
 			x = 2;
-		}else if(!(z & 0x10))
+		} else if (!(z & 0x10))
 		{
 			x = 3;
-		}else if(!(z & 0x08))
+		} else if (!(z & 0x08))
 		{
 			x = 4;
-		}else if(!(z & 0x04))
+		} else if (!(z & 0x04))
 		{
 			x = 5;
-		}else if(!(z & 0x02))
+		} else if (!(z & 0x02))
 		{
 			x = 6;
 		}
-		//delete array
-		for(int r = 0;r < 5;r++)
-				loadutf8[r] = 0;
-		if( x > 0 ){
+		//clean array
+		memset(loadutf8, 0, sizeof(loadutf8));
+		if ( x > 0 ) {
 			//fill array
 			for(int p = 0;p < x;p++)
 			{
@@ -343,16 +333,16 @@ int utf8 = 0;
 				else
 					loadutf8[p] = textutf8[i+p];
 			}
-			i += (x-1);
-		}else{
+			i += (x - 1);
+		} else {
 			//fill array
 			loadutf8[0] = z;
+			loadutf8[1] = 0;
 		}
-		FcUtf8ToUcs4(loadutf8,&return_ucs4,6);
+		FcUtf8ToUcs4(loadutf8, &return_ucs4, 6);
 		ucs4text[count] = (FT_ULong)return_ucs4;
 		count++;
 	}
-
 }
 
 FontEntry::FontEntry()
@@ -369,12 +359,6 @@ FontEntry::FontEntry()
 	encoding = 0;
 	fixed_title = 0;
 	fixed_style = 0;
-	pixelsize = 0;
-	avg_width = 0;
-	xres = 0;
-	pointsize = 0;
-	yres = 0;
-
 }
 
 FontEntry::~FontEntry()
@@ -415,16 +399,9 @@ void FontEntry::dump()
 TitleGlyph::TitleGlyph()
 {
 	char_code = 0;
-	c = 0;
+	c=0;
 	data = 0;
 	data_stroke = 0;
-	freetype_index = 0;
-	height = 0;
-	top = 0;
-	width = 0;
-	advance_w = 0;
-	pitch = 0;
-	left = 0;
 }
 
 
@@ -447,7 +424,6 @@ TitleGlyph::~TitleGlyph()
 
 GlyphPackage::GlyphPackage() : LoadPackage()
 {
-	glyph = 0;
 }
 
 GlyphUnit::GlyphUnit(TitleMain *plugin, GlyphEngine *server)
@@ -468,29 +444,25 @@ void GlyphUnit::process_package(LoadPackage *package)
 {
 	GlyphPackage *pkg = (GlyphPackage*)package;
 	TitleGlyph *glyph = pkg->glyph;
+
 	int result = 0;
 
-	int altfont = 0;
-	//if(!freetype_library)
-	if(1)
-	{
-		current_font = plugin->get_font();
-		char new_path[200];
-		plugin->check_char_code_path(current_font->path,
-						glyph->char_code,
-						(char *)new_path);
+	current_font = plugin->get_font();
+	char new_path[512];
+	plugin->check_char_code_path(current_font->path,
+					glyph->char_code,
+					new_path);
 
-		if(plugin->load_freetype_face(freetype_library,
+	if(plugin->load_freetype_face(freetype_library,
 			freetype_face,
 			new_path))
-		{
-			printf(_("GlyphUnit::process_package FT_New_Face failed.\n"));
-			result = 1;
-		}
-		else
-		{
-			FT_Set_Pixel_Sizes(freetype_face, plugin->config.size, 0);
-		}
+	{
+		printf(_("GlyphUnit::process_package FT_New_Face failed.\n"));
+		result = 1;
+	}
+	else
+	{
+		FT_Set_Pixel_Sizes(freetype_face, plugin->config.size, 0);
 	}
 
 	if(!result)
@@ -693,7 +665,7 @@ void GlyphUnit::process_package(LoadPackage *package)
 				&bm);	
 			bm.buffer=glyph->data_stroke->get_data();
 			FT_Outline_Get_Bitmap( freetype_library,
-			&outline,
+           		&outline,
 				&bm);
 			FT_Outline_Done(freetype_library,&outline);
 			FT_Stroker_Done(stroker);
@@ -746,9 +718,6 @@ LoadPackage* GlyphEngine::new_package()
 TitlePackage::TitlePackage()
  : LoadPackage()
 {
-	x = 0;
-	y = 0;
-	c = 0;
 }
 
 
@@ -869,8 +838,6 @@ LoadPackage* TitleEngine::new_package()
 TitleTranslatePackage::TitleTranslatePackage()
  : LoadPackage()
 {
-	y2 = 0;
-	y1 = 0;
 }
 
 
@@ -1137,16 +1104,6 @@ TitleTranslate::TitleTranslate(TitleMain *plugin, int cpus)
 {
 	this->plugin = plugin;
 	x_table = y_table = 0;
-	out_y1 = 0;
-	out_y2 = 0;
-	out_y1_int = 0;
-	out_y2_int = 0;
-	output_h = 0;
-	out_x1 = 0;
-	out_x2 = 0;
-	out_x1_int = 0;
-	out_x2_int = 0;
-	output_w = 0;
 }
 
 TitleTranslate::~TitleTranslate()
@@ -1562,26 +1519,18 @@ void TitleMain::build_fonts()
 			}
 		}
 		pclose(in);
-
-//now starting add fonts from fontconfig
+		//now starting add fonts from fontconfig
 		FcPattern *pat;
 		FcFontSet *fs;
 		FcObjectSet *os;
-		FcChar8 *family,
-			*file,
-			*foundry,
-			*style,
-			*format;
-		int slant,
-			spacing,
-			width,
-			weight;
+		FcChar8 *family, *file, *foundry, *style, *format;
+		int slant, spacing, width, weight;
 		int force_style = 0;
 		int limit_to_trutype = 0; // if you want limit search to TrueType put 1
 		FcConfig *config;
 		FcBool resultfc;
 		int i;
-		char tmpstring[200];
+		char *tmpstring;
 		resultfc = FcInit();
 		config = FcConfigGetCurrent();
 		FcConfigSetRescanInterval(config, 0);
@@ -1605,24 +1554,20 @@ void TitleMain::build_fonts()
 			font = fs->fonts[i];
 			force_style = 0;
 			FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
-			if((!strcmp((char *)format, "TrueType")) || limit_to_trutype) //on this point you can limit font search
+			if((!strcmp((char *)format, "TrueType")) || limit_to_trutype) //at this point you can limit font search
 			{
-				sprintf(tmpstring, "%s", format);
-
 				FontEntry *entry = new FontEntry;
 
 				if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
 				{
-					sprintf(tmpstring, "%s", file);
-					entry->path = new char[strlen(tmpstring) + 1];
-					sprintf(entry->path, "%s", tmpstring);
+					entry->path = new char[strlen((char*)file) + 1];
+					strcpy(entry->path, (char*)file);
 				}
 
 				if(FcPatternGetString(font, FC_FOUNDRY, 0, &foundry) == FcResultMatch)
 				{
-					sprintf(tmpstring, "%s", foundry);
-					entry->foundary = new char[strlen(tmpstring) + 2];
-					strcpy(entry->foundary, tmpstring);
+					entry->foundary = new char[strlen((char*)foundry) + 1];
+					strcpy(entry->foundary, (char*)foundry);
 				}
 
 				if(FcPatternGetInteger(font, FC_WEIGHT, 0, &weight) == FcResultMatch)
@@ -1666,9 +1611,8 @@ void TitleMain::build_fonts()
 
 				if(FcPatternGetString(font, FC_FAMILY, 0, &family) == FcResultMatch)
 				{
-					sprintf(tmpstring, "%s", family);
-					entry->family = new char[strlen(tmpstring) + 2];
-					strcpy(entry->family, tmpstring);
+					entry->family = new char[strlen((char*)family) + 2];
+					strcpy(entry->family, (char*)family);
 				}
 
 				if(FcPatternGetInteger(font, FC_SLANT, 0, &slant) == FcResultMatch)
@@ -1791,35 +1735,37 @@ void TitleMain::build_fonts()
 				// in this way we can shown all available fonts styles.
 				if(force_style)
 				{
+					tmpstring = new char [strlen(entry->family) + strlen((char*)style) + 5];
 					sprintf(tmpstring, "%s (%s)", entry->family, style);
-					entry->fixed_title = new char[strlen(tmpstring) + 1];
+					entry->fixed_title = new char [strlen(tmpstring) + 1];
 					strcpy(entry->fixed_title, tmpstring);
 				}
 				else
 				{
 					if(strcmp(entry->foundary, "unknown"))
 					{
+						tmpstring = new char [strlen(entry->family) + strlen(entry->foundary) + 5];
 						sprintf(tmpstring, "%s (%s)", entry->family, entry->foundary);
 						entry->fixed_title = new char[strlen(tmpstring) + 1];
 						strcpy(entry->fixed_title, tmpstring);
 					}
 					else
 					{
-						sprintf(tmpstring, "%s", entry->family);
-						entry->fixed_title = new char[strlen(tmpstring) + 1];
-						strcpy(entry->fixed_title, tmpstring);
+						entry->fixed_title = new char[strlen(entry->family) + 1];
+						strcpy(entry->fixed_title, entry->family);
 					}
 
 				}
 				fonts->append(entry);
 			}
 		}
+		if(tmpstring) free(tmpstring);
 		if(fs) FcFontSetDestroy(fs);
 		if(freetype_library) FT_Done_FreeType(freetype_library);
 	}
 
 
-//for(int i = 0; i < fonts->total; i++)
+// for(int i = 0; i < fonts->total; i++)
 //	fonts->values[i]->dump();
 
 
@@ -1829,86 +1775,65 @@ void TitleMain::build_fonts()
 int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 		char *path_new)
 {
+	int result = 0;
+	int match_charset = 0;
+	int limit_to_truetype = 1; //if you want to limit search to truetype put 1
+	
+	//Try to open char_set with ft_Library
 	FT_Library temp_freetype_library;
 	FT_Face temp_freetype_face;
-	FcPattern *pat;
-	FcFontSet *fs;
-	FcObjectSet *os;
-	FcChar8 *file, *format;
-	FcConfig *config;
-	FcBool resultfc;
-	int i;
-
-	resultfc = FcInit();
-	config = FcConfigGetCurrent();
-	FcConfigSetRescanInterval(config, 0);
-
-	pat = FcPatternCreate();
-	os = FcObjectSetBuild ( FC_FILE, FC_FONTFORMAT, (char *) 0);
-	fs = FcFontList(config, pat, os);
-	FcPattern *font;
-	int notfindit = 1;
-	int test = 0;
-	char tmpstring[200];
-	int limit_to_truetype = 0; //if you want to limit search to truetype put 1
 	FT_Init_FreeType(&temp_freetype_library);
 	if(!FT_New_Face(temp_freetype_library,
 					path_old,
 					0,
 					&temp_freetype_face))
 	{
-		FT_Set_Pixel_Sizes(temp_freetype_face, 128, 0);
-		int gindex = FT_Get_Char_Index(temp_freetype_face, char_code);
-		if((!gindex == 0) && (!char_code != 10)) test = 1;
+		if(!FT_Get_Char_Index(temp_freetype_face, char_code) == 0) match_charset = 1;
 	}
-	if(!test)
-	{
-	for (i=0; fs && i < fs->nfont; i++)
-	{
-		font = fs->fonts[i];
-		FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
-		if((!strcmp((char *)format, "TrueType")) || limit_to_truetype)
-		{
-		if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
-		{
+	if(temp_freetype_face) FT_Done_Face(temp_freetype_face);
+	FT_Done_FreeType(temp_freetype_library);
 
-			sprintf(tmpstring, "%s", file);
-			if(!FT_New_Face(temp_freetype_library,
-						tmpstring,
-						0,
-						&temp_freetype_face))
+	// If not match call fontconfig
+	if(!match_charset)
+	{
+		FcPattern *pat;
+		FcFontSet *fs;
+		FcObjectSet *os;
+		FcChar8 *file, *format;
+		FcCharSet *fcs;
+		FcConfig *config;
+		FcBool resultfc;
+		resultfc = FcInit();
+		config = FcConfigGetCurrent();
+		FcConfigSetRescanInterval(config, 0);
+		pat = FcPatternCreate();
+		os = FcObjectSetBuild ( FC_FILE, FC_CHARSET, FC_FONTFORMAT, (char *) 0);
+		fs = FcFontList(config, pat, os);
+		FcPattern *font;
+		for (int i = 0; fs && i < fs->nfont; i++)
+		{
+			font = fs->fonts[i];
+			FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
+			if((!strcmp((char *)format, "TrueType")) || limit_to_truetype)
 			{
-				FT_Set_Pixel_Sizes(temp_freetype_face, 128, 0);
-				int gindex = FT_Get_Char_Index(temp_freetype_face, char_code);
-				if((!gindex == 0) && (!char_code != 10))
+				if(FcPatternGetCharSet(font, FC_CHARSET, 0, &fcs) == FcResultMatch)
 				{
-					sprintf(path_new, "%s", tmpstring);
-					if(!temp_freetype_library) FT_Init_FreeType(&temp_freetype_library);
-					if(temp_freetype_face) FT_Done_Face(temp_freetype_face);
-					temp_freetype_face = 0;
-					notfindit = 0;
-					return 0;
-					break;
-
+					if(FcCharSetHasChar (fcs, char_code))
+					{
+						if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
+						{
+							strcpy(path_new, (char*)file);
+							result = 1;
+							break;
+						}
+					}
 				}
 			}
 		}
-		}
+		if(fs) FcFontSetDestroy(fs);
 	}
-	}
-
-	if(notfindit)
-	{
-		sprintf(path_new, "%s", path_old);
-		return 1;
-	}
-	if(fs) FcFontSetDestroy(fs);
-	if(temp_freetype_face) FT_Done_Face(temp_freetype_face);
-	FT_Done_FreeType(temp_freetype_library);
-	temp_freetype_face = 0;
-	temp_freetype_library = 0;
-	free(tmpstring);
-
+	if(match_charset) strcpy(path_new, path_old);
+	return result;
 }
 
 int TitleMain::load_freetype_face(FT_Library &freetype_library,
@@ -2049,11 +1974,10 @@ void TitleMain::draw_glyphs()
 	config.convert_text();
 	for(int i = 0; i < config.tlen; i++)
 	{
-		FT_ULong char_code;
+		FT_ULong char_code;	
 		int c = config.ucs4text[i];
 		int exists = 0;
 		char_code = config.ucs4text[i];
-
 		for(int j = 0; j < glyphs.total; j++)
 		{
 			if(glyphs.values[j]->char_code == char_code)
@@ -2074,6 +1998,7 @@ void TitleMain::draw_glyphs()
 			glyph->char_code = char_code;
 		}
 	}
+
 
 	if(!glyph_engine)
 		glyph_engine = new GlyphEngine(this, PluginClient::smp + 1);
@@ -2471,7 +2396,6 @@ char* TitleMain::motion_to_text(int motion)
 		case RIGHT_TO_LEFT: return _("Right to left"); break;
 		case LEFT_TO_RIGHT: return _("Left to right"); break;
 	}
-	return 0;
 }
 
 int TitleMain::text_to_motion(char *text)
@@ -2702,6 +2626,7 @@ int TitleMain::load_defaults()
 int TitleMain::save_defaults()
 {
 	char text_path[1024];
+
 	defaults->update("FONT", config.font);
 	defaults->update("ENCODING", config.encoding);
 	defaults->update("STYLE", (int64_t)config.style);

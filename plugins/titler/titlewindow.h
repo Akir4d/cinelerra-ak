@@ -27,11 +27,12 @@
 class TitleThread;
 class TitleWindow;
 class TitleInterlace;
+
 #include "colorpicker.h"
 #include "filexml.h"
 #include "mutex.h"
 #include "title.h"
-//#define USE_OUTLINE
+
 
 PLUGIN_THREAD_HEADER(TitleMain, TitleThread, TitleWindow)
 

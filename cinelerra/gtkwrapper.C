@@ -20,17 +20,7 @@
 #include <gtkmm.h>
 #include "gtkwrapper.h"
 #include "gtkfilechooser.h"
-// Gtk Wrapper has to identify itself as cinelerra and
-// so it has to read argc and argv as main.C does.
-// This solution at this moment is best to prevent
-// random gtk crash and freeze, also remove
-// lot of warning form gtkmm.
-// Dirty job to have fixed link to argc, argv
-#ifndef FIXEDARG
-#define FIXEDARG
-int fixedargc;
-char **fixedargv;
-#endif
+#include "arraylist.h"
 
 GtkWrapper::GtkWrapper()
 {
@@ -42,25 +32,24 @@ GtkWrapper::~GtkWrapper()
 
 void GtkWrapper::init(int argc, char* argv[])
 {
-	fixedargc = argc;
-	fixedargv = argv;
 }
 
-int GtkWrapper::loadfiles_wrapper(std::vector<std::string> &filenames,
+int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 		int loadmodein,
 		int &loadmodeout,
 		char* path_defaultin,
+		char* path_defaultout,
 		int filterin,
 		int &filterout)
 {
+	int fakeargc = 1;
+	char **fakeargv;
+	fakeargv = new char*[1];
 	//Init Gtk_wrapper
 	Glib::RefPtr<Gtk::Application> gtk_wrapper;
 
 	//Identify wrapper as cinelerra
-	gtk_wrapper = Gtk::Application::create(fixedargc,fixedargv, "org.cinelerra-cv");
-
-	// This is an alternative line to not do argc and argv dirty joke
-	//gtk_wrapper = Gtk::Application::create ("cinelerra-cv",Gio::APPLICATION_FLAGS_NONE);
+	gtk_wrapper = Gtk::Application::create(fakeargc,fakeargv, "org.cinelerra-cv.gtkwrapper");
 
 	int returnval = 0;
 	if(gtk_wrapper)
@@ -69,30 +58,20 @@ int GtkWrapper::loadfiles_wrapper(std::vector<std::string> &filenames,
 		gtk_wrapper->release();
 
 		GtkFileChooserWindow loadwindow;
-		returnval = loadwindow.loadfiles(filenames,
+		returnval = loadwindow.loadfiles(path_list,
 				loadmodein,
 				loadmodeout,
 				path_defaultin,
+				path_defaultout,
 				filterin,
 				filterout);
 
-		//Now run gui
 		gtk_wrapper->run(loadwindow);
 
-		//if not already exited
-		if(!returnval)
-		{
-			//Be sure that gtk_wrapper exit
-			loadwindow.close();
-			if(gtk_wrapper) gtk_wrapper->release();
+		loadwindow.close();
+		gtk_wrapper->release();
+		gtk_wrapper->quit();
 
-			//Now can quit safely
-			if(gtk_wrapper) gtk_wrapper->quit();
-		}
-		else
-		{
-			returnval = 1;
-		}
 	}
 	return returnval;
 }

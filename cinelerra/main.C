@@ -44,9 +44,6 @@
 
 #include <locale.h>
 
-#ifdef HAVE_GTK
-#include "gtkwrapper.h"
-#endif
 
 enum
 {
@@ -263,12 +260,6 @@ PROGRAM_NAME " is free software, covered by the GNU General Public License,\n"
 
 		case DO_GUI:
 		{
-#ifdef HAVE_GTK
-			// This does nothing else that to save argc and argv
-			// for Gtk Wrapper
-			GtkWrapper *gtkwrapper;// = new GtkWrapper;
-			gtkwrapper->init(argc,argv);
-#endif
 			MWindow mwindow;
 			mwindow.create_objects(1, 
 				!filenames.total,

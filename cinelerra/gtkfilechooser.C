@@ -20,6 +20,7 @@
 
 #include "gtkfilechooser.h"
 #include "loadmode.inc"
+#include <libgen.h>
 
 GtkFileChooserWindow::GtkFileChooserWindow()
 {
@@ -31,14 +32,19 @@ GtkFileChooserWindow::~GtkFileChooserWindow()
 }
 
 
-int GtkFileChooserWindow::loadfiles(std::vector<std::string> &filenames,
+int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 		int loadmodein,
 		int &loadmodeout,
 		char* path_defaultin,
+		char* path_defaultout,
 		int filterin,
 		int &filterout)
 {
-	Gtk::FileChooserDialog dialog("Please choose a file",
+	path_list.set_array_delete();
+	std::vector<std::string> filenames;
+	bool have_path = 0;
+
+	Gtk::FileChooserDialog dialog("Please choose one or more file, then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
 
 	dialog.set_transient_for(*this);
@@ -52,7 +58,6 @@ int GtkFileChooserWindow::loadfiles(std::vector<std::string> &filenames,
 	dialog.add_button("_New Tracks", LOAD_NEW_TRACKS);
 	dialog.add_button("_As Resource", LOAD_RESOURCESONLY);
 	dialog.add_button("_Paste", LOAD_PASTE);
-	//dialog.add_button("_Nothing", LOAD_NOTHING);
 	dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
 
 	dialog.set_default_response(loadmodein);
@@ -83,7 +88,7 @@ int GtkFileChooserWindow::loadfiles(std::vector<std::string> &filenames,
 	filter_any->add_pattern("*");
 	dialog.add_filter(filter_any);
 	dialog.set_current_folder(path_defaultin);
-
+	printf("\n %s \n", path_defaultin);
 	if(filterin == 1) dialog.set_filter(filter_xml);
 	if(filterin == 2) dialog.set_filter(filter_video);
 	if(filterin == 3) dialog.set_filter(filter_audio);
@@ -106,13 +111,57 @@ int GtkFileChooserWindow::loadfiles(std::vector<std::string> &filenames,
 	//Handle the response:
 	filenames = dialog.get_filenames();
 
+	char dirname_spot[filenames[0].size()];
+
+			strcpy(dirname_spot, (char*)filenames[0].c_str());
+			struct stat s;
+			if( stat(dirname_spot, &s) == 0 )
+			{
+				if(S_ISDIR(s.st_mode))
+				{
+					strcpy(path_defaultout, dirname_spot);
+					retval = 1;
+				}
+				else if(S_ISREG(s.st_mode))
+				{
+					dirname(dirname_spot);
+					strcpy(path_defaultout, dirname_spot);
+				}
+				else
+				{
+					retval = 1;
+				}
+
+			}
+
+			char *out_path;
+			int i;
+			int z = filenames.size();
+			for(i = 0; i < z; i++)
+			{
+				char in_path[filenames[i].size()];
+				strcpy(in_path, (char*)filenames[i].c_str());
+
+				int j;
+				for(j = 0; j < path_list.total; j++)
+				{
+					if(!strcmp(in_path, path_list.values[j])) break;
+				}
+
+				if(j == path_list.total)
+				{
+					path_list.append(out_path = new char[strlen(in_path) + 1]);
+					strcpy(out_path, in_path);
+				}
+
+			}
+
 	if(dialog.get_filter() == filter_xml) filterout=1;
 	if(dialog.get_filter() == filter_video) filterout=2;
 	if(dialog.get_filter() == filter_audio) filterout=3;
 	if(dialog.get_filter() == filter_images) filterout=4;
 	if(dialog.get_filter() == filter_any) filterout=5;
 
-	loadmodeout = result;
 	switch(result)
 	{
 	case LOAD_REPLACE:
@@ -121,7 +170,6 @@ int GtkFileChooserWindow::loadfiles(std::vector<std::string> &filenames,
 	case LOAD_NEW_TRACKS:
 	case LOAD_RESOURCESONLY:
 	case LOAD_PASTE:
-	case LOAD_NOTHING:
 	{
 		loadmodeout = result;
 		retval = 0;
@@ -129,7 +177,7 @@ int GtkFileChooserWindow::loadfiles(std::vector<std::string> &filenames,
 	}
 	default:
 	{
-		loadmodeout = LOAD_NOTHING;
+		loadmodeout = loadmodein;
 		retval = 1;
 		break;
 	}

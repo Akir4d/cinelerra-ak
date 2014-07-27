@@ -21,16 +21,18 @@
 #ifndef GTKMM_GTKFILECHOOSERWINDOW_H
 #define GTKMM_GTKFILECHOOSERWINDOW_H
 #include <gtkmm.h>
+#include "arraylist.h"
 
 class GtkFileChooserWindow : public Gtk::Window
 {
 public:
   GtkFileChooserWindow();
   virtual ~GtkFileChooserWindow();
-  	  	int loadfiles(std::vector<std::string> &filenames,
+  	  	int loadfiles(ArrayList<char*> &path_list,
   	  				int loadmodein,
   	  				int &loadmodeout,
 					char* path_defaultin,
+					char* path_defaultout,
   	  				int filterin,
   	  				int &filterout);
   	  	void start_file_chooser();

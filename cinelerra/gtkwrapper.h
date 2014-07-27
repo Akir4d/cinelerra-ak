@@ -20,8 +20,7 @@
 
 #ifndef GTKMM_GTKWRAPPER_H
 #define GTKMM_GTKWRAPPER_H
-#include <vector>
-#include <string>
+#include "arraylist.h"
 class GtkWrapper
 {
 public:
@@ -29,10 +28,11 @@ public:
 	~GtkWrapper();
 		
 	void init(int argc, char* argv[]);
-	int loadfiles_wrapper(std::vector<std::string> &filenames,
+	int loadfiles_wrapper(ArrayList<char*> &path_list,
 			  	  	 int loadmodein,
 			  	  	 int &loadmodeout,
 					 char* path_defaultin,
+					 char* path_defaultout,
 			  	  	 int filterin,
 			  	  	 int &filterout);
 };

@@ -22,6 +22,9 @@
 // Originally developed by Heroine Virtual Ltd.
 // Support for multiple encodings, outline (stroke) by 
 // Andraz Tori <Andraz.tori1@guest.arnes.si>
+// Added UTF8 support, automatic conversion to utf8, system fonts
+// collect, automatic search for missing glyph by
+// Paolo Rampino <akir4d at gmail.com>
 
 
 #include "clip.h"
@@ -90,6 +93,14 @@ TitleConfig::TitleConfig()
 	pixels_per_second = 1.0;
 	timecode = 0;
 	stroke_width = 1.0;
+	ucs4text = 0;
+	textutf8 = 0;
+}
+
+TitleConfig::~TitleConfig()
+{
+	delete [] ucs4text;
+	delete [] textutf8;
 }
 
 // Does not test equivalency but determines if redrawing text is necessary.
@@ -182,7 +193,7 @@ void TitleMain::convert_encoding()
 	if(strcmp(config.encoding,"UTF-8"))
 	{
 		iconv_t cd;
-		char utf8text[sizeof(config.text) * 6];
+		char utf8text[sizeof(config.text) * 3];
 		FcChar8 return_utf8;
 		cd = iconv_open("UTF-8", config.encoding);
 		if(cd == (iconv_t) - 1)
@@ -197,34 +208,33 @@ void TitleMain::convert_encoding()
 			char *inbuf = &config.text[0];
 			char *outbuf = &utf8text[0];
 			size_t inbytes = strlen(config.text);
-			size_t outbytes = strlen(config.text) * 6;
-			int noconv = 0;
+			size_t outbytes = strlen(config.text) * 3;
+			int conv = 1;
 
 			do {
 				if(iconv(cd, &inbuf, &inbytes, &outbuf, &outbytes) == (size_t) -1)
 				{
-					printf("iconv failed!\n");
-					noconv = 1;
+					conv = 0;
 					break;
 				}
 			} while (inbytes > 0 && outbytes > 0);
 
-			outbytes = 0;
-			if(!noconv || utf8)
+			if(!conv || utf8)
 			{
 				if(utf8)
 				{
 					// Needs rewrite to not use char text[BCTEXTLEN];
-					// I suspect that is a guicast limit, for now all that
-					// I can do is to limit damn, anyway over BCTEXTLEN titler
+					// I suspect that it's a guicast limit, for now all that
+					// I can do it's to limit damn, anyway over BCTEXTLEN titler
 					// crashes. //Akirad
 					strncpy(config.text, utf8text, BCTEXTLEN);
 					strcpy(config.encoding, "UTF-8");
 				}
 				else
 				{
-					if(!noconv)
+					if(!conv)
 					{
+						if(config.textutf8) delete [] config.textutf8;
 						config.textutf8 = new char[strlen(utf8text) + 1];
 						strcpy(config.textutf8, utf8text);
 					}
@@ -236,7 +246,7 @@ void TitleMain::convert_encoding()
 			}
 			iconv_close(cd);
 		}
-
+		if(config.textutf8) delete [] config.textutf8;
 	}
 	else if(!utf8)
 	{
@@ -444,11 +454,10 @@ void GlyphUnit::process_package(LoadPackage *package)
 {
 	GlyphPackage *pkg = (GlyphPackage*)package;
 	TitleGlyph *glyph = pkg->glyph;
-
 	int result = 0;
+	char new_path[1024];
 
 	current_font = plugin->get_font();
-	char new_path[512];
 	plugin->check_char_code_path(current_font->path,
 					glyph->char_code,
 					new_path);
@@ -1519,18 +1528,26 @@ void TitleMain::build_fonts()
 			}
 		}
 		pclose(in);
-		//now starting add fonts from fontconfig
+
+//now starting add fonts from fontconfig
 		FcPattern *pat;
 		FcFontSet *fs;
 		FcObjectSet *os;
-		FcChar8 *family, *file, *foundry, *style, *format;
-		int slant, spacing, width, weight;
+		FcChar8 *family,
+			*file,
+			*foundry,
+			*style,
+			*format;
+		int slant,
+			spacing,
+			width,
+			weight;
 		int force_style = 0;
 		int limit_to_trutype = 0; // if you want limit search to TrueType put 1
 		FcConfig *config;
 		FcBool resultfc;
 		int i;
-		char *tmpstring;
+		char tmpstring[1024];
 		resultfc = FcInit();
 		config = FcConfigGetCurrent();
 		FcConfigSetRescanInterval(config, 0);
@@ -1554,20 +1571,23 @@ void TitleMain::build_fonts()
 			font = fs->fonts[i];
 			force_style = 0;
 			FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
-			if((!strcmp((char *)format, "TrueType")) || limit_to_trutype) //at this point you can limit font search
+			if((!strcmp((char *)format, "TrueType")) || limit_to_trutype) //on this point you can limit font search
 			{
+
 				FontEntry *entry = new FontEntry;
 
 				if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
 				{
-					entry->path = new char[strlen((char*)file) + 1];
-					strcpy(entry->path, (char*)file);
+					strcpy(tmpstring, (char*)file);
+					entry->path = new char[strlen(tmpstring) + 1];
+					strcpy(entry->path, tmpstring);
 				}
 
 				if(FcPatternGetString(font, FC_FOUNDRY, 0, &foundry) == FcResultMatch)
 				{
-					entry->foundary = new char[strlen((char*)foundry) + 1];
-					strcpy(entry->foundary, (char*)foundry);
+					strcpy(tmpstring, (char*)foundry);
+					entry->foundary = new char[strlen(tmpstring) + 1];
+					strcpy(entry->foundary, tmpstring);
 				}
 
 				if(FcPatternGetInteger(font, FC_WEIGHT, 0, &weight) == FcResultMatch)
@@ -1611,8 +1631,9 @@ void TitleMain::build_fonts()
 
 				if(FcPatternGetString(font, FC_FAMILY, 0, &family) == FcResultMatch)
 				{
-					entry->family = new char[strlen((char*)family) + 2];
-					strcpy(entry->family, (char*)family);
+					strcpy(tmpstring, (char*)family);
+					entry->family = new char[strlen(tmpstring) + 1];
+					strcpy(entry->family, tmpstring);
 				}
 
 				if(FcPatternGetInteger(font, FC_SLANT, 0, &slant) == FcResultMatch)
@@ -1642,13 +1663,13 @@ void TitleMain::build_fonts()
 					switch(width)
 					{
 						case FC_WIDTH_ULTRACONDENSED:
-							entry->swidth = new char[strlen("ultracondensed") + 1];
-							strcpy(entry->swidth, "ultracondensed");
+							entry->swidth = new char[strlen("ultra condensed") + 1];
+							strcpy(entry->swidth, "ultra condensed");
 							break;
 
 						case FC_WIDTH_EXTRACONDENSED:
-							entry->swidth = new char[strlen("extracondensed") + 1];
-							strcpy(entry->swidth, "extracondensed");
+							entry->swidth = new char[strlen("extra condensed") + 1];
+							strcpy(entry->swidth, "extra condensed");
 							break;
 
 						case FC_WIDTH_CONDENSED:
@@ -1656,8 +1677,8 @@ void TitleMain::build_fonts()
 							strcpy(entry->swidth, "condensed");
 							break;
 						case FC_WIDTH_SEMICONDENSED:
-							entry->swidth = new char[strlen("semicondensed") + 1];
-							strcpy(entry->swidth, "semicondensed");
+							entry->swidth = new char[strlen("semi condensed") + 1];
+							strcpy(entry->swidth, "semi condensed");
 							break;
 
 						case FC_WIDTH_NORMAL:
@@ -1667,8 +1688,8 @@ void TitleMain::build_fonts()
 							break;
 
 						case FC_WIDTH_SEMIEXPANDED:
-							entry->swidth = new char[strlen("semiexpanded") + 1];
-							strcpy(entry->swidth, "semiexpanded");
+							entry->swidth = new char[strlen("semi expanded") + 1];
+							strcpy(entry->swidth, "semi expanded");
 							break;
 
 						case FC_WIDTH_EXPANDED:
@@ -1677,13 +1698,13 @@ void TitleMain::build_fonts()
 							break;
 
 						case FC_WIDTH_EXTRAEXPANDED:
-							entry->swidth = new char[strlen("extraexpanded") + 1];
-							strcpy(entry->swidth, "extraexpanded");
+							entry->swidth = new char[strlen("extra expanded") + 1];
+							strcpy(entry->swidth, "extra expanded");
 							break;
 
 						case FC_WIDTH_ULTRAEXPANDED:
-							entry->swidth = new char[strlen("ultraexpanded") + 1];
-							strcpy(entry->swidth, "ultraexpanded");
+							entry->swidth = new char[strlen("ultra expanded") + 1];
+							strcpy(entry->swidth, "ultra expanded");
 							break;
 					}
 				}
@@ -1735,33 +1756,31 @@ void TitleMain::build_fonts()
 				// in this way we can shown all available fonts styles.
 				if(force_style)
 				{
-					tmpstring = new char [strlen(entry->family) + strlen((char*)style) + 5];
 					sprintf(tmpstring, "%s (%s)", entry->family, style);
-					entry->fixed_title = new char [strlen(tmpstring) + 1];
+					entry->fixed_title = new char[strlen(tmpstring) + 1];
 					strcpy(entry->fixed_title, tmpstring);
 				}
 				else
 				{
 					if(strcmp(entry->foundary, "unknown"))
 					{
-						tmpstring = new char [strlen(entry->family) + strlen(entry->foundary) + 5];
 						sprintf(tmpstring, "%s (%s)", entry->family, entry->foundary);
 						entry->fixed_title = new char[strlen(tmpstring) + 1];
 						strcpy(entry->fixed_title, tmpstring);
 					}
 					else
 					{
-						entry->fixed_title = new char[strlen(entry->family) + 1];
-						strcpy(entry->fixed_title, entry->family);
+						strcpy(tmpstring, (char*)entry->family);
+						entry->fixed_title = new char[strlen(tmpstring) + 1];
+						strcpy(entry->fixed_title, tmpstring);
 					}
 
 				}
 				fonts->append(entry);
 			}
 		}
-		if(tmpstring) free(tmpstring);
 		if(fs) FcFontSetDestroy(fs);
-		if(freetype_library) FT_Done_FreeType(freetype_library);
+		FT_Done_FreeType(freetype_library);
 	}
 
 
@@ -1777,8 +1796,8 @@ int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 {
 	int result = 0;
 	int match_charset = 0;
-	int limit_to_truetype = 1; //if you want to limit search to truetype put 1
-	
+	int limit_to_truetype = 0; //if you want to limit search to truetype put 1
+
 	//Try to open char_set with ft_Library
 	FT_Library temp_freetype_library;
 	FT_Face temp_freetype_face;
@@ -1803,6 +1822,7 @@ int TitleMain::check_char_code_path(char *path_old, FT_ULong &char_code,
 		FcCharSet *fcs;
 		FcConfig *config;
 		FcBool resultfc;
+
 		resultfc = FcInit();
 		config = FcConfigGetCurrent();
 		FcConfigSetRescanInterval(config, 0);

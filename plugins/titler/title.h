@@ -89,6 +89,7 @@ class TitleConfig
 {
 public:
 	TitleConfig();
+	~TitleConfig();
 
 // Only used to clear glyphs
 	int equivalent(TitleConfig &that);
@@ -367,7 +368,6 @@ public:
 	int load_freetype_face(FT_Library &freetype_library,
 		FT_Face &freetype_face,
 		char *path);
-
 
 	//backward compatibility
 	void convert_encoding();

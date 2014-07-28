@@ -23,7 +23,7 @@
 #include <gtkmm.h>
 #include "arraylist.h"
 
-class GtkFileChooserWindow : public Gtk::Window
+class GtkFileChooserWindow : public Gtk::Dialog
 {
 public:
   GtkFileChooserWindow();
@@ -36,8 +36,10 @@ public:
   	  				int filterin,
   	  				int &filterout);
   	  	void start_file_chooser();
+  	  	Gtk::Image preview;
+  	  Gtk::FileChooser *pdialog;
   	  	//FixMe preview
-  	  	void update_preview_cb(Gtk::FileChooserDialog pdialog, Gtk::Image preview);
+  	  	void update_preview_cb();
 };
 
 #endif //GTKMM_GTKFILECHOOSERWINDOW_H

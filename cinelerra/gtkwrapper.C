@@ -67,8 +67,6 @@ int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 				filterout);
 
 		gtk_wrapper->run(loadwindow);
-
-		loadwindow.close();
 		gtk_wrapper->release();
 		gtk_wrapper->quit();
 

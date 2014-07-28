@@ -46,9 +46,8 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 
 	Gtk::FileChooserDialog dialog("Please choose one or more file, then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
-
-	dialog.set_transient_for(*this);
-
+	//dialog.set_transient_for(*this);
+	//pri = &dialog;
 	int retval = 1;
 
 	//Add response buttons the the dialog:
@@ -99,12 +98,11 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 
 	dialog.set_select_multiple(1);
 	std::string path = dialog.get_current_folder();
-/*FixMe preview
-	Gtk::Image preview;
-
+	pdialog = &dialog;
 	dialog.set_preview_widget(preview);
-	g_signal_connect(GTK_DIALOG((&dialog)), "update_preview", G_CALLBACK(update_preview_cb), GTK_IMAGE((&preview)));
-*/
+	dialog.signal_update_preview().connect(sigc::mem_fun(*this,
+							&GtkFileChooserWindow::update_preview_cb));
+
 	//Show the dialog and wait for a user response:
 	int result = dialog.run();
 
@@ -185,23 +183,26 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 	return retval;
 }
 
-/*
-void GtkFileChooserWindow::update_preview_cb(Gtk::FileChooserDialog dialog, Gtk::Image preview)
+
+void GtkFileChooserWindow::update_preview_cb()
 {
 	const char* filename;
 	Glib::RefPtr<Gdk::Pixbuf> pixbuf;
 	gboolean have_preview;
 
-	std::string cast = dialog.get_preview_filename();
+	pixbuf.clear();
+	preview.clear();
+
+	std::string cast = pdialog->get_preview_filename();
 
 	filename = cast.c_str();
 
-	pixbuf = Gdk::Pixbuf::create_from_file(filename, 200, 300, NULL);
-	//have_preview = (pixbuf != NULL);
+	pixbuf = Gdk::Pixbuf::create_from_file(filename, 300, 300, true);
+	have_preview = pixbuf.operator bool() != NULL;
 
 	preview.set(pixbuf);
 
-	dialog.set_preview_widget_active(have_preview);
+	pdialog->set_preview_widget_active(have_preview);
 
 }
-*/
+

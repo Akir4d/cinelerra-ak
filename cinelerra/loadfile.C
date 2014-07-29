@@ -104,22 +104,14 @@ void LoadFileThread::run()
 	mwindow->defaults->get("DEFAULT_LOADPATH", default_path);
 	load_mode = mwindow->defaults->get("LOAD_MODE", LOAD_REPLACE);
 #ifdef HAVE_GTK
-	int loadmodeout;
-	char path_defaultout[BCTEXTLEN];
 	int have_path = 0;
-	int filterin = mwindow->defaults->get("GTKFILTER_MODE", LOAD_REPLACE);
-	int filterout;
+	int filter = mwindow->defaults->get("GTKFILTER_MODE", LOAD_REPLACE);
 	GtkWrapper *gtkload;
 	result = gtkload->loadfiles_wrapper(path_list,
 			load_mode,
-			loadmodeout,
 			default_path,
-			path_defaultout,
-			filterin,
-			filterout);
+			filter);
 
-
-    if (!result) load_mode = loadmodeout;
 
 	if ((!result) && (load_mode == LOAD_REPLACE)) {
 		char temp_filename[strlen(path_list.values[0]) + 1];
@@ -128,12 +120,12 @@ void LoadFileThread::run()
 	}
 
 	mwindow->defaults->update("LOAD_MODE",
-			loadmodeout);
+			load_mode);
 
 	mwindow->defaults->update("DEFAULT_LOADPATH",
-			path_defaultout);
+			default_path);
 
-	mwindow->defaults->update("GTKFILTER_MODE", filterout);
+	mwindow->defaults->update("GTKFILTER_MODE", filter);
 
 	if(result) return;
 

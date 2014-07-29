@@ -33,12 +33,9 @@ GtkFileChooserWindow::~GtkFileChooserWindow()
 
 
 int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
-		int loadmodein,
-		int &loadmodeout,
-		char* path_defaultin,
-		char* path_defaultout,
-		int filterin,
-		int &filterout)
+		int &load_mode,
+		char *default_path,
+		int &filter)
 {
 	path_list.set_array_delete();
 	std::vector<std::string> filenames;
@@ -59,7 +56,7 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 	dialog.add_button("_Paste", LOAD_PASTE);
 	dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
 
-	dialog.set_default_response(loadmodein);
+	dialog.set_default_response(load_mode);
 	//Add filters, so that only certain file types can be selected:
 
 	Glib::RefPtr<Gtk::FileFilter> filter_xml = Gtk::FileFilter::create();
@@ -86,13 +83,13 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 	filter_any->set_name("Any files");
 	filter_any->add_pattern("*");
 	dialog.add_filter(filter_any);
-	dialog.set_current_folder(path_defaultin);
-	printf("\n %s \n", path_defaultin);
-	if(filterin == 1) dialog.set_filter(filter_xml);
-	if(filterin == 2) dialog.set_filter(filter_video);
-	if(filterin == 3) dialog.set_filter(filter_audio);
-	if(filterin == 4) dialog.set_filter(filter_images);
-	if(filterin == 5) dialog.set_filter(filter_any);
+	dialog.set_current_folder(default_path);
+	printf("\n %s \n", default_path);
+	if(filter == 1) dialog.set_filter(filter_xml);
+	if(filter == 2) dialog.set_filter(filter_video);
+	if(filter == 3) dialog.set_filter(filter_audio);
+	if(filter == 4) dialog.set_filter(filter_images);
+	if(filter == 5) dialog.set_filter(filter_any);
 
 	dialog.resize_to_geometry(400,400);
 
@@ -117,13 +114,13 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 			{
 				if(S_ISDIR(s.st_mode))
 				{
-					strcpy(path_defaultout, dirname_spot);
+					strcpy(default_path, dirname_spot);
 					retval = 1;
 				}
 				else if(S_ISREG(s.st_mode))
 				{
 					dirname(dirname_spot);
-					strcpy(path_defaultout, dirname_spot);
+					strcpy(default_path, dirname_spot);
 				}
 				else
 				{
@@ -154,11 +151,11 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 
 			}
 
-	if(dialog.get_filter() == filter_xml) filterout=1;
-	if(dialog.get_filter() == filter_video) filterout=2;
-	if(dialog.get_filter() == filter_audio) filterout=3;
-	if(dialog.get_filter() == filter_images) filterout=4;
-	if(dialog.get_filter() == filter_any) filterout=5;
+	if(dialog.get_filter() == filter_xml) filter=1;
+	if(dialog.get_filter() == filter_video) filter=2;
+	if(dialog.get_filter() == filter_audio) filter=3;
+	if(dialog.get_filter() == filter_images) filter=4;
+	if(dialog.get_filter() == filter_any) filter=5;
 
 	switch(result)
 	{
@@ -169,13 +166,12 @@ int GtkFileChooserWindow::loadfiles(ArrayList<char*> &path_list,
 	case LOAD_RESOURCESONLY:
 	case LOAD_PASTE:
 	{
-		loadmodeout = result;
+		load_mode = result;
 		retval = 0;
 		break;
 	}
 	default:
 	{
-		loadmodeout = loadmodein;
 		retval = 1;
 		break;
 	}
@@ -198,7 +194,7 @@ void GtkFileChooserWindow::update_preview_cb()
 	filename = cast.c_str();
 
 	pixbuf = Gdk::Pixbuf::create_from_file(filename, 300, 300, true);
-	have_preview = pixbuf.operator bool() != NULL;
+	have_preview = pixbuf.operator bool();
 
 	preview.set(pixbuf);
 

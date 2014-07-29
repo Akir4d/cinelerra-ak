@@ -35,12 +35,9 @@ void GtkWrapper::init(int argc, char* argv[])
 }
 
 int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
-		int loadmodein,
-		int &loadmodeout,
-		char* path_defaultin,
-		char* path_defaultout,
-		int filterin,
-		int &filterout)
+		int &load_mode,
+		char *default_path,
+		int &filter)
 {
 	int fakeargc = 1;
 	char **fakeargv;
@@ -59,12 +56,9 @@ int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 
 		GtkFileChooserWindow loadwindow;
 		returnval = loadwindow.loadfiles(path_list,
-				loadmodein,
-				loadmodeout,
-				path_defaultin,
-				path_defaultout,
-				filterin,
-				filterout);
+				load_mode,
+				default_path,
+				filter);
 
 		gtk_wrapper->run(loadwindow);
 		gtk_wrapper->release();

@@ -29,12 +29,9 @@ public:
   GtkFileChooserWindow();
   virtual ~GtkFileChooserWindow();
   	  	int loadfiles(ArrayList<char*> &path_list,
-  	  				int loadmodein,
-  	  				int &loadmodeout,
-					char* path_defaultin,
-					char* path_defaultout,
-  	  				int filterin,
-  	  				int &filterout);
+  	  				int &load_mode,
+					char *default_path,
+  	  				int &filter);
   	  	void start_file_chooser();
   	  	Gtk::Image preview;
   	  Gtk::FileChooser *pdialog;

@@ -29,11 +29,8 @@ public:
 		
 	void init(int argc, char* argv[]);
 	int loadfiles_wrapper(ArrayList<char*> &path_list,
-			  	  	 int loadmodein,
-			  	  	 int &loadmodeout,
-					 char* path_defaultin,
-					 char* path_defaultout,
-			  	  	 int filterin,
-			  	  	 int &filterout);
+			  	  	 int &load_mode,
+					 char *default_path,
+			  	  	 int &filter);
 };
 #endif

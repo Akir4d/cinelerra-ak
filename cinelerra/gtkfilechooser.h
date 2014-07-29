@@ -23,20 +23,33 @@
 #include <gtkmm.h>
 #include "arraylist.h"
 
-class GtkFileChooserWindow : public Gtk::Dialog
+class GtkFileChooserMain
 {
 public:
-  GtkFileChooserWindow();
-  virtual ~GtkFileChooserWindow();
+  GtkFileChooserMain();
+  ~GtkFileChooserMain();
   	  	int loadfiles(ArrayList<char*> &path_list,
   	  				int &load_mode,
 					char *default_path,
   	  				int &filter);
   	  	void start_file_chooser();
-  	  	Gtk::Image preview;
-  	  Gtk::FileChooser *pdialog;
-  	  	//FixMe preview
-  	  	void update_preview_cb();
+private:
+  	  Glib::RefPtr<Gtk::Application> gtk_wrapper;
+
+
+};
+
+class GtkFileChooserGui : public Gtk::Window
+{
+public:
+	GtkFileChooserGui();
+	~GtkFileChooserGui();
+	void do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &download_mode, int &filter, int &result);
+private:
+	 Gtk::Image preview;
+	 Gtk::FileChooser *pdialog;
+	 void update_preview_cb();
+
 };
 
 #endif //GTKMM_GTKFILECHOOSERWINDOW_H

@@ -29,14 +29,14 @@
 #include "indexfile.h"
 #include "language.h"
 #include "loadfile.h"
-#include "loadmode.h"
+//#include "loadmode.h"
 #include "localsession.h"
 #include "mainmenu.h"
 #include "mainundo.h"
 #include "mainsession.h"
 #include "mwindow.h"
 #include "mwindowgui.h"
-#include "theme.h"
+//#include "theme.h"
 #ifdef HAVE_GTK
 #include "gtkwrapper.h"
 #endif
@@ -91,8 +91,10 @@ LoadFileThread::~LoadFileThread()
 void LoadFileThread::run()
 {
 	int result;
+#ifndef HAVE_GTK
 	ArrayList<BC_ListBoxItem*> *dirlist;
 	FileSystem fs;
+#endif
 	ArrayList<char*> path_list;
 	path_list.set_array_delete();
 	char default_path[BCTEXTLEN];
@@ -111,7 +113,6 @@ void LoadFileThread::run()
 			load_mode,
 			default_path,
 			filter);
-
 
 	if ((!result) && (load_mode == LOAD_REPLACE)) {
 		char temp_filename[strlen(path_list.values[0]) + 1];
@@ -219,7 +220,7 @@ void LoadFileThread::run()
 
 
 
-
+#ifndef HAVE_GTK
 LoadFileWindow::LoadFileWindow(MWindow *mwindow, 
 	LoadFileThread *thread,
 	char *init_directory)
@@ -264,7 +265,7 @@ int LoadFileWindow::resize_event(int w, int h)
 
 	return BC_FileBox::resize_event(w, h);
 }
-
+#endif
 
 
 
@@ -372,7 +373,9 @@ LocateFileWindow::LocateFileWindow(MWindow *mwindow,
 		PROGRAM_NAME ": Locate file", 
 		old_filename)
 { 
+#ifndef HAVE_GTK
 	this->mwindow = mwindow;
+#endif
 }
 
 LocateFileWindow::~LocateFileWindow()

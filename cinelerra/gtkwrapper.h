@@ -21,13 +21,13 @@
 #ifndef GTKMM_GTKWRAPPER_H
 #define GTKMM_GTKWRAPPER_H
 #include "arraylist.h"
+
 class GtkWrapper
 {
 public:
 	GtkWrapper();
 	~GtkWrapper();
-		
-	void init(int argc, char* argv[]);
+
 	int loadfiles_wrapper(ArrayList<char*> &path_list,
 			  	  	 int &load_mode,
 					 char *default_path,

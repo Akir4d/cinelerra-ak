@@ -17,10 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-#include <gtkmm.h>
+
 #include "gtkwrapper.h"
 #include "gtkfilechooser.h"
-#include "arraylist.h"
 
 GtkWrapper::GtkWrapper()
 {
@@ -30,40 +29,18 @@ GtkWrapper::~GtkWrapper()
 {
 }
 
-void GtkWrapper::init(int argc, char* argv[])
-{
-}
-
 int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 		int &load_mode,
 		char *default_path,
 		int &filter)
 {
-	int fakeargc = 1;
-	char **fakeargv;
-	fakeargv = new char*[1];
-	//Init Gtk_wrapper
-	Glib::RefPtr<Gtk::Application> gtk_wrapper;
-
-	//Identify wrapper as cinelerra
-	gtk_wrapper = Gtk::Application::create(fakeargc,fakeargv, "org.cinelerra-cv.gtkwrapper");
 
 	int returnval = 0;
-	if(gtk_wrapper)
-	{
-		//Because Gtk::Application::create starting with a main window, first release it.
-		gtk_wrapper->release();
-
-		GtkFileChooserWindow loadwindow;
-		returnval = loadwindow.loadfiles(path_list,
+	GtkFileChooserMain loadwindow;
+	returnval = loadwindow.loadfiles(path_list,
 				load_mode,
 				default_path,
 				filter);
 
-		gtk_wrapper->run(loadwindow);
-		gtk_wrapper->release();
-		gtk_wrapper->quit();
-
-	}
 	return returnval;
 }

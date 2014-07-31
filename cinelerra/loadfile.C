@@ -29,14 +29,14 @@
 #include "indexfile.h"
 #include "language.h"
 #include "loadfile.h"
-//#include "loadmode.h"
+#include "loadmode.h"
 #include "localsession.h"
 #include "mainmenu.h"
 #include "mainundo.h"
 #include "mainsession.h"
 #include "mwindow.h"
 #include "mwindowgui.h"
-//#include "theme.h"
+#include "theme.h"
 #ifdef HAVE_GTK
 #include "gtkwrapper.h"
 #endif

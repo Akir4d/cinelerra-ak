@@ -37,9 +37,7 @@ GtkFileChooserMain::~GtkFileChooserMain()
 {
 	// Yes, the way to exit gtk3 is an hack.
 	Gtk::Window dummy;
-	gtk_wrapper->release();
-	gtk_wrapper->run(dummy);
-	gtk_wrapper->release();
+	dummy.show();
 	gtk_wrapper->quit();
 }
 
@@ -112,6 +110,7 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 		dialog.set_preview_widget(preview);
 		dialog.signal_update_preview().connect(sigc::mem_fun(*this,
 								&GtkFileChooserGui::update_preview_cb));
+		dialog.signal_hide().emission_stop();
 
 		//Show the dialog and wait for a user response:
 		result = dialog.run();
@@ -124,7 +123,6 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 		if(dialog.get_filter() == filter_audio) filter=3;
 		if(dialog.get_filter() == filter_images) filter=4;
 		if(dialog.get_filter() == filter_any) filter=5;
-
 }
 
 int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
@@ -172,10 +170,11 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 				{
 					path_list.append(out_path = new char[strlen(in_path) + 1]);
 					strcpy(out_path, in_path);
-					printf("\nsob: %s %d\n", in_path, j);
 				}
 
 			}
+			filenames.clear();
+
 
 			switch(result)
 			{

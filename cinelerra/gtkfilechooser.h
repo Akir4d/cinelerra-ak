@@ -22,6 +22,8 @@
 #define GTKMM_GTKFILECHOOSERWINDOW_H
 #include <gtkmm.h>
 #include "arraylist.h"
+#include <vector>
+#include <string>
 
 class GtkFileChooserMain
 {

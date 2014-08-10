@@ -737,7 +737,8 @@ int EDLSession::copy(EDLSession *session)
 	}
 	assetlist_format = session->assetlist_format;
 	auto_conf->copy_from(session->auto_conf);
-	aspect_w = session->aspect_w;
+	if(session->aspect_w > 2) aspect_w = session->aspect_w;
+	else aspect_w = 16;
 	aspect_h = session->aspect_h;
 	audio_channels = session->audio_channels;
 	audio_tracks = session->audio_tracks;
@@ -772,7 +773,8 @@ int EDLSession::copy(EDLSession *session)
 	editing_mode = session->editing_mode;
 	enable_duplex = session->enable_duplex;
 	folderlist_format = session->folderlist_format;
-	frame_rate = session->frame_rate;
+	if(session->frame_rate > 6) frame_rate = session->frame_rate;
+	else frame_rate = 25;
 	frames_per_foot = session->frames_per_foot;
 	highlighted_track = session->highlighted_track;
 	interpolation_type = session->interpolation_type;

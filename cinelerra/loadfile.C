@@ -91,10 +91,8 @@ LoadFileThread::~LoadFileThread()
 void LoadFileThread::run()
 {
 	int result;
-#ifndef HAVE_GTK
 	ArrayList<BC_ListBoxItem*> *dirlist;
 	FileSystem fs;
-#endif
 	ArrayList<char*> path_list;
 	path_list.set_array_delete();
 	char default_path[BCTEXTLEN];
@@ -113,7 +111,6 @@ void LoadFileThread::run()
 			load_mode,
 			default_path,
 			filter);
-
 	if ((!result) && (load_mode == LOAD_REPLACE)) {
 		char temp_filename[strlen(path_list.values[0]) + 1];
 		strcpy(temp_filename, path_list.values[0]);

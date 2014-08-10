@@ -35,6 +35,7 @@ public:
 					char *default_path,
   	  				int &filter);
   	  	void start_file_chooser();
+  	  Gtk::Window *dummy;
 private:
   	  Glib::RefPtr<Gtk::Application> gtk_wrapper;
 

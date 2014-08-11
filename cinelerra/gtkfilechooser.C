@@ -49,7 +49,6 @@ GtkFileChooserMain::~GtkFileChooserMain()
 	if(dummy) delete dummy;
 	if(gtk_wrapper) gtk_wrapper->quit();
 #else
-	dummy->hide();
 	if(dummy) delete dummy;
 	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 #endif
@@ -182,36 +181,50 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 	path_list.set_array_delete();
 	std::vector<std::string> filenames;
 	bool have_path = 0;
-	int retval = 1;
+	int retval = 0;
 	int result = 0;
 
 	char *dirname_spot;
 	// Cinelerra not saves the last dir as default_path suggests
 	// but only the last file as last dir.;
-	dirname_spot = new char[strlen(default_path) + 1];
-	strcpy(dirname_spot, default_path);
 	struct stat s;
-	if( stat(dirname_spot, &s) == 0 )
+	if( stat(default_path, &s) == 0 )
 	{
-		if(strlen(dirname_spot) > 3)
+		if(strcmp(default_path, "~"))
 		{
 			if(S_ISREG(s.st_mode))
 			{
+				dirname_spot = new char[strlen(default_path) + 1];
+				strcpy(dirname_spot, default_path);
 				dirname(dirname_spot);
+			}
+			else if(strlen(default_path) < 3)
+			{
+				// default to home
+				struct passwd *pw = getpwuid(getuid());
+				dirname_spot = new char[strlen(pw->pw_dir) + 1];
+				strcpy(dirname_spot, pw->pw_dir);
+			}
+			else
+			{
+				dirname_spot = new char[strlen(default_path) + 1];
+				strcpy(dirname_spot, default_path);
 			}
 
 		}
-		else
-		{
-			// default to home
-			struct passwd *pw = getpwuid(getuid());
-			delete [] dirname_spot;
-			dirname_spot = new char[strlen(pw->pw_dir) + 1];
-			strcpy(dirname_spot, pw->pw_dir);
-		}
 	}
+	else
+	{
+		// If no stat default to home
+		struct passwd *pw = getpwuid(getuid());
+		dirname_spot = new char[strlen(pw->pw_dir) + 1];
+		strcpy(dirname_spot, pw->pw_dir);
+	}
+
 	GtkFileChooserGui loadthread;
 	loadthread.do_load_dialogs(filenames, dirname_spot, load_mode, filter, result);
+	if(!filenames.empty())
+	{
 	strcpy(default_path, (char*)filenames[0].c_str());
 	char *out_path;
 	int i;
@@ -235,6 +248,11 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 		filenames[i].clear();
 
 	}
+	}
+	else
+	{
+		retval = 1;
+	}
 	loadthread.hide();
 	if(!filenames.empty()) filenames.clear();
 	delete [] dirname_spot;
@@ -249,7 +267,6 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 	case LOAD_PASTE:
 	{
 		load_mode = result;
-		retval = 0;
 		break;
 	}
 	default:

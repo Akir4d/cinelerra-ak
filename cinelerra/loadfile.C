@@ -217,7 +217,7 @@ void LoadFileThread::run()
 
 
 
-#ifndef HAVE_GTK
+
 LoadFileWindow::LoadFileWindow(MWindow *mwindow, 
 	LoadFileThread *thread,
 	char *init_directory)
@@ -262,7 +262,6 @@ int LoadFileWindow::resize_event(int w, int h)
 
 	return BC_FileBox::resize_event(w, h);
 }
-#endif
 
 
 
@@ -370,9 +369,7 @@ LocateFileWindow::LocateFileWindow(MWindow *mwindow,
 		PROGRAM_NAME ": Locate file", 
 		old_filename)
 { 
-#ifndef HAVE_GTK
 	this->mwindow = mwindow;
-#endif
 }
 
 LocateFileWindow::~LocateFileWindow()

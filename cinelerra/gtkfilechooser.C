@@ -36,6 +36,8 @@ GtkFileChooserMain::GtkFileChooserMain()
 	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv, true);
 #endif
 	dummy = new Gtk::Window;
+	dummy->set_can_default(true);
+	dummy->set_redraw_on_allocate(true);
 }
 
 
@@ -43,15 +45,18 @@ GtkFileChooserMain::~GtkFileChooserMain()
 {
 	// Is not an hack: we needs to do initialize a dummy window
 	// to close dialog and then we can close gtk_wrapper safer.
-	dummy->show();
+	if(dummy->get_can_default())
+	{
+		dummy->set_title("If you can see this window something went wrong");
+		dummy->show();
+		dummy->set_can_default(false);
+		delete dummy;
 #ifdef HAVE_GTKMM30
-	dummy->close();
-	if(dummy) delete dummy;
-	if(gtk_wrapper) gtk_wrapper->quit();
+		if(gtk_wrapper) gtk_wrapper->quit();
 #else
-	if(dummy) delete dummy;
-	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
+		if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 #endif
+	}
 	delete [] fakeargv;
 }
 
@@ -170,7 +175,6 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
 	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
-	dialog.hide();
 }
 
 int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,

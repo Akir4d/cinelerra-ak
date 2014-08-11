@@ -287,6 +287,16 @@ int EDLSession::load_defaults(BC_Hash *defaults)
 	vwindow_folder[0] = 0;
 	vwindow_source = -1;
 	vwindow_zoom = defaults->get("VWINDOW_ZOOM", (float)1);
+#ifdef HAVE_GTK
+	//fixme: temp hack to fix gtk wrong defaults settings on exit;
+	if( aspect_h > 8 && aspect_w < 4 ) aspect_w = 16;
+	if(frame_rate < 7 && frame_rate > 1)
+	{
+		if(output_h > 500 && output_h < 700) frame_rate = 25;
+		else if(output_h < 500) frame_rate = 29.9700;
+		else if(output_h > 700) frame_rate = 50;
+	}
+#endif
 	boundaries();
 
 	return 0;
@@ -313,8 +323,8 @@ int EDLSession::save_defaults(BC_Hash *defaults)
 	auto_conf->save_defaults(defaults);
     defaults->update("ACTUAL_FRAME_RATE", actual_frame_rate);
     defaults->update("ASSETLIST_FORMAT", assetlist_format);
-    defaults->update("ASPECTW", aspect_w);
-    defaults->update("ASPECTH", aspect_h);
+    defaults->update("ASPECTW", (float)aspect_w);
+    defaults->update("ASPECTH", (float)aspect_h);
 	defaults->update("ATRACKS", audio_tracks);
 	defaults->update("AUTOS_FOLLOW_EDITS", autos_follow_edits);
 	defaults->update("BRENDER_START", brender_start);
@@ -349,7 +359,7 @@ int EDLSession::save_defaults(BC_Hash *defaults)
 	defaults->update("EDITING_MODE", editing_mode);
 	defaults->update("ENABLE_DUPLEX", enable_duplex);
     defaults->update("FOLDERLIST_FORMAT", folderlist_format);
-	defaults->update("FRAMERATE", frame_rate);
+	defaults->update("FRAMERATE", (float)frame_rate);
 	defaults->update("FRAMES_PER_FOOT", frames_per_foot);
 	defaults->update("HIGHLIGHTED_TRACK", highlighted_track);
     defaults->update("INTERPOLATION_TYPE", interpolation_type);
@@ -737,8 +747,7 @@ int EDLSession::copy(EDLSession *session)
 	}
 	assetlist_format = session->assetlist_format;
 	auto_conf->copy_from(session->auto_conf);
-	if(session->aspect_w > 2) aspect_w = session->aspect_w;
-	else aspect_w = 16;
+	aspect_w = session->aspect_w;
 	aspect_h = session->aspect_h;
 	audio_channels = session->audio_channels;
 	audio_tracks = session->audio_tracks;
@@ -773,8 +782,7 @@ int EDLSession::copy(EDLSession *session)
 	editing_mode = session->editing_mode;
 	enable_duplex = session->enable_duplex;
 	folderlist_format = session->folderlist_format;
-	if(session->frame_rate > 6) frame_rate = session->frame_rate;
-	else frame_rate = 25;
+	frame_rate = session->frame_rate;
 	frames_per_foot = session->frames_per_foot;
 	highlighted_track = session->highlighted_track;
 	interpolation_type = session->interpolation_type;

@@ -198,9 +198,9 @@ void LoadFileThread::run()
 	mwindow->gui->unlock_window();
 	path_list.remove_all_objects();
 
-
+#ifndef HAVE_GTK
 	mwindow->save_backup();
-
+#endif
 	mwindow->restart_brender();
 //	mwindow->undo->update_undo(_("load"), LOAD_ALL);
 

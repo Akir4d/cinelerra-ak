@@ -39,6 +39,7 @@
 #include "theme.h"
 #ifdef HAVE_GTK
 #include "gtkwrapper.h"
+#include "locale.h"
 #endif
 
 //#include <string.h>
@@ -116,7 +117,6 @@ void LoadFileThread::run()
 		strcpy(temp_filename, path_list.values[0]);
 		mwindow->set_filename(temp_filename);
 	}
-
 	mwindow->defaults->update("LOAD_MODE",
 			load_mode);
 
@@ -198,9 +198,9 @@ void LoadFileThread::run()
 	mwindow->gui->unlock_window();
 	path_list.remove_all_objects();
 
-#ifndef HAVE_GTK
+
 	mwindow->save_backup();
-#endif
+
 	mwindow->restart_brender();
 //	mwindow->undo->update_undo(_("load"), LOAD_ALL);
 

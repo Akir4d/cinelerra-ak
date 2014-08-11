@@ -287,16 +287,6 @@ int EDLSession::load_defaults(BC_Hash *defaults)
 	vwindow_folder[0] = 0;
 	vwindow_source = -1;
 	vwindow_zoom = defaults->get("VWINDOW_ZOOM", (float)1);
-#ifdef HAVE_GTK
-	//fixme: temp hack to fix gtk wrong defaults settings on exit;
-	if( aspect_h > 8 && aspect_w < 4 ) aspect_w = 16;
-	if(frame_rate < 7 && frame_rate > 1)
-	{
-		if(output_h > 500 && output_h < 700) frame_rate = 25;
-		else if(output_h < 500) frame_rate = 29.9700;
-		else if(output_h > 700) frame_rate = 50;
-	}
-#endif
 	boundaries();
 
 	return 0;

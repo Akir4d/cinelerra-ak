@@ -20,6 +20,7 @@
 
 #include "gtkwrapper.h"
 #include "gtkfilechooser.h"
+#include "locale.h"
 
 GtkWrapper::GtkWrapper()
 {
@@ -41,6 +42,10 @@ int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 				load_mode,
 				default_path,
 				filter);
+
+	// Because Cinelerra converts float with sprintf for now I can only
+	// force numeric format to use point instead comma on non en_US lang.
+	if(!setlocale(LC_NUMERIC,"en_US")) setlocale(LC_NUMERIC,"en_US.UTF-8");
 
 	return returnval;
 }

@@ -24,6 +24,7 @@
 #include "arraylist.h"
 #include <vector>
 #include <string>
+#include "config.h"
 
 class GtkFileChooserMain
 {
@@ -37,8 +38,11 @@ public:
   	  	void start_file_chooser();
   	  Gtk::Window *dummy;
 private:
+#ifdef HAVE_GTKMM30
   	  Glib::RefPtr<Gtk::Application> gtk_wrapper;
-
+#else
+  	Gtk::Main *gtk_wrapper;
+#endif
 
 };
 

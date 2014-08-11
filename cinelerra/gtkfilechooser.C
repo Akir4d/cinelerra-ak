@@ -28,7 +28,11 @@ GtkFileChooserMain::GtkFileChooserMain()
 	char **fakeargv;
 	fakeargv = new char*[1];
 	// Identify wrapper as cinelerra
+#ifdef HAVE_GTKMM30
 	gtk_wrapper = Gtk::Application::create(fakeargc,fakeargv, "org.cinelerra-cv.gtkwrapper");
+#else
+	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv);
+#endif
 	dummy = new Gtk::Window;
 }
 
@@ -37,9 +41,16 @@ GtkFileChooserMain::~GtkFileChooserMain()
 {
 	// Yes, the way to exit gtk3 is an hack.
 	dummy->show();
+#ifdef HAVE_GTKMM30
 	dummy->close();
 	delete dummy;
 	gtk_wrapper->quit();
+#else
+	dummy->hide();
+	delete dummy;
+	//gtk_wrapper->quit();
+	delete gtk_wrapper;
+#endif
 }
 
 GtkFileChooserGui::GtkFileChooserGui()
@@ -70,31 +81,56 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 
 	dialog.set_default_response(load_mode);
 	//Add filters, so that only certain file types can be selected:
-
+#ifdef HAVE_GTKMM30
 	Glib::RefPtr<Gtk::FileFilter> filter_xml = Gtk::FileFilter::create();
+	Glib::RefPtr<Gtk::FileFilter> filter_video = Gtk::FileFilter::create();
+	Glib::RefPtr<Gtk::FileFilter> filter_audio = Gtk::FileFilter::create();
+	Glib::RefPtr<Gtk::FileFilter> filter_images = Gtk::FileFilter::create();
+	Glib::RefPtr<Gtk::FileFilter> filter_any = Gtk::FileFilter::create();
+
 	filter_xml->set_name("Project");
 	filter_xml->add_pattern("*.xml");
-	dialog.add_filter(filter_xml);
 
-	Glib::RefPtr<Gtk::FileFilter> filter_video = Gtk::FileFilter::create();
 	filter_video->set_name("Video");
 	filter_video->add_mime_type("video/*");
-	dialog.add_filter(filter_video);
 
-	Glib::RefPtr<Gtk::FileFilter> filter_audio = Gtk::FileFilter::create();
 	filter_audio->set_name("Audio");
 	filter_audio->add_mime_type("audio/*");
-	dialog.add_filter(filter_audio);
 
-	Glib::RefPtr<Gtk::FileFilter> filter_images = Gtk::FileFilter::create();
 	filter_images->set_name("Images");
 	filter_images->add_mime_type("image/*");
-	dialog.add_filter(filter_images);
 
-	Glib::RefPtr<Gtk::FileFilter> filter_any = Gtk::FileFilter::create();
 	filter_any->set_name("Any files");
 	filter_any->add_pattern("*");
+#else
+	Gtk::FileFilter filter_xml;
+	Gtk::FileFilter filter_video;
+	Gtk::FileFilter filter_audio;
+	Gtk::FileFilter filter_images;
+	Gtk::FileFilter filter_any;
+
+	filter_xml.set_name("Project");
+	filter_xml.add_pattern("*.xml");
+
+	filter_video.set_name("Video");
+	filter_video.add_mime_type("video/*");
+
+	filter_audio.set_name("Audio");
+	filter_audio.add_mime_type("audio/*");
+
+	filter_images.set_name("Images");
+	filter_images.add_mime_type("image/*");
+
+	filter_any.set_name("Any files");
+	filter_any.add_pattern("*");
+#endif
+
+	dialog.add_filter(filter_xml);
+	dialog.add_filter(filter_video);
+	dialog.add_filter(filter_audio);
+	dialog.add_filter(filter_images);
 	dialog.add_filter(filter_any);
+
 	dialog.set_current_folder(default_path);
 	if(filter == 1) dialog.set_filter(filter_xml);
 	if(filter == 2) dialog.set_filter(filter_video);
@@ -102,8 +138,11 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	if(filter == 4) dialog.set_filter(filter_images);
 	if(filter == 5) dialog.set_filter(filter_any);
 
+#ifdef HAVE_GTKMM30
 	dialog.resize_to_geometry(400,400);
-
+#else
+	dialog.set_size_request(400,400);
+#endif
 	dialog.set_select_multiple(1);
 	std::string path = dialog.get_current_folder();
 	pdialog = &dialog;
@@ -116,12 +155,13 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 
 	//Handle the response:
 	filenames = dialog.get_filenames();
-
+#ifdef HAVE_GTKMM30
 	if(dialog.get_filter() == filter_xml) filter=1;
 	if(dialog.get_filter() == filter_video) filter=2;
 	if(dialog.get_filter() == filter_audio) filter=3;
 	if(dialog.get_filter() == filter_images) filter=4;
 	if(dialog.get_filter() == filter_any) filter=5;
+#endif
 	dialog.hide();
 }
 

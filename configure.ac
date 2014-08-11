@@ -188,38 +188,68 @@ AC_SUBST(XFT_CFLAGS)
 AC_SUBST(XFT_LIBS)
 ############## END XLIB
 
-############# GTK3 - EXPERIMENTAL
-AC_MSG_CHECKING([experimental gtkmm-3.0 support])
+############# GTKMM - EXPERIMENTAL
+AC_MSG_CHECKING([experimental gtkmm support])
 AC_ARG_ENABLE(gtk, AC_HELP_STRING([--enable-gtk],
-	[use gtkmm-3.0 experimental support (default: no)]),
+	[use gtkmm experimental support (default: no)]),
 	[enable_gtk=$enableval], [enable_gtk=no])
+
 GTK_CFLAGS=""
 GTK_LIBS=""
 if test "x$enable_gtk" = "xyes" ; then
-	
+
 	found_gtk="no"
-	
-	GTK_CFLAGS=`pkg-config gtkmm-3.0 --cflags 2>/dev/null` && found_gtk="yes"
-	GTK_LIBS=`pkg-config gtkmm-3.0 --libs 2>/dev/null` && found_gtk="yes"
-	AC_MSG_RESULT([$found_gtk])
-	
+	found_gtk30="no"
+	found_gtk24="no"
+	found_gtk22="no"
+
+	PKG_CHECK_MODULES([GTKMM30], [gtkmm-3.0], found_gtk30="yes", :)
+
+	if test "x$found_gtk30" = "xno"; then 
+		PKG_CHECK_MODULES([GTKMM24], [gtkmm-2.4], found_gtk24="yes", :)
+		fi
+
+	if test "x$found_gtk24" = "xno"; then 
+		PKG_CHECK_MODULES([GTKMM22], [gtkmm-2.2], found_gtk22="yes")
+		fi
+
+	if test "x$found_gtk30" = "xyes" ; then 
+		found_gtk="yes"
+		AH_TEMPLATE(HAVE_GTKMM30, [Define to 1 If gtkmm-3.0 is available.])
+		AC_DEFINE(HAVE_GTKMM30)
+		fi
+
+	if test "x$found_gtk24" = "xyes" ; then 
+		found_gtk="yes"
+		AH_TEMPLATE(HAVE_GTKMM24, [Define to 1 If gtkmm-2.4 is available.])
+		AC_DEFINE(HAVE_GTKMM24) 
+		fi
+
+	if test "x$found_gtk22" = "xyes" ; then
+		found_gtk="yes"
+		AH_TEMPLATE(HAVE_GTKMM22, [Define to 1 If gtkmm-2.2 is available.])
+		AC_DEFINE(HAVE_GTKMM22) 
+		fi
+
 	if test "x$found_gtk" = "xno" ; then
-		AC_MSG_WARN([Can't find gtkmm-3.0 configuration, or gtkmm-3.0 is unusable $enable_gtk $found_gtk])
+		AC_MSG_WARN([Can't find gtkmm configuration, or gtkmm is unusable $enable_gtk $found_gtk])
 		enable_gtk="no"
 		GTK_CFLAGS=""
 		GTK_LIBS=""
 	else
 		found_gtk="yes"
 		enable_gtk=ok
+		GTK_CFLAGS="$GTKMM30_CFLAGS $GTKMM24_CFLAGS $GTKMM22_CFLAGS"
+		GTK_LIBS="$GTKMM30_LIBS $GTKMM24_LIBS $GTKMM22_LIBS"
 		CXXFLAGS="$GTK_CFLAGS $CXXFLAGS"
-		AH_TEMPLATE(HAVE_GTK, [Define to 1 if gtkmm-3.0 is available.])
+		AH_TEMPLATE(HAVE_GTK, [Define to 1 If gtkmm is available.])
 		AC_DEFINE(HAVE_GTK)
 	fi
 fi
 AM_CONDITIONAL(ENABLE_GTK,test "x$enable_gtk" = "xok")
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
-############## END GTK3
+############## END GTKMM
 
 ############## SOUND
 # the sound options are propagated by SOUND_CFLAGS and SOUND_LDFLAGS
@@ -891,8 +921,8 @@ ORPT(enable_findobject,findobject plugin using OpenCV 2.0,--disable-findobject,
 	RPT(opencvh,opencv headers)
 )
 
-ORPT(enable_gtk,GTK3 EXPERIMENTAL support,--disable-gtk,
-	RPT(found_gtk,gtkmm-3.0 support)
+ORPT(enable_gtk,GTKMM EXPERIMENTAL support,--disable-gtk,
+	RPT(found_gtk,gtkmm support)
 )
 
 

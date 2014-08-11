@@ -26,7 +26,6 @@
 GtkFileChooserMain::GtkFileChooserMain()
 {
 	int fakeargc = 1;
-	char **fakeargv;
 	fakeargv = new char*[1];
 	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
 	strcpy(fakeargv[0], "cinelerra-cv");
@@ -52,6 +51,7 @@ GtkFileChooserMain::~GtkFileChooserMain()
 #endif
 	if(dummy) delete dummy;
 	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
+	delete [] fakeargv;
 }
 
 GtkFileChooserGui::GtkFileChooserGui()
@@ -233,7 +233,6 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 		filenames[i].clear();
 
 	}
-	printf("\n test dirname_spot: %s\n", dirname_spot);
 	loadthread.hide();
 	if(!filenames.empty()) filenames.clear();
 	delete [] dirname_spot;

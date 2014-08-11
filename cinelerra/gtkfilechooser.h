@@ -37,6 +37,7 @@ public:
   	  				int &filter);
   	  	void start_file_chooser();
   	  Gtk::Window *dummy;
+  	  char **fakeargv;
 private:
 #ifdef HAVE_GTKMM30
   	  Glib::RefPtr<Gtk::Application> gtk_wrapper;

@@ -201,16 +201,11 @@ if test "x$enable_gtk" = "xyes" ; then
 	found_gtk="no"
 	found_gtk30="no"
 	found_gtk24="no"
-	found_gtk22="no"
 
 	PKG_CHECK_MODULES([GTKMM30], [gtkmm-3.0], found_gtk30="yes", :)
 
 	if test "x$found_gtk30" = "xno"; then 
 		PKG_CHECK_MODULES([GTKMM24], [gtkmm-2.4], found_gtk24="yes", :)
-		fi
-
-	if test "x$found_gtk24" = "xno"; then 
-		PKG_CHECK_MODULES([GTKMM22], [gtkmm-2.2], found_gtk22="yes")
 		fi
 
 	if test "x$found_gtk30" = "xyes" ; then 
@@ -225,12 +220,6 @@ if test "x$enable_gtk" = "xyes" ; then
 		AC_DEFINE(HAVE_GTKMM24) 
 		fi
 
-	if test "x$found_gtk22" = "xyes" ; then
-		found_gtk="yes"
-		AH_TEMPLATE(HAVE_GTKMM22, [Define to 1 If gtkmm-2.2 is available.])
-		AC_DEFINE(HAVE_GTKMM22) 
-		fi
-
 	if test "x$found_gtk" = "xno" ; then
 		AC_MSG_WARN([Can't find gtkmm configuration, or gtkmm is unusable $enable_gtk $found_gtk])
 		enable_gtk="no"
@@ -239,8 +228,8 @@ if test "x$enable_gtk" = "xyes" ; then
 	else
 		found_gtk="yes"
 		enable_gtk=ok
-		GTK_CFLAGS="$GTKMM30_CFLAGS $GTKMM24_CFLAGS $GTKMM22_CFLAGS"
-		GTK_LIBS="$GTKMM30_LIBS $GTKMM24_LIBS $GTKMM22_LIBS"
+		GTK_CFLAGS="$GTKMM30_CFLAGS $GTKMM24_CFLAGS"
+		GTK_LIBS="$GTKMM30_LIBS $GTKMM24_LIBS"
 		CXXFLAGS="$GTK_CFLAGS $CXXFLAGS"
 		AH_TEMPLATE(HAVE_GTK, [Define to 1 If gtkmm is available.])
 		AC_DEFINE(HAVE_GTK)

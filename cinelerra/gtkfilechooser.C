@@ -46,11 +46,13 @@ GtkFileChooserMain::~GtkFileChooserMain()
 	dummy->show();
 #ifdef HAVE_GTKMM30
 	dummy->close();
+	if(dummy) delete dummy;
+	if(gtk_wrapper) gtk_wrapper->quit();
 #else
 	dummy->hide();
-#endif
 	if(dummy) delete dummy;
 	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
+#endif
 	delete [] fakeargv;
 }
 

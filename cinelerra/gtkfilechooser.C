@@ -161,6 +161,12 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	if(dialog.get_filter() == filter_audio) filter=3;
 	if(dialog.get_filter() == filter_images) filter=4;
 	if(dialog.get_filter() == filter_any) filter=5;
+#else
+	if(!dialog.get_filter()->get_name().compare(filter_xml.get_name())) filter=1;
+	if(!dialog.get_filter()->get_name().compare(filter_video.get_name())) filter=2;
+	if(!dialog.get_filter()->get_name().compare(filter_audio.get_name())) filter=3;
+	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
+	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
 	dialog.hide();
 }

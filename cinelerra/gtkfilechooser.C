@@ -51,7 +51,7 @@ GtkFileChooserMain::~GtkFileChooserMain()
 		dummy->set_can_default(false);
 		delete dummy;
 #ifdef HAVE_GTKMM30
-		if(gtk_wrapper) gtk_wrapper->quit();
+		gtk_wrapper->quit();
 #else
 		if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 #endif
@@ -259,7 +259,7 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 	}
 	loadthread.hide();
 	if(!filenames.empty()) filenames.clear();
-	delete [] dirname_spot;
+	if(dirname_spot) delete dirname_spot;
 
 	switch(result)
 	{

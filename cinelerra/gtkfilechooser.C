@@ -31,13 +31,12 @@ GtkFileChooserMain::GtkFileChooserMain()
 	strcpy(fakeargv[0], "cinelerra-cv");
 	// Identify wrapper as cinelerra
 #ifdef HAVE_GTKMM30
-	gtk_wrapper = Gtk::Application::create(fakeargc,fakeargv, "org.cinelerra-cv.gtkwrapper");
+	gtk_wrapper = Gtk::Application::create(fakeargc, fakeargv, "org.cinelerra-cv.gtkwrapper");
 #else
 	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv, true);
 #endif
 	dummy = new Gtk::Window;
 	dummy->set_can_default(true);
-	dummy->set_redraw_on_allocate(true);
 }
 
 
@@ -229,32 +228,33 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 	loadthread.do_load_dialogs(filenames, dirname_spot, load_mode, filter, result);
 	if(!filenames.empty())
 	{
-	strcpy(default_path, (char*)filenames[0].c_str());
-	char *out_path;
-	int i;
-	int z = filenames.size();
-	for(i = 0; i < z; i++)
-	{
-		char in_path[filenames[i].size()];
-		strcpy(in_path, (char*)filenames[i].c_str());
-		if(( stat(in_path, &s) == 0 ) && (S_ISDIR(s.st_mode))) retval = 1;
-		int j;
-		for(j = 0; j < path_list.total; j++)
+		strcpy(default_path, (char*)filenames[0].c_str());
+		char *out_path;
+		int i;
+		int z = filenames.size();
+		for(i = 0; i < z; i++)
 		{
-			if(!strcmp(in_path, path_list.values[j])) break;
-		}
+			char in_path[filenames[i].size()];
+			strcpy(in_path, (char*)filenames[i].c_str());
+			if(( stat(in_path, &s) == 0 ) && (S_ISDIR(s.st_mode))) retval = 1;
+			int j;
+			for(j = 0; j < path_list.total; j++)
+			{
+				if(!strcmp(in_path, path_list.values[j])) break;
+			}
 
-		if(j == path_list.total)
-		{
-			path_list.append(out_path = new char[strlen(in_path) + 1]);
-			strcpy(out_path, in_path);
-		}
-		filenames[i].clear();
+			if(j == path_list.total)
+			{
+				path_list.append(out_path = new char[strlen(in_path) + 1]);
+				strcpy(out_path, in_path);
+			}
+			filenames[i].clear();
 
-	}
+		}
 	}
 	else
 	{
+		strcpy(default_path, dirname_spot);
 		retval = 1;
 	}
 	loadthread.hide();

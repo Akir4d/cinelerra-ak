@@ -21,17 +21,20 @@
 #include "gtkfilechooser.h"
 #include "loadmode.inc"
 #include <libgen.h>
+#include <pwd.h>
 
 GtkFileChooserMain::GtkFileChooserMain()
 {
 	int fakeargc = 1;
 	char **fakeargv;
 	fakeargv = new char*[1];
+	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
+	strcpy(fakeargv[0], "cinelerra-cv");
 	// Identify wrapper as cinelerra
 #ifdef HAVE_GTKMM30
 	gtk_wrapper = Gtk::Application::create(fakeargc,fakeargv, "org.cinelerra-cv.gtkwrapper");
 #else
-	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv);
+	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv, true);
 #endif
 	dummy = new Gtk::Window;
 }
@@ -39,18 +42,16 @@ GtkFileChooserMain::GtkFileChooserMain()
 
 GtkFileChooserMain::~GtkFileChooserMain()
 {
-	// Yes, the way to exit gtk3 is an hack.
+	// Is not an hack: we needs to do initialize a dummy window
+	// to close dialog and then we can close gtk_wrapper safer.
 	dummy->show();
 #ifdef HAVE_GTKMM30
 	dummy->close();
-	delete dummy;
-	gtk_wrapper->quit();
 #else
 	dummy->hide();
-	delete dummy;
-	//gtk_wrapper->quit();
-	delete gtk_wrapper;
 #endif
+	if(dummy) delete dummy;
+	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 }
 
 GtkFileChooserGui::GtkFileChooserGui()
@@ -182,19 +183,29 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 	int retval = 1;
 	int result = 0;
 
-	char dirname_spot[strlen(default_path) + 1];
+	char *dirname_spot;
 	// Cinelerra not saves the last dir as default_path suggests
 	// but only the last file as last dir.;
+	dirname_spot = new char[strlen(default_path) + 1];
 	strcpy(dirname_spot, default_path);
 	struct stat s;
 	if( stat(dirname_spot, &s) == 0 )
 	{
-		if(strcmp(default_path, "~"))
+		if(strlen(dirname_spot) > 3)
 		{
 			if(S_ISREG(s.st_mode))
 			{
 				dirname(dirname_spot);
 			}
+
+		}
+		else
+		{
+			// default to home
+			struct passwd *pw = getpwuid(getuid());
+			delete [] dirname_spot;
+			dirname_spot = new char[strlen(pw->pw_dir) + 1];
+			strcpy(dirname_spot, pw->pw_dir);
 		}
 	}
 	GtkFileChooserGui loadthread;
@@ -222,8 +233,10 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 		filenames[i].clear();
 
 	}
+	printf("\n test dirname_spot: %s\n", dirname_spot);
+	loadthread.hide();
 	if(!filenames.empty()) filenames.clear();
-
+	delete [] dirname_spot;
 
 	switch(result)
 	{
@@ -244,7 +257,6 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 		break;
 	}
 	}
-	loadthread.hide();
 	return retval;
 }
 
@@ -255,7 +267,6 @@ void GtkFileChooserGui::update_preview_cb()
 	Glib::RefPtr<Gdk::Pixbuf> pixbuf;
 	gboolean have_preview;
 
-	pixbuf.clear();
 	preview.clear();
 
 	std::string cast = pdialog->get_preview_filename();
@@ -266,6 +277,7 @@ void GtkFileChooserGui::update_preview_cb()
 	have_preview = pixbuf.operator bool();
 
 	preview.set(pixbuf);
+	pixbuf.clear();
 
 	pdialog->set_preview_widget_active(have_preview);
 

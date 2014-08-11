@@ -105,7 +105,7 @@ void LoadFileThread::run()
 	load_mode = mwindow->defaults->get("LOAD_MODE", LOAD_REPLACE);
 #ifdef HAVE_GTK
 	int have_path = 0;
-	int filter = mwindow->defaults->get("GTKFILTER_MODE", LOAD_REPLACE);
+	int filter = mwindow->defaults->get("GTKFILTER_MODE", 5);
 	GtkWrapper *gtkload;
 	result = gtkload->loadfiles_wrapper(path_list,
 			load_mode,

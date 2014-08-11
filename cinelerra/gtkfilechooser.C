@@ -71,12 +71,12 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	//pri = &dialog;
 
 	//Add response buttons the the dialog:
-	dialog.add_button("_Replace", LOAD_REPLACE);
-	dialog.add_button("_Replace+", LOAD_REPLACE_CONCATENATE);
+	dialog.add_button("_Replace ↆ", LOAD_REPLACE);
+	dialog.add_button("_Replace >>", LOAD_REPLACE_CONCATENATE);
 	dialog.add_button("_Concatenate", LOAD_CONCATENATE);
 	dialog.add_button("_New Tracks", LOAD_NEW_TRACKS);
 	dialog.add_button("_As Resource", LOAD_RESOURCESONLY);
-	dialog.add_button("_Paste", LOAD_PASTE);
+	dialog.add_button("_Paste on", LOAD_PASTE);
 	dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
 
 	dialog.set_default_response(load_mode);

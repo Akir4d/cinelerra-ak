@@ -26,37 +26,33 @@
 #include <string>
 #include "config.h"
 
-class GtkFileChooserMain
+class GtkFileChooserGui : public Gio::Application
 {
 public:
-  GtkFileChooserMain();
-  ~GtkFileChooserMain();
-  	  	int loadfiles(ArrayList<char*> &path_list,
-  	  				int &load_mode,
-					char *default_path,
-  	  				int &filter);
-  	  	void start_file_chooser();
-  	  Gtk::Window *dummy;
-  	  char **fakeargv;
+	GtkFileChooserGui();
+	~GtkFileChooserGui();
+	int loadfiles(ArrayList<char*> &path_list,
+		  				int &load_mode,
+						char *default_path,
+		  				int &filter);
 private:
+	void do_load_dialogs(std::vector<std::string> &filenames,
+			char *default_path,
+			int &download_mode,
+			int &filter,
+			int &result);
+
+	 Gtk::Image preview;
+	 Gtk::FileChooser *pdialog;
+	 void update_preview_cb();
+	  void start_file_chooser();
+	  Gtk::Window *dummy;
+	  char **fakeargv;
 #ifdef HAVE_GTKMM30
   	  Glib::RefPtr<Gtk::Application> gtk_wrapper;
 #else
   	Gtk::Main *gtk_wrapper;
 #endif
-
-};
-
-class GtkFileChooserGui : public Gtk::Window
-{
-public:
-	GtkFileChooserGui();
-	~GtkFileChooserGui();
-	void do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &download_mode, int &filter, int &result);
-private:
-	 Gtk::Image preview;
-	 Gtk::FileChooser *pdialog;
-	 void update_preview_cb();
 
 };
 

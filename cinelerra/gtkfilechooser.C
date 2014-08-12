@@ -23,8 +23,10 @@
 #include <libgen.h>
 #include <pwd.h>
 
-GtkFileChooserMain::GtkFileChooserMain()
+GtkFileChooserGui::GtkFileChooserGui()
 {
+	Gio::init();
+	pdialog = 0;
 	int fakeargc = 1;
 	fakeargv = new char*[1];
 	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
@@ -36,17 +38,17 @@ GtkFileChooserMain::GtkFileChooserMain()
 	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv, true);
 #endif
 	dummy = new Gtk::Window;
+	dummy->set_title("GtkWrapper: if you can see this window something went wrong");
+	dummy->set_default_size(550, 20);
 	dummy->set_can_default(true);
 }
 
-
-GtkFileChooserMain::~GtkFileChooserMain()
+GtkFileChooserGui::~GtkFileChooserGui()
 {
 	// Is not an hack: we needs to do initialize a dummy window
 	// to close dialog and then we can close gtk_wrapper safer.
 	if(dummy->get_can_default())
 	{
-		dummy->set_title("If you can see this window something went wrong");
 		dummy->show();
 		dummy->set_can_default(false);
 		delete dummy;
@@ -56,29 +58,18 @@ GtkFileChooserMain::~GtkFileChooserMain()
 		if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 #endif
 	}
+	Gio::Application::quit();
 	delete [] fakeargv;
-}
-
-GtkFileChooserGui::GtkFileChooserGui()
-{
-	pdialog = 0;
-}
-
-GtkFileChooserGui::~GtkFileChooserGui()
-{
 }
 
 void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &load_mode, int &filter, int &result)
 {
 	Gtk::FileChooserDialog dialog("Please choose one or more file, then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
-	dialog.set_transient_for(*this);
-	//dialog.unreference();
-	//pri = &dialog;
-
+	dialog.set_transient_for(*dummy);
 	//Add response buttons the the dialog:
-	dialog.add_button("_Replace ↆ", LOAD_REPLACE);
-	dialog.add_button("_Replace >>", LOAD_REPLACE_CONCATENATE);
+	dialog.add_button("_Replace", LOAD_REPLACE);
+	dialog.add_button("_Replace Cn", LOAD_REPLACE_CONCATENATE);
 	dialog.add_button("_Concatenate", LOAD_CONCATENATE);
 	dialog.add_button("_New Tracks", LOAD_NEW_TRACKS);
 	dialog.add_button("_As Resource", LOAD_RESOURCESONLY);
@@ -174,9 +165,10 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
 	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
+	dummy->hide();
 }
 
-int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
+int GtkFileChooserGui::loadfiles(ArrayList<char*> &path_list,
 		int &load_mode,
 		char *default_path,
 		int &filter)
@@ -257,7 +249,6 @@ int GtkFileChooserMain::loadfiles(ArrayList<char*> &path_list,
 		strcpy(default_path, dirname_spot);
 		retval = 1;
 	}
-	loadthread.hide();
 	if(!filenames.empty()) filenames.clear();
 	if(dirname_spot) delete dirname_spot;
 
@@ -296,6 +287,7 @@ void GtkFileChooserGui::update_preview_cb()
 	filename = cast.c_str();
 
 	pixbuf = Gdk::Pixbuf::create_from_file(filename, 300, 300, true);
+	//Gdk::Pixbuf::create_from_stream_at_scale(filename, 300, 300, true);
 	have_preview = pixbuf.operator bool();
 
 	preview.set(pixbuf);

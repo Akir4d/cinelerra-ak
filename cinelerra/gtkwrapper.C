@@ -37,7 +37,7 @@ int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 {
 
 	int returnval = 0;
-	GtkFileChooserMain loadwindow;
+	GtkFileChooserGui loadwindow;
 	returnval = loadwindow.loadfiles(path_list,
 				load_mode,
 				default_path,

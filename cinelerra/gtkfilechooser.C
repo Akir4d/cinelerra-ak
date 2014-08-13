@@ -23,46 +23,146 @@
 #include <libgen.h>
 #include <pwd.h>
 
-GtkFileChooserGui::GtkFileChooserGui()
+GwFileChooser::GwFileChooser()
 {
-	Gio::init();
+}
+
+
+GwFileChooser::~GwFileChooser()
+{
+}
+
+int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
+		int &load_mode,
+		char *default_path,
+		int &filter)
+{
+	path_list.set_array_delete();
+	std::vector<std::string> filenames;
+	bool have_path = 0;
+	int retval = 0;
+	int result = 0;
+
+	char *dirname_spot;
+	// Cinelerra not saves the last dir as default_path suggests
+	// but only the last file as last dir.;
+	struct stat s;
+	if( stat(default_path, &s) == 0 )
+	{
+		if(strcmp(default_path, "~"))
+		{
+			if(S_ISREG(s.st_mode))
+			{
+				dirname_spot = new char[strlen(default_path) + 1];
+				strcpy(dirname_spot, default_path);
+				dirname(dirname_spot);
+			}
+			else if(strlen(default_path) < 3)
+			{
+				// default to home
+				struct passwd *pw = getpwuid(getuid());
+				dirname_spot = new char[strlen(pw->pw_dir) + 1];
+				strcpy(dirname_spot, pw->pw_dir);
+			}
+			else
+			{
+				dirname_spot = new char[strlen(default_path) + 1];
+				strcpy(dirname_spot, default_path);
+			}
+
+		}
+	}
+	else
+	{
+		// If no stat default to home
+		struct passwd *pw = getpwuid(getuid());
+		dirname_spot = new char[strlen(pw->pw_dir) + 1];
+		strcpy(dirname_spot, pw->pw_dir);
+	}
+
+	GwFileChooserGui loadgui;
+	loadgui.do_load_dialogs(filenames, dirname_spot, load_mode, filter, result);
+	if(!filenames.empty())
+	{
+		strcpy(default_path, (char*)filenames[0].c_str());
+		char *out_path;
+		int i;
+		int z = filenames.size();
+		for(i = 0; i < z; i++)
+		{
+			char in_path[filenames[i].size()];
+			strcpy(in_path, (char*)filenames[i].c_str());
+			if(( stat(in_path, &s) == 0 ) && (S_ISDIR(s.st_mode))) retval = 1;
+			int j;
+			for(j = 0; j < path_list.total; j++)
+			{
+				if(!strcmp(in_path, path_list.values[j])) break;
+			}
+
+			if(j == path_list.total)
+			{
+				path_list.append(out_path = new char[strlen(in_path) + 1]);
+				strcpy(out_path, in_path);
+			}
+			filenames[i].clear();
+
+		}
+	}
+	else
+	{
+		strcpy(default_path, dirname_spot);
+		retval = 1;
+	}
+	if(!filenames.empty()) filenames.clear();
+	if(dirname_spot) delete dirname_spot;
+
+	switch(result)
+	{
+	case LOAD_REPLACE:
+	case LOAD_REPLACE_CONCATENATE:
+	case LOAD_CONCATENATE:
+	case LOAD_NEW_TRACKS:
+	case LOAD_RESOURCESONLY:
+	case LOAD_PASTE:
+	{
+		load_mode = result;
+		break;
+	}
+	default:
+	{
+		retval = 1;
+		break;
+	}
+	}
+	return retval;
+}
+
+GwFileChooserGui::GwFileChooserGui()
+{
 	pdialog = 0;
 	int fakeargc = 1;
 	fakeargv = new char*[1];
-	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
-	strcpy(fakeargv[0], "cinelerra-cv");
+	fakeargv[0] = new char [strlen("org.cinelerra-cv.gtkwrapper") + 1];
+	strcpy(fakeargv[0], "org.cinelerra-cv.gtkwrapper");
 	// Identify wrapper as cinelerra
 #ifdef HAVE_GTKMM30
 	gtk_wrapper = Gtk::Application::create(fakeargc, fakeargv, "org.cinelerra-cv.gtkwrapper");
 #else
-	gtk_wrapper = new Gtk::Main(fakeargc,fakeargv, true);
+	gtk_wrapper = new Gtk::Main(fakeargc, fakeargv, true);
 #endif
 	dummy = new Gtk::Window;
 	dummy->set_title("GtkWrapper: if you can see this window something went wrong");
 	dummy->set_default_size(550, 20);
-	dummy->set_can_default(true);
+	//dummy->set_can_default(true);
+	dummy->iconify();
 }
 
-GtkFileChooserGui::~GtkFileChooserGui()
+GwFileChooserGui::~GwFileChooserGui()
 {
-	// Is not an hack: we needs to do initialize a dummy window
-	// to close dialog and then we can close gtk_wrapper safer.
-	if(dummy->get_can_default())
-	{
-		dummy->show();
-		dummy->set_can_default(false);
-		delete dummy;
-#ifdef HAVE_GTKMM30
-		gtk_wrapper->quit();
-#else
-		if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
-#endif
-	}
-	Gio::Application::quit();
-	delete [] fakeargv;
+	Gdk::flush();
 }
 
-void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &load_mode, int &filter, int &result)
+void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &load_mode, int &filter, int &result)
 {
 	Gtk::FileChooserDialog dialog("Please choose one or more file, then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
@@ -145,7 +245,7 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	pdialog = &dialog;
 	dialog.set_preview_widget(preview);
 	dialog.signal_update_preview().connect(sigc::mem_fun(*this,
-			&GtkFileChooserGui::update_preview_cb));
+			&GwFileChooserGui::update_preview_cb));
 
 	//Show the dialog and wait for a user response:
 	result = dialog.run();
@@ -165,116 +265,10 @@ void GtkFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, cha
 	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
 	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
-	dummy->hide();
+
 }
 
-int GtkFileChooserGui::loadfiles(ArrayList<char*> &path_list,
-		int &load_mode,
-		char *default_path,
-		int &filter)
-{
-	path_list.set_array_delete();
-	std::vector<std::string> filenames;
-	bool have_path = 0;
-	int retval = 0;
-	int result = 0;
-
-	char *dirname_spot;
-	// Cinelerra not saves the last dir as default_path suggests
-	// but only the last file as last dir.;
-	struct stat s;
-	if( stat(default_path, &s) == 0 )
-	{
-		if(strcmp(default_path, "~"))
-		{
-			if(S_ISREG(s.st_mode))
-			{
-				dirname_spot = new char[strlen(default_path) + 1];
-				strcpy(dirname_spot, default_path);
-				dirname(dirname_spot);
-			}
-			else if(strlen(default_path) < 3)
-			{
-				// default to home
-				struct passwd *pw = getpwuid(getuid());
-				dirname_spot = new char[strlen(pw->pw_dir) + 1];
-				strcpy(dirname_spot, pw->pw_dir);
-			}
-			else
-			{
-				dirname_spot = new char[strlen(default_path) + 1];
-				strcpy(dirname_spot, default_path);
-			}
-
-		}
-	}
-	else
-	{
-		// If no stat default to home
-		struct passwd *pw = getpwuid(getuid());
-		dirname_spot = new char[strlen(pw->pw_dir) + 1];
-		strcpy(dirname_spot, pw->pw_dir);
-	}
-
-	GtkFileChooserGui loadthread;
-	loadthread.do_load_dialogs(filenames, dirname_spot, load_mode, filter, result);
-	if(!filenames.empty())
-	{
-		strcpy(default_path, (char*)filenames[0].c_str());
-		char *out_path;
-		int i;
-		int z = filenames.size();
-		for(i = 0; i < z; i++)
-		{
-			char in_path[filenames[i].size()];
-			strcpy(in_path, (char*)filenames[i].c_str());
-			if(( stat(in_path, &s) == 0 ) && (S_ISDIR(s.st_mode))) retval = 1;
-			int j;
-			for(j = 0; j < path_list.total; j++)
-			{
-				if(!strcmp(in_path, path_list.values[j])) break;
-			}
-
-			if(j == path_list.total)
-			{
-				path_list.append(out_path = new char[strlen(in_path) + 1]);
-				strcpy(out_path, in_path);
-			}
-			filenames[i].clear();
-
-		}
-	}
-	else
-	{
-		strcpy(default_path, dirname_spot);
-		retval = 1;
-	}
-	if(!filenames.empty()) filenames.clear();
-	if(dirname_spot) delete dirname_spot;
-
-	switch(result)
-	{
-	case LOAD_REPLACE:
-	case LOAD_REPLACE_CONCATENATE:
-	case LOAD_CONCATENATE:
-	case LOAD_NEW_TRACKS:
-	case LOAD_RESOURCESONLY:
-	case LOAD_PASTE:
-	{
-		load_mode = result;
-		break;
-	}
-	default:
-	{
-		retval = 1;
-		break;
-	}
-	}
-	return retval;
-}
-
-
-void GtkFileChooserGui::update_preview_cb()
+void GwFileChooserGui::update_preview_cb()
 {
 	const char* filename;
 	Glib::RefPtr<Gdk::Pixbuf> pixbuf;

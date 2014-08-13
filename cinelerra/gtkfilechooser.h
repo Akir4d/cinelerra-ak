@@ -26,11 +26,23 @@
 #include <string>
 #include "config.h"
 
-class GtkFileChooserGui : public Gio::Application
+class GwFileChooser
 {
 public:
-	GtkFileChooserGui();
-	~GtkFileChooserGui();
+	GwFileChooser();
+	~GwFileChooser();
+	int loadfiles(ArrayList<char*> &path_list,
+		  				int &load_mode,
+						char *default_path,
+		  				int &filter);
+};
+
+class GwFileChooserGui
+{
+friend class GwFileChooser;
+public:
+	GwFileChooserGui();
+	~GwFileChooserGui();
 	int loadfiles(ArrayList<char*> &path_list,
 		  				int &load_mode,
 						char *default_path,

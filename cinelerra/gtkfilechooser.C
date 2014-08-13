@@ -146,7 +146,7 @@ GwFileChooserGui::GwFileChooserGui()
 #ifdef HAVE_GTKMM30
 	gtk_wrapper = Gtk::Application::create();
 #else
-	gtk_wrapper = new Gtk::Main(true);
+	gtk_wrapper = new Gtk::Main(NULL, NULL);
 #endif
 	dummy = new Gtk::Window;
 	dummy->set_title("If you can see this window something went wrong");
@@ -168,7 +168,6 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 {
 	Gtk::FileChooserDialog dialog("Please, choose one or more files then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
-	dialog.set_startup_id(PROGRAM_NAME);
 	dialog.set_transient_for(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);

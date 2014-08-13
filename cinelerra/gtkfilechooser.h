@@ -62,7 +62,6 @@ private:
 	 void update_preview_cb();
 	  void start_file_chooser();
 	  Gtk::Window *dummy;
-	  char **fakeargv;
 #ifdef HAVE_GTKMM30
   	  Glib::RefPtr<Gtk::Application> gtk_wrapper;
 #else

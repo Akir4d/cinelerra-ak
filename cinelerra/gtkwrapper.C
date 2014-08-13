@@ -35,19 +35,15 @@ int GtkWrapper::loadfiles_wrapper(ArrayList<char*> &path_list,
 		char *default_path,
 		int &filter)
 {
-
 	int returnval = 0;
 	GwFileChooser loadwindow;
 	returnval = loadwindow.loadfiles(path_list,
 				load_mode,
 				default_path,
 				filter);
-
 	// Because Cinelerra converts float with sprintf for now I can only
 	// force numeric format to use point instead comma on non en_US lang.
-	if(!setlocale(LC_NUMERIC,""))
-	  if(!setlocale(LC_NUMERIC,"en_US.ISO8859-1"))
-		setlocale(LC_NUMERIC,"en_US.UTF-8");
+	setlocale(LC_NUMERIC, "C");
 
 	return returnval;
 }

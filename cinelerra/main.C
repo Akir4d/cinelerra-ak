@@ -85,7 +85,10 @@ int main(int argc, char *argv[])
 	else
 
 		printf(PROGRAM_NAME ": Could not set locale.\n");
+#else
+	setlocale(LC_CTYPE, "");
 #endif
+	setlocale(LC_NUMERIC, "C");
 	for(int i = 1; i < argc; i++)
 	{
 		if(!strcmp(argv[i], "-h"))

@@ -24,6 +24,19 @@
 #include <libgen.h>
 #include <pwd.h>
 
+#ifdef HAVE_GTKMM24
+GwFileChooser::GwFileChooser()
+{
+	gtk_wrapper = new Gtk::Main(NULL, NULL, false);
+}
+
+
+GwFileChooser::~GwFileChooser()
+{
+	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
+	Gdk::flush();
+}
+#else
 GwFileChooser::GwFileChooser()
 {
 }
@@ -31,6 +44,29 @@ GwFileChooser::GwFileChooser()
 
 GwFileChooser::~GwFileChooser()
 {
+}
+#endif
+GwFileChooserGui::GwFileChooserGui()
+{
+	pdialog = 0;
+#ifdef HAVE_GTKMM30
+	// Identify wrapper as cinelerra
+	gtk_wrapper = Gtk::Application::create();
+	dummy = new Gtk::Window;
+	dummy->set_title("If you can see this window something went wrong");
+	dummy->set_default_size(550, 20);
+	dummy->set_can_default(true);
+	dummy->iconify();
+#endif
+}
+
+GwFileChooserGui::~GwFileChooserGui()
+{
+#ifdef HAVE_GTKMM30
+  dummy->close();
+  gtk_wrapper->quit();
+  Gdk::flush();
+#endif
 }
 
 int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
@@ -138,36 +174,17 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 	return retval;
 }
 
-GwFileChooserGui::GwFileChooserGui()
-{
-	pdialog = 0;
-
-	// Identify wrapper as cinelerra
-#ifdef HAVE_GTKMM30
-	gtk_wrapper = Gtk::Application::create();
-#else
-	gtk_wrapper = new Gtk::Main(NULL, NULL);
-#endif
-	dummy = new Gtk::Window;
-	dummy->set_title("If you can see this window something went wrong");
-	dummy->set_default_size(550, 20);
-	dummy->set_can_default(true);
-	dummy->iconify();
-}
-
-GwFileChooserGui::~GwFileChooserGui()
-{
-#ifdef HAVE_GTKMM30
-  dummy->close();
-  gtk_wrapper->quit();
-#endif
-  Gdk::flush();
-}
-
 void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &load_mode, int &filter, int &result)
 {
 	Gtk::FileChooserDialog dialog("Please, choose one or more files then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
+#ifdef HAVE_GTKMM24
+	Gtk::Window *dummy = new Gtk::Window;
+	dummy->set_title("If you can see this window something went wrong");
+	dummy->set_default_size(550, 20);
+	dummy->set_can_default(true);
+	dummy->iconify();
+#endif
 	dialog.set_transient_for(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);
@@ -267,7 +284,7 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
 	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
-
+	dummy->hide();
 }
 
 void GwFileChooserGui::update_preview_cb()

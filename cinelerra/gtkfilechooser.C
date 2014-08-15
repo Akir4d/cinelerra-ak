@@ -24,48 +24,44 @@
 #include <libgen.h>
 #include <pwd.h>
 
-#ifdef HAVE_GTKMM24
+
 GwFileChooser::GwFileChooser()
 {
-	gtk_wrapper = new Gtk::Main(NULL, NULL, false);
+#ifdef HAVE_GTKMM30
+  gtk_wrapper = Gtk::Application::create();
+#else
+  gtk_wrapper = new Gtk::Main(NULL, NULL, false);
+#endif
 }
 
 
 GwFileChooser::~GwFileChooser()
 {
+#ifdef HAVE_GTKMM30
+	gtk_wrapper->quit();
+#else
 	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
+#endif
 	Gdk::flush();
 }
-#else
-GwFileChooser::GwFileChooser()
-{
-}
 
-
-GwFileChooser::~GwFileChooser()
-{
-}
-#endif
 GwFileChooserGui::GwFileChooserGui()
 {
 	pdialog = 0;
-#ifdef HAVE_GTKMM30
 	// Identify wrapper as cinelerra
-	gtk_wrapper = Gtk::Application::create();
 	dummy = new Gtk::Window;
 	dummy->set_title("If you can see this window something went wrong");
 	dummy->set_default_size(550, 20);
 	dummy->set_can_default(true);
 	dummy->iconify();
-#endif
 }
 
 GwFileChooserGui::~GwFileChooserGui()
 {
 #ifdef HAVE_GTKMM30
   dummy->close();
-  gtk_wrapper->quit();
-  Gdk::flush();
+#else
+  dummy->hide();
 #endif
 }
 
@@ -284,7 +280,6 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
 	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
-	dummy->hide();
 }
 
 void GwFileChooserGui::update_preview_cb()

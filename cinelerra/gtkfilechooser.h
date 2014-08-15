@@ -35,9 +35,12 @@ public:
 		  				int &load_mode,
 						char *default_path,
 		  				int &filter);
-#ifdef HAVE_GTKMM24
-	  void start_file_chooser();
+
+	  //void start_file_chooser();
 private:
+#ifdef HAVE_GTKMM30
+	Glib::RefPtr<Gtk::Application> gtk_wrapper;
+#else
 	Gtk::Main *gtk_wrapper;
 #endif
 };
@@ -69,12 +72,8 @@ private:
 	 Gtk::Image preview;
 	 Gtk::FileChooser *pdialog;
 	 void update_preview_cb();
-	  void start_file_chooser();
-#ifdef HAVE_GTKMM30
-	  Gtk::Window *dummy;
-  	  Glib::RefPtr<Gtk::Application> gtk_wrapper;
-#endif
-
+	 //void start_file_chooser();
+	 Gtk::Window *dummy;
 };
 
 #endif //GTKMM_GTKFILECHOOSERWINDOW_H

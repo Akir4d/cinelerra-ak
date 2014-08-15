@@ -3,4 +3,4 @@
 export LADSPA_PATH=$LADSPA_PATH:/usr/local/lib/ladspa:/usr/lib/ladspa
 export LC_NUMERIC="C"
 
- /usr/local/bin/BinOfCinelerraCv $@
+ @bindir@/BinOfCinelerraCv $@

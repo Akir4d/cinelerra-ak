@@ -386,6 +386,7 @@ int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
 	                0,
 	                pitch,
 	                temp_frame->get_w());
+	        for(size_t s = 0; s < height; s++) free(png_rows[s]);
 		free(png_rows);
 		close(fh_png);
 

@@ -46,7 +46,6 @@ private:
 };
 
 class GwFileChooserGui
-: public Gtk::Window
 {
 friend class GwFileChooser;
 public:

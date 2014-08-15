@@ -1,6 +1,20 @@
 #!/bin/sh -e
 
-export LADSPA_PATH=$LADSPA_PATH:/usr/local/lib/ladspa:/usr/lib/ladspa
+# if not set LADSPA_PATH try to locate it
+
+if test -z $LADSPA_PATH; then
+
+if test -d /usr/local/lib/ladspa; then
+export LADSPA_PATH=/usr/local/lib/ladspa
+
+elif test -d /usr/lib/ladspa; then
+export LADSPA_PATH=/usr/lib/ladspa
+fi
+
+fi
+
+# float fix
 export LC_NUMERIC="C"
 
+# start cinelerra
  @bindir@/BinOfCinelerraCv $@

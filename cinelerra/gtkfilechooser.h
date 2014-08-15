@@ -46,11 +46,7 @@ private:
 };
 
 class GwFileChooserGui
-#ifdef HAVE_GTKMM30
-: public Gtk::Application
-#else
 : public Gtk::Window
-#endif
 {
 friend class GwFileChooser;
 public:

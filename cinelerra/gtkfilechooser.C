@@ -46,8 +46,9 @@ GwFileChooser::~GwFileChooser()
 #else
 	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 #endif
-	Gdk::flush();
+	delete [] fakeargv[0];
 	delete [] fakeargv;
+	Gdk::flush();
 }
 
 GwFileChooserGui::GwFileChooserGui()
@@ -68,6 +69,7 @@ GwFileChooserGui::~GwFileChooserGui()
 #else
   dummy->hide();
 #endif
+  delete dummy;
 }
 
 int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
@@ -152,7 +154,7 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 		retval = 1;
 	}
 	if(!filenames.empty()) filenames.clear();
-	if(dirname_spot) delete dirname_spot;
+	if(dirname_spot) delete [] dirname_spot;
 
 	switch(result)
 	{
@@ -271,6 +273,11 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 	if(dialog.get_filter() == filter_audio) filter=3;
 	if(dialog.get_filter() == filter_images) filter=4;
 	if(dialog.get_filter() == filter_any) filter=5;
+	filter_xml.clear();
+	filter_video.clear();
+	filter_audio.clear();
+	filter_images.clear();
+	filter_any.clear();
 #else
 	if(!dialog.get_filter()->get_name().compare(filter_xml.get_name())) filter=1;
 	if(!dialog.get_filter()->get_name().compare(filter_video.get_name())) filter=2;

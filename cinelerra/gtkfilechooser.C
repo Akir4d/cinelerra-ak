@@ -27,10 +27,14 @@
 
 GwFileChooser::GwFileChooser()
 {
+  int fakeargc = 1;
+  fakeargv = new char*[1];
+  fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
+  strcpy(fakeargv[0], "cinelerra-cv");
 #ifdef HAVE_GTKMM30
-  gtk_wrapper = Gtk::Application::create();
+  gtk_wrapper = Gtk::Application::create(fakeargc, fakeargv, "cinelerra-cv.org");
 #else
-  gtk_wrapper = new Gtk::Main(NULL, NULL, false);
+  gtk_wrapper = new Gtk::Main(fakeargc, fakeargv, false);
 #endif
 }
 
@@ -43,6 +47,7 @@ GwFileChooser::~GwFileChooser()
 	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
 #endif
 	Gdk::flush();
+	delete [] fakeargv;
 }
 
 GwFileChooserGui::GwFileChooserGui()
@@ -174,13 +179,6 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 {
 	Gtk::FileChooserDialog dialog("Please, choose one or more files then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
-#ifdef HAVE_GTKMM24
-	Gtk::Window *dummy = new Gtk::Window;
-	dummy->set_title("If you can see this window something went wrong");
-	dummy->set_default_size(550, 20);
-	dummy->set_can_default(true);
-	dummy->iconify();
-#endif
 	dialog.set_transient_for(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);

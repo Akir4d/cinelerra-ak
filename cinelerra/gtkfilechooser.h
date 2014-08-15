@@ -36,7 +36,7 @@ public:
 						char *default_path,
 		  				int &filter);
 
-	  //void start_file_chooser();
+	char **fakeargv;
 private:
 #ifdef HAVE_GTKMM30
 	Glib::RefPtr<Gtk::Application> gtk_wrapper;
@@ -56,13 +56,6 @@ friend class GwFileChooser;
 public:
 	GwFileChooserGui();
 	~GwFileChooserGui();
-#ifdef HAVE_GTKMM30
-	int loadfiles(ArrayList<char*> &path_list,
-		  				int &load_mode,
-						char *default_path,
-		  				int &filter);
-private:
-#endif
 	void do_load_dialogs(std::vector<std::string> &filenames,
 			char *default_path,
 			int &download_mode,
@@ -72,7 +65,6 @@ private:
 	 Gtk::Image preview;
 	 Gtk::FileChooser *pdialog;
 	 void update_preview_cb();
-	 //void start_file_chooser();
 	 Gtk::Window *dummy;
 };
 

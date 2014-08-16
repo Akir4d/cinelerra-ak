@@ -51,12 +51,12 @@ GwFileChooser::~GwFileChooser()
 	while(gtk_wrapper->events_pending())
 	{
 		gtk_wrapper->iteration(false);
-		Gdk::flush();
+		//Gdk::flush();
 		flush++;
 		printf("%d.", flush);
 	}
 	gtk_wrapper->iteration(false);
-	Gdk::flush();
+	//Gdk::flush();
 	printf(" quit\n");
 #endif
 	delete [] fakeargv[0];

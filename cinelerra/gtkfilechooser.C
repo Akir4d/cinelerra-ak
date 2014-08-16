@@ -27,14 +27,15 @@
 
 GwFileChooser::GwFileChooser()
 {
-  int fakeargc = 1;
-  fakeargv = new char*[1];
-  fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
-  strcpy(fakeargv[0], "cinelerra-cv");
+	int fakeargc = 1;
+	fakeargv = new char*[1];
+	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
+	strcpy(fakeargv[0], "cinelerra-cv");
 #ifdef HAVE_GTKMM30
-  gtk_wrapper = Gtk::Application::create(fakeargc, fakeargv, "cinelerra-cv.org");
+	gtk_wrapper = Gtk::Application::create(fakeargc, fakeargv, "cinelerra-cv.org");
+	gtk_wrapper->release();
 #else
-  gtk_wrapper = new Gtk::Main(fakeargc, fakeargv, false);
+	gtk_wrapper = new Gtk::Main(fakeargc, fakeargv, false);
 #endif
 }
 
@@ -48,7 +49,10 @@ GwFileChooser::~GwFileChooser()
 #endif
 	delete [] fakeargv[0];
 	delete [] fakeargv;
+	//now we can flush all window
+#ifdef HAVE_GTKMM24
 	Gdk::flush();
+#endif
 }
 
 GwFileChooserGui::GwFileChooserGui()
@@ -65,11 +69,12 @@ GwFileChooserGui::GwFileChooserGui()
 GwFileChooserGui::~GwFileChooserGui()
 {
 #ifdef HAVE_GTKMM30
-  dummy->close();
+	dummy->show();
+	dummy->close();
 #else
-  dummy->hide();
+	dummy->hide();
 #endif
-  delete dummy;
+	delete dummy;
 }
 
 int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
@@ -83,7 +88,7 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 	int retval = 0;
 	int result = 0;
 
-	char *dirname_spot;
+	char *dirname_spot = 0;
 	// Cinelerra not saves the last dir as default_path suggests
 	// but only the last file as last dir.;
 	struct stat s;
@@ -145,7 +150,6 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 				strcpy(out_path, in_path);
 			}
 			filenames[i].clear();
-
 		}
 	}
 	else
@@ -154,43 +158,31 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 		retval = 1;
 	}
 	if(!filenames.empty()) filenames.clear();
-	if(dirname_spot) delete [] dirname_spot;
+	delete [] dirname_spot;
 
-	switch(result)
-	{
-	case LOAD_REPLACE:
-	case LOAD_REPLACE_CONCATENATE:
-	case LOAD_CONCATENATE:
-	case LOAD_NEW_TRACKS:
-	case LOAD_RESOURCESONLY:
-	case LOAD_PASTE:
-	{
-		load_mode = result;
-		break;
-	}
-	default:
-	{
-		retval = 1;
-		break;
-	}
-	}
+	if(result == 0) retval = 1;
+	else load_mode = result;
+
 	return retval;
 }
 
-void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char *default_path, int &load_mode, int &filter, int &result)
+void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
+		char *default_path,
+		int &load_mode,
+		int &filter,
+		int &result)
 {
 	Gtk::FileChooserDialog dialog("Please, choose one or more files then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
 	dialog.set_transient_for(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);
-	dialog.add_button("_Rpl+Cnc", LOAD_REPLACE_CONCATENATE);
+	dialog.add_button("_Repl+Conc", LOAD_REPLACE_CONCATENATE);
 	dialog.add_button("_Concatenate", LOAD_CONCATENATE);
 	dialog.add_button("_New Tracks", LOAD_NEW_TRACKS);
 	dialog.add_button("_As Resource", LOAD_RESOURCESONLY);
 	dialog.add_button("_Paste on", LOAD_PASTE);
 	dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
-
 	dialog.set_default_response(load_mode);
 	//Add filters, so that only certain file types can be selected:
 #ifdef HAVE_GTKMM30
@@ -249,7 +241,6 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 	if(filter == 3) dialog.set_filter(filter_audio);
 	if(filter == 4) dialog.set_filter(filter_images);
 	if(filter == 5) dialog.set_filter(filter_any);
-
 #ifdef HAVE_GTKMM30
 	dialog.resize_to_geometry(400,400);
 #else
@@ -273,11 +264,6 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 	if(dialog.get_filter() == filter_audio) filter=3;
 	if(dialog.get_filter() == filter_images) filter=4;
 	if(dialog.get_filter() == filter_any) filter=5;
-	filter_xml.clear();
-	filter_video.clear();
-	filter_audio.clear();
-	filter_images.clear();
-	filter_any.clear();
 #else
 	if(!dialog.get_filter()->get_name().compare(filter_xml.get_name())) filter=1;
 	if(!dialog.get_filter()->get_name().compare(filter_video.get_name())) filter=2;
@@ -285,6 +271,32 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames, char
 	if(!dialog.get_filter()->get_name().compare(filter_images.get_name())) filter=4;
 	if(!dialog.get_filter()->get_name().compare(filter_any.get_name())) filter=5;
 #endif
+	switch(result)
+	{
+	case LOAD_REPLACE:
+		load_mode = LOAD_REPLACE;
+		break;
+	case LOAD_REPLACE_CONCATENATE:
+		load_mode = LOAD_REPLACE_CONCATENATE;
+		break;
+	case LOAD_CONCATENATE:
+		load_mode = LOAD_CONCATENATE;
+		break;
+	case LOAD_NEW_TRACKS:
+		load_mode = LOAD_NEW_TRACKS;
+		break;
+	case LOAD_RESOURCESONLY:
+		load_mode = LOAD_RESOURCESONLY;
+		break;
+	case LOAD_PASTE:
+		load_mode = LOAD_PASTE;
+		break;
+	default:
+	{
+		result = 0;
+		break;
+	}
+	}
 }
 
 void GwFileChooserGui::update_preview_cb()

@@ -32,9 +32,9 @@ public:
 	GwFileChooser();
 	~GwFileChooser();
 	int loadfiles(ArrayList<char*> &path_list,
-		  				int &load_mode,
-						char *default_path,
-		  				int &filter);
+			int &load_mode,
+			char *default_path,
+			int &filter);
 
 	char **fakeargv;
 private:
@@ -47,20 +47,20 @@ private:
 
 class GwFileChooserGui
 {
-friend class GwFileChooser;
+	friend class GwFileChooser;
 public:
 	GwFileChooserGui();
 	~GwFileChooserGui();
 	void do_load_dialogs(std::vector<std::string> &filenames,
 			char *default_path,
-			int &download_mode,
+			int &load_mode,
 			int &filter,
 			int &result);
 
-	 Gtk::Image preview;
-	 Gtk::FileChooser *pdialog;
-	 void update_preview_cb();
-	 Gtk::Window *dummy;
+	Gtk::Image preview;
+	Gtk::FileChooser *pdialog;
+	void update_preview_cb();
+	Gtk::Window *dummy;
 };
 
 #endif //GTKMM_GTKFILECHOOSERWINDOW_H

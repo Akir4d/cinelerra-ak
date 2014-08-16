@@ -44,6 +44,7 @@ GwFileChooser::~GwFileChooser()
 {
 #ifdef HAVE_GTKMM30
 	gtk_wrapper->quit();
+	gtk_wrapper.clear();
 #else
 	printf("\n  Starting Gtk Flush: ");
 	int flush = 0;
@@ -191,12 +192,12 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
 	dialog.set_parent(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);
-	dialog.add_button("_Repl+Conc", LOAD_REPLACE_CONCATENATE);
+	dialog.add_button("Repl+Conc", LOAD_REPLACE_CONCATENATE);
 	dialog.add_button("_Concatenate", LOAD_CONCATENATE);
 	dialog.add_button("_New Tracks", LOAD_NEW_TRACKS);
 	dialog.add_button("_As Resource", LOAD_RESOURCESONLY);
 	dialog.add_button("_Paste on", LOAD_PASTE);
-	dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+	dialog.add_button("Cancel", Gtk::RESPONSE_CANCEL);
 	dialog.set_default_response(load_mode);
 	//Add filters, so that only certain file types can be selected:
 #ifdef HAVE_GTKMM30

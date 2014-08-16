@@ -45,14 +45,21 @@ GwFileChooser::~GwFileChooser()
 #ifdef HAVE_GTKMM30
 	gtk_wrapper->quit();
 #else
-	if(!gtk_wrapper->events_pending()) gtk_wrapper->quit();
+	printf("\n  Starting Gtk Flush: ");
+	int flush = 0;
+	while(gtk_wrapper->events_pending())
+	{
+		gtk_wrapper->iteration(false);
+		Gdk::flush();
+		flush++;
+		printf("%d.", flush);
+	}
+	gtk_wrapper->iteration(false);
+	Gdk::flush();
+	printf(" quit\n");
 #endif
 	delete [] fakeargv[0];
 	delete [] fakeargv;
-	//now we can flush all window
-#ifdef HAVE_GTKMM24
-	Gdk::flush();
-#endif
 }
 
 GwFileChooserGui::GwFileChooserGui()
@@ -68,8 +75,8 @@ GwFileChooserGui::GwFileChooserGui()
 
 GwFileChooserGui::~GwFileChooserGui()
 {
-#ifdef HAVE_GTKMM30
 	dummy->show();
+#ifdef HAVE_GTKMM30
 	dummy->close();
 #else
 	dummy->hide();
@@ -181,6 +188,7 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
 	Gtk::FileChooserDialog dialog("Please, choose one or more files then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
 	dialog.set_transient_for(*dummy);
+	dialog.set_parent(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);
 	dialog.add_button("_Repl+Conc", LOAD_REPLACE_CONCATENATE);

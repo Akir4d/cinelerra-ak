@@ -28,7 +28,6 @@
 GwFileChooser::GwFileChooser()
 {
 	int fakeargc = 1;
-	Gdk::flush();
 	fakeargv = new char*[1];
 	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
 	strcpy(fakeargv[0], "cinelerra-cv");
@@ -85,6 +84,7 @@ GwFileChooserGui::~GwFileChooserGui()
 	dummy->hide();
 #endif
 	delete dummy;
+	Gdk::flush();
 }
 
 int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
@@ -314,6 +314,7 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
 		break;
 	}
 	}
+	Gdk::flush();
 }
 
 void GwFileChooserGui::update_preview_cb()

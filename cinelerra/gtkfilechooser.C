@@ -28,6 +28,7 @@
 GwFileChooser::GwFileChooser()
 {
 	int fakeargc = 1;
+	Gdk::flush();
 	fakeargv = new char*[1];
 	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
 	strcpy(fakeargv[0], "cinelerra-cv");
@@ -51,10 +52,12 @@ GwFileChooser::~GwFileChooser()
 	while(gtk_wrapper->events_pending())
 	{
 		gtk_wrapper->iteration(false);
-		//Gdk::flush();
+		Gdk::flush();
 		flush++;
 		printf("%d.", flush);
 	}
+	gtk_wrapper->iteration(false);
+	Gdk::flush();
 	delete gtk_wrapper;
 	printf(" quit\n");
 #endif

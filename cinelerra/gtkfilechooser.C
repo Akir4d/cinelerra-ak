@@ -127,12 +127,15 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 
 	GwFileChooserGui loadgui;
 	loadgui.do_load_dialogs(filenames, dirname_spot, load_mode, filter, result);
+	bool altclean = false;
 	if(!filenames.empty())
 	{
 		strcpy(default_path, (char*)filenames[0].c_str());
 		char *out_path;
 		int i;
-		int z = filenames.size();
+		int z;
+		if(result != LOAD_PASTE) z = filenames.size();
+			else z = 1;
 		for(i = 0; i < z; i++)
 		{
 			char in_path[filenames[i].size()];
@@ -149,7 +152,6 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 				path_list.append(out_path = new char[strlen(in_path) + 1]);
 				strcpy(out_path, in_path);
 			}
-			filenames[i].clear();
 		}
 	}
 	else
@@ -157,6 +159,10 @@ int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
 		strcpy(default_path, dirname_spot);
 		retval = 1;
 	}
+
+	int z = filenames.size();
+	for(int i = 0; i < z; i++) filenames[i].clear();
+
 	if(!filenames.empty()) filenames.clear();
 	delete [] dirname_spot;
 

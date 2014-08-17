@@ -28,6 +28,7 @@
 GwFileChooser::GwFileChooser()
 {
 	int fakeargc = 1;
+	gdk_error_trap_push();
 	fakeargv = new char*[1];
 	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
 	strcpy(fakeargv[0], "cinelerra-cv");
@@ -47,15 +48,16 @@ GwFileChooser::~GwFileChooser()
 	gtk_wrapper.clear();
 #else
 	printf("\n  Starting Gtk Flush: ");
-	int flush = 0;
+	int f = 0;
 	while(gtk_wrapper->events_pending())
 	{
 		gtk_wrapper->iteration(false);
-		Gdk::flush();
-		flush++;
-		printf("%d.", flush);
+		f++;
+		printf("%d.", f);
 	}
-	Gdk::flush();
+	gdk_flush();
+	gint xerror = gdk_error_trap_pop();
+	if(xerror) printf("\n GtkWrapper - X Errors trap: %d\n", xerror);
 	printf(" quit\n");
 	gtk_wrapper = NULL;
 	delete gtk_wrapper;
@@ -84,7 +86,6 @@ GwFileChooserGui::~GwFileChooserGui()
 	dummy->hide();
 #endif
 	delete dummy;
-	Gdk::flush();
 }
 
 int GwFileChooser::loadfiles(ArrayList<char*> &path_list,
@@ -315,7 +316,6 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
 		break;
 	}
 	}
-	Gdk::flush();
 }
 
 void GwFileChooserGui::update_preview_cb()

@@ -55,9 +55,7 @@ GwFileChooser::~GwFileChooser()
 		flush++;
 		printf("%d.", flush);
 	}
-	gtk_wrapper->iteration(false);
 	Gdk::flush();
-	delete gtk_wrapper;
 	printf(" quit\n");
 #endif
 	delete [] fakeargv[0];
@@ -272,6 +270,7 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
 
 	//Show the dialog and wait for a user response:
 	result = dialog.run();
+	preview.clear();
 	pdialog = NULL;
 	//Handle the response:
 	filenames = dialog.get_filenames();

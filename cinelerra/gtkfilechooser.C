@@ -46,6 +46,7 @@ GwFileChooser::~GwFileChooser()
 #ifdef HAVE_GTKMM30
 	gtk_wrapper->quit();
 	gtk_wrapper.clear();
+	gdk_flush();
 #else
 	printf("\n  Starting Gtk Flush: ");
 	int f = 0;
@@ -56,12 +57,12 @@ GwFileChooser::~GwFileChooser()
 		printf("%d.", f);
 	}
 	gdk_flush();
-	gint xerror = gdk_error_trap_pop();
-	if(xerror) printf("\n GtkWrapper - X Errors trap: %d\n", xerror);
 	printf(" quit\n");
 	gtk_wrapper = NULL;
 	delete gtk_wrapper;
 #endif
+	gint xerror = gdk_error_trap_pop();
+	if(xerror) printf("\n GtkWrapper - X Errors trap: %d\n", xerror);
 	delete [] fakeargv[0];
 	delete [] fakeargv;
 }

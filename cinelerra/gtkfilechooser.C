@@ -57,6 +57,8 @@ GwFileChooser::~GwFileChooser()
 	}
 	Gdk::flush();
 	printf(" quit\n");
+	gtk_wrapper = NULL;
+	delete gtk_wrapper;
 #endif
 	delete [] fakeargv[0];
 	delete [] fakeargv;
@@ -189,7 +191,7 @@ void GwFileChooserGui::do_load_dialogs(std::vector<std::string> &filenames,
 	Gtk::FileChooserDialog dialog("Please, choose one or more files then press one insertion strategy",
 			Gtk::FILE_CHOOSER_ACTION_OPEN);
 	dialog.set_transient_for(*dummy);
-	dialog.set_parent(*dummy);
+	//dialog.set_parent(*dummy);
 	//Add response buttons the the dialog:
 	dialog.add_button("_Replace", LOAD_REPLACE);
 	dialog.add_button("Repl+Conc", LOAD_REPLACE_CONCATENATE);

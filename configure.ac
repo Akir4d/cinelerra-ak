@@ -512,7 +512,7 @@ echo --- FFMPEG CONFIGURATION SECTION --------------
 if test "x$with_external_ffmpeg" = "xyes"; then
 	echo Using external ffmpeg - no configuration needed
 else
-	ff_conf_args="--disable-ffmpeg --disable-ffserver --disable-ffplay \
+	ff_conf_args="--disable-debug --disable-ffmpeg --disable-ffserver --disable-ffplay \
 		--disable-static --enable-shared --build-suffix=-cinelerra"
 	if test "x$enable_mmx32" = "xyes"; then
 	ff_conf_args=$ffmpeg_cpumask$ff_conf_args

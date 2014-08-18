@@ -28,7 +28,9 @@
 GwFileChooser::GwFileChooser()
 {
 	int fakeargc = 1;
+#ifdef HAVE_GTKMM24
 	gdk_error_trap_push();
+#endif
 	fakeargv = new char*[1];
 	fakeargv[0] = new char [strlen("cinelerra-cv") + 1];
 	strcpy(fakeargv[0], "cinelerra-cv");
@@ -46,7 +48,6 @@ GwFileChooser::~GwFileChooser()
 #ifdef HAVE_GTKMM30
 	gtk_wrapper->quit();
 	gtk_wrapper.clear();
-	gdk_flush();
 #else
 	printf("\n  Starting Gtk Flush: ");
 	int f = 0;
@@ -60,9 +61,9 @@ GwFileChooser::~GwFileChooser()
 	printf(" quit\n");
 	gtk_wrapper = NULL;
 	delete gtk_wrapper;
-#endif
 	gint xerror = gdk_error_trap_pop();
 	if(xerror) printf("\n GtkWrapper - X Errors trap: %d\n", xerror);
+#endif
 	delete [] fakeargv[0];
 	delete [] fakeargv;
 }

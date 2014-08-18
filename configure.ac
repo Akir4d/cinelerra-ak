@@ -436,9 +436,15 @@ AC_SUBST(LIBX264_LIBS)
 ############## MMX / 3DNOW  POWERPC / ALTIVEC
 
 case "$target_cpu" in
-i586 | i686)
+i586) 
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS" # -D_MMX_ doesn't work
 		enable_mmx32=yes
+		ffmpeg_cpumask="--cpu=i586 "
+;;
+i686)
+	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS" # -D_MMX_ doesn't work
+		enable_mmx32=yes
+		ffmpeg_cpumask="--cpu=i686 "
 ;;
 x86_64)
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS"
@@ -508,7 +514,9 @@ if test "x$with_external_ffmpeg" = "xyes"; then
 else
 	ff_conf_args="--disable-ffmpeg --disable-ffserver --disable-ffplay \
 		--disable-static --enable-shared --build-suffix=-cinelerra"
-
+	if test "x$enable_mmx32" = "xyes"; then
+	ff_conf_args=$ffmpeg_cpumask$ff_conf_args
+	fi
 
 	srcdir_c=$(readlink -f $srcdir) &&
 	mkdir -p quicktime/ffmpeg/ &&

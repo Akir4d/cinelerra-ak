@@ -364,7 +364,7 @@ int File::open_file(Preferences *preferences,
 
 			char test[16];
 			fread(test, 16, 1, stream);
-
+#ifndef FFMPEGDIRECT
 			if(FileDV::check_sig(this->asset))
 			{
 // libdv
@@ -378,6 +378,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileSndFile(this->asset, this);
 			}
 			else
+#endif
 			if(FilePNG::check_sig(this->asset))
 			{
 // PNG file
@@ -399,6 +400,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileEXR(this->asset, this);
 			}
 			else
+#ifndef FFMPEGDIRECT
 			if(FileYUV::check_sig(this->asset))
 			{
 // YUV file
@@ -406,6 +408,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileYUV(this->asset, this);
 			}
 			else
+#endif
 			if(FileCR2::check_sig(this->asset))
 			{
 // JPEG file
@@ -427,6 +430,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileTIFF(this->asset, this);
 			}
 			else
+#ifndef FFMPEGDIRECT
 			if(FileOGG::check_sig(this->asset))
 			{
 // OGG file
@@ -455,6 +459,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileMPEG(this->asset, this);
 			}
 			else*/
+#endif
 			if(test[0] == '<' && test[1] == 'E' && test[2] == 'D' && test[3] == 'L' && test[4] == '>' ||
 				test[0] == '<' && test[1] == 'H' && test[2] == 'T' && test[3] == 'A' && test[4] == 'L' && test[5] == '>' ||
 				test[0] == '<' && test[1] == '?' && test[2] == 'x' && test[3] == 'm' && test[4] == 'l')
@@ -464,6 +469,7 @@ int File::open_file(Preferences *preferences,
 				return FILE_IS_XML;
 			}    // can't load project file
 			else
+#ifndef FFMPEGDIRECT
 			if(FileMOV::check_sig(this->asset))
 			{
 // MOV file
@@ -472,6 +478,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileMOV(this->asset, this);
 			}
 			else
+#endif
 			if(FileFFMPEG::check_sig(this->asset))
 			{
 				fclose(stream);
@@ -486,12 +493,31 @@ int File::open_file(Preferences *preferences,
 			break;
 
 // format already determined
-		case FILE_AC3:
-			file = new FileAC3(this->asset, this);
-			break;
-
+#ifdef FFMPEGDIRECT
+		case FILE_PCM:
+		case FILE_WAV:
+		case FILE_AU:
+		case FILE_AIFF:
+		case FILE_SND:
+		case FILE_MPEG:
+		case FILE_AMPEG:
+		case FILE_VMPEG:
+		case FILE_OGG:
+		case FILE_VORBIS:
+		case FILE_AVI:
+		case FILE_AVI_LAVTOOLS:
+		case FILE_AVI_ARNE2:
+		case FILE_AVI_ARNE1:
+		case FILE_AVI_AVIFILE:
+		case FILE_RAWDV:
+		case FILE_MOV:
+#endif
 		case FILE_FFMPEG:
 			file = new FileFFMPEG(this->asset, this);
+			break;
+#ifndef FFMPEGDIRECT
+		case FILE_AC3:
+			file = new FileAC3(this->asset, this);
 			break;
 
 		case FILE_PCM:
@@ -499,10 +525,9 @@ int File::open_file(Preferences *preferences,
 		case FILE_AU:
 		case FILE_AIFF:
 		case FILE_SND:
-//printf("File::open_file 1\n");
 			file = new FileSndFile(this->asset, this);
 			break;
-
+#endif
 		case FILE_PNG:
 		case FILE_PNG_LIST:
 			file = new FilePNG(this->asset, this);
@@ -535,7 +560,7 @@ int File::open_file(Preferences *preferences,
 		case FILE_TIFF_LIST:
 			file = new FileTIFF(this->asset, this);
 			break;
-
+#ifndef FFMPEGDIRECT
 		case FILE_MOV:
 			file = new FileMOV(this->asset, this);
 			break;
@@ -568,7 +593,7 @@ int File::open_file(Preferences *preferences,
 		case FILE_RAWDV:
 			file = new FileDV(this->asset, this);
 			break;
-
+#endif
 // try plugins
 		default:
 			return 1;
@@ -1492,6 +1517,7 @@ int File::get_best_colormodel(Asset *asset, int driver)
 		case FILE_TGA_LIST:
 			return FileTGA::get_best_colormodel(asset, driver);
 			break;
+
 	}
 
 	return BC_RGB888;

@@ -626,6 +626,7 @@ AC_SUBST(OBJCOPYARCH, $ocarch)
 
 ############## END of .png TO .o CONVERSION
 
+
 ############# GTKMM - EXPERIMENTAL
 AC_MSG_CHECKING([experimental gtkmm support])
 AC_ARG_ENABLE(gtk, AC_HELP_STRING([--enable-gtk],
@@ -644,26 +645,27 @@ if test "x$enable_gtk" = "xyes" ; then
 
 	if test "x$found_gtk30" = "xno"; then 
 		PKG_CHECK_MODULES([GTKMM24], [gtkmm-2.4], found_gtk24="yes", :)
-		fi
+	fi
 
 	if test "x$found_gtk30" = "xyes" ; then 
 		found_gtk="yes"
 		AH_TEMPLATE(HAVE_GTKMM30, [Define to 1 If gtkmm-3.0 is available.])
 		AC_DEFINE(HAVE_GTKMM30)
-		fi
+	fi
 
 	if test "x$found_gtk24" = "xyes" ; then 
 		found_gtk="yes"
 		AH_TEMPLATE(HAVE_GTKMM24, [Define to 1 If gtkmm-2.4 is available.])
 		AC_DEFINE(HAVE_GTKMM24) 
-		fi
+	fi
+fi
 
-	if test "x$found_gtk" = "xno" ; then
+if test "x$found_gtk" = "xno" ; then
 		AC_MSG_WARN([Can't find gtkmm configuration, or gtkmm is unusable $enable_gtk $found_gtk])
 		enable_gtk="no"
 		GTK_CFLAGS=""
 		GTK_LIBS=""
-	else
+else
 		found_gtk="yes"
 		enable_gtk=ok
 		GTK_CFLAGS="$GTKMM30_CFLAGS $GTKMM24_CFLAGS"
@@ -671,12 +673,28 @@ if test "x$enable_gtk" = "xyes" ; then
 		CXXFLAGS="$GTK_CFLAGS $CXXFLAGS"
 		AH_TEMPLATE(HAVE_GTK, [Define to 1 If gtkmm is available.])
 		AC_DEFINE(HAVE_GTK)
-	fi
 fi
 AM_CONDITIONAL(ENABLE_GTK,test "x$enable_gtk" = "xok")
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
 ############## END GTKMM
+
+############# DIRECT FFMPEG
+AC_MSG_CHECKING([experimental direct ffmpeg])
+AC_ARG_ENABLE(dffmpeg, AC_HELP_STRING([--enable-dffmpeg],
+	[use directly ffmpeg to decode file (default: no)]),
+	[enable_dffmpeg=$enableval], [enable_dffmpeg=no])
+
+if test "x$enable_dffmpeg" = "xyes" ; then
+
+	enable_dffmpeg=ok
+	AH_TEMPLATE(FFMPEGDIRECT, [Define to 1 If want to open all video files with ffmpeg.])
+	AC_DEFINE(FFMPEGDIRECT)
+
+fi
+
+AM_CONDITIONAL(ENABLE_FFMPEGDIRECT,test "x$enable_dffmpeg" = "xok")
+############## END DIRECT FFMPEG
 
 AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 	m4/Makefile \

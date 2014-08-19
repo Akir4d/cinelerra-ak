@@ -33,6 +33,10 @@
 #include "strategies.inc"
 #include "vframe.inc"
 
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+}
 #include <sys/types.h>
 
 // Number of samples saved before the current read position
@@ -82,17 +86,17 @@ public:
 	virtual int set_video_position(int64_t x) { return 0; };
 	virtual int set_audio_position(int64_t x) { return 0; };
 
-// Subclass should call this to add the base class allocation.
-// Only used in read mode.
+	// Subclass should call this to add the base class allocation.
+	// Only used in read mode.
 	virtual int64_t get_memory_usage() { return 0; };
 
 	virtual int write_samples(double **buffer, 
-		int64_t len) { return 0; };
+			int64_t len) { return 0; };
 	virtual int write_frames(VFrame ***frames, int len) { return 0; };
 	virtual int read_compressed_frame(VFrame *buffer) { return 0; };
 	virtual int write_compressed_frame(VFrame *buffers) { return 0; };
 	virtual int64_t compressed_frame_size() { return 0; };
-// Doubles are used to allow resampling
+	// Doubles are used to allow resampling
 	virtual int read_samples(double *buffer, int64_t len) { return 0; };
 
 
@@ -101,66 +105,72 @@ public:
 
 	virtual int read_frame(VFrame *frame) { return 1; };
 
-// Return either the argument or another colormodel which read_frame should
-// use.
+	// Return either the argument or another colormodel which read_frame should
+	// use.
 	virtual int colormodel_supported(int colormodel) { return BC_RGB888; };
-// This file can copy compressed frames directly from the asset
+	// This file can copy compressed frames directly from the asset
 	virtual int can_copy_from(Edit *edit, int64_t position) { return 0; }; 
 	virtual int get_render_strategy(ArrayList<int>* render_strategies) { return VRENDER_VPIXEL; };
 
-// Manages an audio history buffer
-	void update_pcm_history(int64_t len);
-// contiguous float
+	// contiguous float
 	void append_history(float **new_data, int len);
-// Interleaved short
-	void append_history(short *new_data, int len);
-	void pad_history(int len);
-	void read_history(double *dst,
-		int64_t start_sample, 
-		int channel,
-		int64_t len);
 	void allocate_history(int len);
 
+	// Manages an audio history buffer
+	void update_pcm_history(int64_t len);
+	// contiguous float
+	void append_history(float **new_data, int offset, int len);
+	// Interleaved
+	void append_history(const void *new_data,
+			enum SampleFormat format,
+			int offset, int samples);
+
+	void pad_history(int len);
+	void read_history(double *dst,
+			int64_t start_sample,
+			int channel,
+			int64_t len);
+
 protected:
-// Return 1 if the render_strategy is present on the list.
+	// Return 1 if the render_strategy is present on the list.
 	static int search_render_strategies(ArrayList<int>* render_strategies, int render_strategy);
 
-// convert samples into file format
+	// convert samples into file format
 	int64_t samples_to_raw(char *out_buffer, 
-							float **in_buffer, // was **buffer
-							int64_t input_len, 
-							int bits, 
-							int channels,
-							int byte_order,
-							int signed_);
+			float **in_buffer, // was **buffer
+			int64_t input_len,
+			int bits,
+			int channels,
+			int byte_order,
+			int signed_);
 
-// overwrites the buffer from PCM data depending on feather.
+	// overwrites the buffer from PCM data depending on feather.
 	int raw_to_samples(float *out_buffer, char *in_buffer, 
-		int64_t samples, int bits, int channels, int channel, int feather, 
-		float lfeather_len, float lfeather_gain, float lfeather_slope);
+			int64_t samples, int bits, int channels, int channel, int feather,
+			float lfeather_len, float lfeather_gain, float lfeather_slope);
 
-// Overwrite the buffer from float data using feather.
+	// Overwrite the buffer from float data using feather.
 	int overlay_float_buffer(float *out_buffer, float *in_buffer, 
-		int64_t samples, 
-		float lfeather_len, float lfeather_gain, float lfeather_slope);
+			int64_t samples,
+			float lfeather_len, float lfeather_gain, float lfeather_slope);
 
-// convert a frame to and from file format
+	// convert a frame to and from file format
 
 	int64_t frame_to_raw(unsigned char *out_buffer,
-					VFrame *in_frame,
-					int w,
-					int h,
-					int use_alpha,
-					int use_float,
-					int color_model);
+			VFrame *in_frame,
+			int w,
+			int h,
+			int use_alpha,
+			int use_float,
+			int color_model);
 
-// allocate a buffer for translating int to float
+	// allocate a buffer for translating int to float
 	int get_audio_buffer(char **buffer, int64_t len, int64_t bits, int64_t channels); // audio
 
-// Allocate a buffer for feathering floats
+	// Allocate a buffer for feathering floats
 	int get_float_buffer(float **buffer, int64_t len);
 
-// allocate a buffer for translating video to VFrame
+	// allocate a buffer for translating video to VFrame
 	int get_video_buffer(unsigned char **buffer, int depth); // video
 	int get_row_pointers(unsigned char *buffer, unsigned char ***pointers, int depth);
 	static int match4(const char *in, const char *out);   // match 4 bytes for a quicktime type
@@ -187,23 +197,23 @@ protected:
 
 
 
-// ================================= Audio compression
+	// ================================= Audio compression
 	double **pcm_history;
 	int64_t history_allocated;
 	int64_t history_size;
 	int64_t history_start;
 	int history_channels;
-// Range to decode to fill history buffer.  Maintained by FileBase.
+	// Range to decode to fill history buffer.  Maintained by FileBase.
 	int64_t decode_start;
 	int64_t decode_len;
-// End of last decoded sample.  Maintained by user for seeking.
+	// End of last decoded sample.  Maintained by user for seeking.
 	int64_t decode_end;
 
 
 private:
 
 
-// ULAW
+	// ULAW
 	float ulawtofloat(char ulaw);
 	char floattoulaw(float value);
 	int generate_ulaw_tables();
@@ -211,7 +221,7 @@ private:
 	float *ulawtofloat_table, *ulawtofloat_ptr;
 	unsigned char *floattoulaw_table, *floattoulaw_ptr;
 
-// IMA4
+	// IMA4
 	int init_ima4();
 	int delete_ima4();
 	int ima4_decode_block(int16_t *output, unsigned char *input);

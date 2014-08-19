@@ -1,7 +1,8 @@
 
 /*
  * CINELERRA
- * Copyright (C) 2011 Adam Williams <broadcast at earthling dot net>
+ * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
+ * Copyright (C) 2010 Monty <monty@xiph.org>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,57 +33,13 @@
 // Decoding for all FFMPEG formats
 
 
-// Handler for audio streams
-class FileFFMPEGStream
-{
-public:
-	FileFFMPEGStream();
-	~FileFFMPEGStream();
-
-	void update_pcm_history(int64_t current_sample, int64_t len);
-	void append_history(short *new_data, int len);
-	void read_history(double *dst,
-		int64_t start_sample, 
-		int channel,
-		int64_t len);
-	void allocate_history(int len);
-
-
-	void *ffmpeg_file_context;
-
-// Video
-// Next read positions
-	int64_t current_frame;
-// Last decoded positions
-	int64_t decoded_frame;
-	int first_frame;
-	
-
-// Audio
-// Interleaved samples
-	double **pcm_history;
-	int64_t history_allocated;
-	int64_t history_size;
-	int64_t history_start;
-	int64_t decode_start;
-	int64_t decode_len;
-	int64_t decode_end;
-	int channels;
-	int64_t current_sample;
-	int64_t decoded_sample;
-
-// Number of the stream in the ffmpeg array
-	int index;
-};
-
-
 class FileFFMPEG : public FileBase
 {
 public:
 	FileFFMPEG(Asset *asset, File *file);
 	~FileFFMPEG();
 
-// Get format string for ffmpeg
+	// Get format string for ffmpeg
 	static char* get_format_string(Asset *asset);
 	static int check_sig(Asset *asset);
 	void reset();
@@ -97,14 +54,19 @@ public:
 
 	void dump_context(void *ptr);
 	void *ffmpeg_format;
+	void *ffmpeg_file_context;
 	void *ffmpeg_frame;
-// Temporary for decoding
 	short *ffmpeg_samples;
 
-	ArrayList<FileFFMPEGStream*> audio_streams;
-	ArrayList<FileFFMPEGStream*> video_streams;
-
+	// Streams to decode
+	int audio_index;
+	int video_index;
+	// Next read positions
+	int64_t current_frame;
+	int64_t current_sample;
+	// Last decoded positions
 	static Mutex *ffmpeg_lock;
+	int unsynced;
 };
 
 

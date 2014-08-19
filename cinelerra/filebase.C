@@ -19,6 +19,7 @@
  * 
  */
 
+#define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
 #include "assets.h"
 #include "byteorder.h"
@@ -84,9 +85,9 @@ void FileBase::update_pcm_history(int64_t len)
 		history_allocated = HISTORY_MAX;
 	}
 
-// Restart history.  Don't bother shifting history back.
+	// Restart history.  Don't bother shifting history back.
 	if(file->current_sample < history_start ||
-		file->current_sample > history_start + history_size)
+			file->current_sample > history_start + history_size)
 	{
 		history_size = 0;
 		history_start = file->current_sample;
@@ -94,39 +95,39 @@ void FileBase::update_pcm_history(int64_t len)
 		decode_len = len;
 	}
 	else
-// Shift history forward to make room for new samples
-	if(file->current_sample > history_start + HISTORY_MAX)
-	{
-		int diff = file->current_sample - (history_start + HISTORY_MAX);
-		for(int i = 0; i < asset->channels; i++)
+		// Shift history forward to make room for new samples
+		if(file->current_sample > history_start + HISTORY_MAX)
 		{
-			double *temp = pcm_history[i];
-			memcpy(temp, temp + diff, (history_size - diff) * sizeof(double));
+			int diff = file->current_sample - (history_start + HISTORY_MAX);
+			for(int i = 0; i < asset->channels; i++)
+			{
+				double *temp = pcm_history[i];
+				memmove(temp, temp + diff, (history_size - diff) * sizeof(double));
+			}
+
+			history_start += diff;
+			history_size -= diff;
+
+			// Decode more data
+			decode_start = history_start + history_size;
+			decode_len = file->current_sample + len - (history_start + history_size);
 		}
-
-		history_start += diff;
-		history_size -= diff;
-
-// Decode more data
-		decode_start = history_start + history_size;
-		decode_len = file->current_sample + len - (history_start + history_size);
-	}
-	else
-// Starting somewhere in the buffer
-	{
-		decode_start = history_start + history_size;
-		decode_len = file->current_sample + len - (history_start + history_size);
-	}
+		else
+			// Starting somewhere in the buffer
+		{
+			decode_start = history_start + history_size;
+			decode_len = file->current_sample + len - (history_start + history_size);
+		}
 }
 
-void FileBase::append_history(float **new_data, int len)
+void FileBase::append_history(float **new_data, int offset, int len)
 {
 	allocate_history(len);
 
 	for(int i = 0; i < history_channels; i++)
 	{
 		double *output = pcm_history[i] + history_size;
-		float *input = new_data[i];
+		float *input = new_data[i]+offset;
 		for(int j = 0; j < len; j++)
 			*output++ = *input++;
 	}
@@ -136,19 +137,99 @@ void FileBase::append_history(float **new_data, int len)
 }
 
 
-void FileBase::append_history(short *new_data, int len)
+void FileBase::append_history(const void *in, enum SampleFormat format, int offset, int len)
 {
-	allocate_history(len);
+	switch (format) {
+	default:
+	case SAMPLE_FMT_NONE:
+		/* uhhhh..... */
+		pad_history(len);
+		break;
 
-	for(int i = 0; i < history_channels; i++)
+	case SAMPLE_FMT_U8:
 	{
-		double *output = pcm_history[i] + history_size;
-		short *input = new_data + i;
-		for(int j = 0; j < len; j++)
-		{
-			*output++ = (double)*input / 32768;
-			input += history_channels;
+		/* unsigned 8 bits */
+		allocate_history(len);
+		uint8_t *new_data =  (uint8_t *)in;
+
+		for(int i = 0; i < history_channels; i++){
+			double *output = pcm_history[i] + history_size;
+			uint8_t *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++){
+				*output++ = (double)(*input-128) / 128;
+				input += history_channels;
+			}
 		}
+		break;
+	}
+
+	case SAMPLE_FMT_S16:
+	{
+		/* signed 16 bits */
+		allocate_history(len);
+		int16_t *new_data =  (int16_t *)in;
+
+		for(int i = 0; i < history_channels; i++){
+			double *output = pcm_history[i] + history_size;
+			int16_t *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++){
+				*output++ = (double)*input / 32768;
+				input += history_channels;
+			}
+		}
+		break;
+	}
+
+	case SAMPLE_FMT_S32:
+	{
+		/* signed 32 bits */
+		allocate_history(len);
+		int32_t *new_data =  (int32_t *)in;
+
+		for(int i = 0; i < history_channels; i++){
+			double *output = pcm_history[i] + history_size;
+			int32_t *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++){
+				*output++ = (double)*input / 1073741824.;
+				input += history_channels;
+			}
+		}
+		break;
+	}
+
+	case SAMPLE_FMT_FLT:
+	{
+		/* float */
+		allocate_history(len);
+		float *new_data =  (float *)in;
+
+		for(int i = 0; i < history_channels; i++){
+			double *output = pcm_history[i] + history_size;
+			float *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++){
+				*output++ = *input;
+				input += history_channels;
+			}
+		}
+		break;
+	}
+
+	case SAMPLE_FMT_DBL:
+	{
+		/* double */
+		allocate_history(len);
+		double *new_data =  (double *)in;
+
+		for(int i = 0; i < history_channels; i++){
+			double *output = pcm_history[i] + history_size;
+			double *input = new_data + i + offset*history_channels;
+			for(int j = 0; j < len; j++){
+				*output++ = *input;
+				input += history_channels;
+			}
+		}
+		break;
+	}
 	}
 
 	history_size += len;
@@ -173,9 +254,9 @@ void FileBase::pad_history(int len)
 }
 
 void FileBase::read_history(double *dst,
-	int64_t start_sample,
-	int channel,
-	int64_t len)
+		int64_t start_sample,
+		int channel,
+		int64_t len)
 {
 	if(start_sample - history_start + len > history_size)
 		len = history_size - (start_sample - history_start);
@@ -240,23 +321,23 @@ int FileBase::get_mode(char *mode, int rd, int wr)
 {
 	if(rd && !wr) sprintf(mode, "rb");
 	else
-	if(!rd && wr) sprintf(mode, "wb");
-	else
-	if(rd && wr)
-	{
-		int exists = 0;
-		FILE *stream;
-
-		if(stream = fopen(asset->path, "rb")) 
-		{
-			exists = 1; 
-			fclose(stream); 
-		}
-
-		if(exists) sprintf(mode, "rb+");
+		if(!rd && wr) sprintf(mode, "wb");
 		else
-		sprintf(mode, "wb+");
-	}
+			if(rd && wr)
+			{
+				int exists = 0;
+				FILE *stream;
+
+				if(stream = fopen(asset->path, "rb"))
+				{
+					exists = 1;
+					fclose(stream);
+				}
+
+				if(exists) sprintf(mode, "rb+");
+				else
+					sprintf(mode, "wb+");
+			}
 }
 
 
@@ -272,10 +353,10 @@ int FileBase::get_mode(char *mode, int rd, int wr)
 
 int FileBase::get_video_buffer(unsigned char **buffer, int depth)
 {
-// get a raw video buffer for writing or compression by a library
+	// get a raw video buffer for writing or compression by a library
 	if(!*buffer)
 	{
-// Video compression is entirely done in the library.
+		// Video compression is entirely done in the library.
 		int64_t bytes = asset->width * asset->height * depth;
 		*buffer = new unsigned char[bytes];
 	}
@@ -284,7 +365,7 @@ int FileBase::get_video_buffer(unsigned char **buffer, int depth)
 
 int FileBase::get_row_pointers(unsigned char *buffer, unsigned char ***pointers, int depth)
 {
-// This might be fooled if a new VFrame is created at the same address with a different height.
+	// This might be fooled if a new VFrame is created at the same address with a different height.
 	if(*pointers && (*pointers)[0] != &buffer[0])
 	{
 		delete [] *pointers;
@@ -304,9 +385,9 @@ int FileBase::get_row_pointers(unsigned char *buffer, unsigned char ***pointers,
 int FileBase::match4(const char *in, const char *out)
 {
 	if(in[0] == out[0] &&
-		in[1] == out[1] &&
-		in[2] == out[2] &&
-		in[3] == out[3])
+			in[1] == out[1] &&
+			in[2] == out[2] &&
+			in[3] == out[3])
 		return 1;
 	else
 		return 0;

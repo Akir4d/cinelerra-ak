@@ -210,7 +210,7 @@ int BandWipeMain::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sbandwipe.rc", BCASTDIR);
+	sprintf(directory, "%sbandwipe.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

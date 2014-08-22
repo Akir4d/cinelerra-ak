@@ -192,7 +192,7 @@ int HistogramMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%shistogram.rc", BCASTDIR);
+	sprintf(directory, "%shistogram.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

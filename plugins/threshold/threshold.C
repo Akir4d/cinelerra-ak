@@ -185,7 +185,7 @@ int ThresholdMain::process_buffer(VFrame *frame,
 int ThresholdMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sthreshold.rc", BCASTDIR);
+	sprintf(directory, "%sthreshold.rc", CINCVDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.min = defaults->get("MIN", config.min);

@@ -545,7 +545,7 @@ void FreeverbEffect::save_data(KeyFrame *keyframe)
 int FreeverbEffect::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sfreeverb.rc", BCASTDIR);
+	sprintf(directory, "%sfreeverb.rc", CINCVDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 

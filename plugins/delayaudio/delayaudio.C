@@ -85,7 +85,7 @@ int DelayAudio::load_defaults()
 {
 	char directory[BCTEXTLEN];
 
-	sprintf(directory, "%sdelayaudio.rc", BCASTDIR);
+	sprintf(directory, "%sdelayaudio.rc", CINCVDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.length = defaults->get("LENGTH", (double)1);

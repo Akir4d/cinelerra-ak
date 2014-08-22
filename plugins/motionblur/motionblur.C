@@ -493,7 +493,7 @@ int MotionBlurMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%smotionblur.rc", BCASTDIR);
+	sprintf(directory, "%smotionblur.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

@@ -100,7 +100,7 @@ int Synth::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 
-	sprintf(directory, "%ssynthesizer.rc", BCASTDIR);
+	sprintf(directory, "%ssynthesizer.rc", CINCVDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	w = defaults->get("WIDTH", 380);

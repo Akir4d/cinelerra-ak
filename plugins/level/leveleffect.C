@@ -245,7 +245,7 @@ void SoundLevelEffect::save_data(KeyFrame *keyframe)
 
 int SoundLevelEffect::load_defaults()
 {
-	defaults = new BC_Hash(BCASTDIR "soundlevel.rc");
+	defaults = new BC_Hash(CINCVDIR "soundlevel.rc");
 	defaults->load();
 
 	config.duration = defaults->get("DURATION", config.duration);

@@ -131,7 +131,7 @@ int ResampleEffect::load_defaults()
 	char directory[BCTEXTLEN];
 
 // set the default directory
-	sprintf(directory, "%sresample.rc", BCASTDIR);
+	sprintf(directory, "%sresample.rc", CINCVDIR);
 // load the defaults
 	defaults = new BC_Hash(directory);
 	defaults->load();

@@ -131,7 +131,7 @@ void BluebananaMain::update_gui(){
 int BluebananaMain::load_defaults() {
   char directory[BCTEXTLEN];
   // set the default directory
-  sprintf(directory, "%sbluebanana.rc", BCASTDIR);
+  sprintf(directory, "%sbluebanana.rc", CINCVDIR);
 
   // load the defaults
   defaults = new BC_Hash(directory);

@@ -439,7 +439,7 @@ int ReframeRT::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sreframert.rc", BCASTDIR);
+	sprintf(directory, "%sreframert.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

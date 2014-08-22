@@ -737,7 +737,7 @@ int Overlay::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%soverlay.rc", BCASTDIR);
+	sprintf(directory, "%soverlay.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

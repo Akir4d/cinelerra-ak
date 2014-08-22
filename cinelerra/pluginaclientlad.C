@@ -621,7 +621,7 @@ int PluginAClientLAD::load_defaults()
 	for(int i = 0; i < strlen(string); i++)
 		if(string[i] == ' ') string[i] = '_';
 // set the default directory
-	sprintf(directory, "%s%s.rc", BCASTDIR, string);
+	sprintf(directory, "%s%s.rc", CINCVDIR, string);
 //printf("PluginAClientLAD::load_defaults %s\n", directory);
 
 // load the defaults

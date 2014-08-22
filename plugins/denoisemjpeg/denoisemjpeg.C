@@ -512,7 +512,7 @@ int DenoiseMJPEG::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sdenoisevideo.rc", BCASTDIR);
+	sprintf(directory, "%sdenoisevideo.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

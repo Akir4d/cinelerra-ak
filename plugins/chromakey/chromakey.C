@@ -591,7 +591,7 @@ int ChromaKey::load_defaults()
 SET_TRACE
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%schromakey.rc", BCASTDIR);
+	sprintf(directory, "%schromakey.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

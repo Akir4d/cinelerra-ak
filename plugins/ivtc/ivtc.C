@@ -80,7 +80,7 @@ int IVTCMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sivtc.rc", BCASTDIR);
+	sprintf(directory, "%sivtc.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

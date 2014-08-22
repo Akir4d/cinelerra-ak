@@ -731,7 +731,7 @@ int SelTempAvgMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sdenoiseseltempavg.rc", BCASTDIR);
+	sprintf(directory, "%sdenoiseseltempavg.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

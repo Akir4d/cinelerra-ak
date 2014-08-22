@@ -371,7 +371,7 @@ void DenoiseFFTEffect::save_data(KeyFrame *keyframe)
 
 int DenoiseFFTEffect::load_defaults()
 {
-	defaults = new BC_Hash(BCASTDIR "denoisefft.rc");
+	defaults = new BC_Hash(CINCVDIR "denoisefft.rc");
 	defaults->load();
 
 	config.level = defaults->get("LEVEL", config.level);

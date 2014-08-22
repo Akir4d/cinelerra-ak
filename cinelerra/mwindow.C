@@ -141,7 +141,7 @@ extern "C"
 
 }
 
-
+bool boot_warning = false;
 
 MWindow::MWindow()
  : Thread(1, 0, 0)
@@ -202,14 +202,21 @@ void MWindow::init_error()
 
 void MWindow::create_defaults_path(char *string)
 {
-// set the .bcast path
+// set the .cincv path
 	FileSystem fs;
 
-	sprintf(string, "%s", BCASTDIR);
+	sprintf(string, "%s", CINCVDIR);
 	fs.complete_path(string);
 	if(!fs.is_dir(string)) 
 	{
-		fs.create_dir(string); 
+		fs.create_dir(string);
+		if(fs.is_dir("~/.bcast"))
+		{
+			char command[1024];
+			sprintf(command, "cp -a ~/.bcast/* %s", string);
+			boot_warning = 1;
+			system(command);
+		}
 	}
 
 // load the defaults
@@ -1333,7 +1340,18 @@ void MWindow::test_plugins(EDL *new_edl, char *path)
 	}
 }
 
+void MWindow::show_boot_warning()
+{
+	if(boot_warning)
+	{
+		char boot_warning_message[1024];
+		sprintf(boot_warning_message, "WARNING: DETECTED OLD SETTINGS\n"
+				"that were copied from ~/.bcast to %s\n"
+				"if you want now you could delete ~/.bcast\n", CINCVDIR);
+		MainError::show_error(boot_warning_message);
+	}
 
+}
 void MWindow::init_shm()
 {
 // Fix shared memory
@@ -1460,6 +1478,9 @@ SET_TRACE
 	hide_splash();
 SET_TRACE
 	init_shm();
+
+SET_TRACE
+	show_boot_warning();
 }
 
 

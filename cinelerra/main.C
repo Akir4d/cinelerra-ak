@@ -211,10 +211,10 @@ PROGRAM_NAME " is free software, covered by the GNU General Public License,\n"
 			printf(_("-f = Run in the foreground as renderfarm client.  Substitute for -d.\n"));
 			printf(_("-n = Nice value if running as renderfarm client. (20)\n"));
 			printf(_("-c = Configuration file to use instead of %s%s.\n"), 
-				BCASTDIR, 
+				CINCVDIR, 
 				CONFIG_FILE);
 			printf(_("-r = batch render the contents of the batch file (%s%s) with no GUI.  batch file is optional.\n"), 
-				BCASTDIR, 
+				CINCVDIR, 
 				BATCH_PATH);
 			printf(_("filenames = files to load\n\n\n"));
 			exit(0);

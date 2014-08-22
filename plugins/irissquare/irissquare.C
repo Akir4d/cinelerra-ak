@@ -172,7 +172,7 @@ int IrisSquareMain::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sirissquare.rc", BCASTDIR);
+	sprintf(directory, "%sirissquare.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

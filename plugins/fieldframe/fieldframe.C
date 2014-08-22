@@ -370,7 +370,7 @@ int FieldFrame::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sfieldframe.rc", BCASTDIR);
+	sprintf(directory, "%sfieldframe.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

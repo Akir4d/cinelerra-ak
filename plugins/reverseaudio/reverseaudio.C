@@ -318,7 +318,7 @@ int ReverseAudio::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sreverseaudio.rc", BCASTDIR);
+	sprintf(directory, "%sreverseaudio.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

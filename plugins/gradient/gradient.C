@@ -721,7 +721,7 @@ int GradientMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%sgradient.rc", BCASTDIR);
+	sprintf(directory, "%sgradient.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

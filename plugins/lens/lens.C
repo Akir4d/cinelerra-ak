@@ -733,7 +733,7 @@ void LensMain::update_gui()
 void LensMain::save_presets()
 {
 	char path[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(path, "%slenspresets.rc", BCASTDIR);
+	sprintf(path, "%slenspresets.rc", CINCVDIR);
 	BC_Hash *defaults = new BC_Hash(path);
 
 // Save presets

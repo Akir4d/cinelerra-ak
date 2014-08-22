@@ -604,7 +604,7 @@ int FrameField::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sframefield.rc", BCASTDIR);
+	sprintf(directory, "%sframefield.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

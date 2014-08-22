@@ -828,7 +828,7 @@ int VideoScopeEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%svideoscope.rc", BCASTDIR);
+	sprintf(directory, "%svideoscope.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

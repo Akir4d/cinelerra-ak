@@ -351,7 +351,7 @@ int DiffKey::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sdiffkey.rc", BCASTDIR);
+	sprintf(directory, "%sdiffkey.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

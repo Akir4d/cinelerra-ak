@@ -300,7 +300,7 @@ int ShiftInterlaceMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%sshiftinterlace.rc", BCASTDIR);
+	sprintf(directory, "%sshiftinterlace.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

@@ -576,7 +576,7 @@ int LinearBlurMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%slinearblur.rc", BCASTDIR);
+	sprintf(directory, "%slinearblur.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

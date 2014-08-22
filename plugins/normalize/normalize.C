@@ -71,7 +71,7 @@ int NormalizeMain::load_defaults()
 	char directory[BCTEXTLEN];
 
 // set the default directory
-	sprintf(directory, "%snormalize.rc", BCASTDIR);
+	sprintf(directory, "%snormalize.rc", CINCVDIR);
 	
 // load the defaults
 

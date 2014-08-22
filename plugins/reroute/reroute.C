@@ -512,7 +512,7 @@ int Reroute::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sreroute.rc", BCASTDIR);
+	sprintf(directory, "%sreroute.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

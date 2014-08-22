@@ -1896,7 +1896,7 @@ Displays all the nodes on the renderfarm and shows which ones are active.  Nodes
 added by entering the host name of the node, verifying the value of @b{port}
 and selecting @b{add node}.  If you have hundreds of nodes, experienced
 users may be better off editing the
-@file{~/.bcast/.Cinelerra_rc} file rather than using configuration dialog.
+@file{~/.cincv/.Cinelerra_rc} file rather than using configuration dialog.
 Remember that @file{.Cinelerra_rc} is overwritten whenever a copy of Cinelerra
 exits.@*
 Once nodes are created, select the @b{ON} column to activate and deactivate nodes.

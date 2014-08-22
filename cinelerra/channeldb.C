@@ -41,7 +41,7 @@ char* ChannelDB::prefix_to_path(char *path, const char *prefix)
 {
 	FileSystem fs;
 	char directory[BCTEXTLEN];
-	sprintf(directory, BCASTDIR);
+	sprintf(directory, CINCVDIR);
 	fs.complete_path(directory);
 	fs.join_names(path, directory, prefix);
 	return path;

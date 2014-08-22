@@ -235,7 +235,7 @@ int SlideMain::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sslide.rc", BCASTDIR);
+	sprintf(directory, "%sslide.rc", CINCVDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

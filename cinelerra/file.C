@@ -493,7 +493,7 @@ int File::open_file(Preferences *preferences,
 			break;
 
 // format already determined
-#ifdef FFMPEGDIRECT
+#ifdef FFMPEGDIRECTDEC
 		case FILE_PCM:
 		case FILE_WAV:
 		case FILE_AU:
@@ -515,7 +515,7 @@ int File::open_file(Preferences *preferences,
 		case FILE_FFMPEG:
 			file = new FileFFMPEG(this->asset, this);
 			break;
-#ifndef FFMPEGDIRECT
+#ifndef FFMPEGDIRECTDEC
 		case FILE_AC3:
 			file = new FileAC3(this->asset, this);
 			break;
@@ -560,7 +560,7 @@ int File::open_file(Preferences *preferences,
 		case FILE_TIFF_LIST:
 			file = new FileTIFF(this->asset, this);
 			break;
-#ifndef FFMPEGDIRECT
+#ifndef FFMPEGDIRECTDEC
 		case FILE_MOV:
 			file = new FileMOV(this->asset, this);
 			break;

@@ -697,7 +697,7 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 
 			/* AV_SEEK_FLAG_ANY must be set for the AVI backend to seek in audio at all */
 			if(av_seek_frame(avcontext,
-					audio_index,
+					-1, //audio_index, // it's better to leave ffmpeg automatic search// Akirad
 					seekto,
 					AVSEEK_FLAG_ANY)){
 				error = 1;

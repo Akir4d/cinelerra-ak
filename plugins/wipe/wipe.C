@@ -172,7 +172,7 @@ int WipeMain::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%swipe.rc", CINCVDIR);
+	sprintf(directory, "%swipe.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

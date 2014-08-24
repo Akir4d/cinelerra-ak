@@ -289,7 +289,7 @@ int ShapeWipeMain::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sshapewipe.rc", CINCVDIR);
+	sprintf(directory, "%sshapewipe.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

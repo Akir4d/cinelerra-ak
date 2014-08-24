@@ -842,7 +842,7 @@ int ParametricEQ::process_buffer(int64_t size,
 int ParametricEQ::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sparametriceq.rc", CINCVDIR);
+	sprintf(directory, "%sparametriceq.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	

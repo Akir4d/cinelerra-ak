@@ -186,7 +186,7 @@ void CompressorEffect::save_data(KeyFrame *keyframe)
 int CompressorEffect::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%scompression.rc", CINCVDIR);
+	sprintf(directory, "%scompression.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 

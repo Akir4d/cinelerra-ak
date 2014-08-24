@@ -315,7 +315,7 @@ void DelayVideo::update_gui()
 int DelayVideo::load_defaults()
 {
 	char directory[BCTEXTLEN];
-	sprintf(directory, "%sdelayvideo.rc", CINCVDIR);
+	sprintf(directory, "%sdelayvideo.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.length = defaults->get("LENGTH", (double)1);

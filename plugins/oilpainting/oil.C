@@ -354,7 +354,7 @@ int OilEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%soilpainting.rc", CINCVDIR);
+	sprintf(directory, "%soilpainting.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

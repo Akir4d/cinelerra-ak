@@ -154,7 +154,7 @@ int SharpenMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%squark.rc", CINCVDIR);
+	sprintf(directory, "%squark.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

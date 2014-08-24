@@ -735,7 +735,7 @@ int TimeAvgMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%stimeavg.rc", CINCVDIR);
+	sprintf(directory, "%stimeavg.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

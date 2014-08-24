@@ -279,7 +279,7 @@ void OverlayAudio::save_data(KeyFrame *keyframe)
 int OverlayAudio::load_defaults()
 {
 	char directory[BCTEXTLEN];
-	sprintf(directory, "%soverlayaudio.rc", CINCVDIR);
+	sprintf(directory, "%soverlayaudio.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 

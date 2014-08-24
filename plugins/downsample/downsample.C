@@ -480,7 +480,7 @@ int DownSampleMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%sdownsample.rc", CINCVDIR);
+	sprintf(directory, "%sdownsample.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

@@ -212,7 +212,7 @@ int BandSlideMain::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sbandslide.rc", CINCVDIR);
+	sprintf(directory, "%sbandslide.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

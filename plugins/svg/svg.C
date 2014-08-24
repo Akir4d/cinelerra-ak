@@ -143,7 +143,7 @@ int SvgMain::load_defaults()
 {
 	char directory[1024], string[1024];
 // set the default directory
-	sprintf(directory, "%ssvg.rc", CINCVDIR);
+	sprintf(directory, "%ssvg.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

@@ -283,7 +283,7 @@ int ReverseVideo::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sreversevideo.rc", CINCVDIR);
+	sprintf(directory, "%sreversevideo.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

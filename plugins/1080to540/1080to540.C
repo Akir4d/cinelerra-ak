@@ -273,7 +273,7 @@ int _1080to540Main::process_realtime(VFrame *input, VFrame *output)
 int _1080to540Main::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%s1080to540.rc", CINCVDIR);
+	sprintf(directory, "%s1080to540.rc", BCASTDIR);
 	
 	defaults = new BC_Hash(directory);
 	defaults->load();

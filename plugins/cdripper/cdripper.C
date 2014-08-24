@@ -64,7 +64,7 @@ int CDRipMain::load_defaults()
 {
 // set the default directory
 	char directory[1024];
-	sprintf(directory, "%scdripper.rc", CINCVDIR);
+	sprintf(directory, "%scdripper.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

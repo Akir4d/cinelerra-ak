@@ -602,7 +602,7 @@ LOAD_CONFIGURATION_MACRO(HueEffect, HueConfig)
 int HueEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
-	sprintf(directory, "%shuesaturation.rc", CINCVDIR);
+	sprintf(directory, "%shuesaturation.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.hue = defaults->get("HUE", config.hue);

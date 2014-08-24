@@ -24,8 +24,7 @@
 
 // Base class inherited by all the different types of plugins.
 
-//#define CINCVDIR "~/.cincv/" //why redefine BCASTDIR (now CINCVDIR) for pluginclient? //Akirad
-#include "preferences.inc"
+#define BCASTDIR "~/.bcast/"
 
 class PluginClient;
 

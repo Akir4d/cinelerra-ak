@@ -645,7 +645,7 @@ int InterpolateVideo::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sinterpolatevideo.rc", CINCVDIR);
+	sprintf(directory, "%sinterpolatevideo.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

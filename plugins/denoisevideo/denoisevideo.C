@@ -374,7 +374,7 @@ int DenoiseVideo::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sdenoisevideo.rc", CINCVDIR);
+	sprintf(directory, "%sdenoisevideo.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

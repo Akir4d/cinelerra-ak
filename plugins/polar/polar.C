@@ -330,7 +330,7 @@ int PolarEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%spolar.rc", CINCVDIR);
+	sprintf(directory, "%spolar.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

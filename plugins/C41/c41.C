@@ -440,7 +440,7 @@ void C41Effect::render_gui(void* data)
 int C41Effect::load_defaults()
 {
 	char directory[BCTEXTLEN];
-	sprintf(directory, "%sC41.rc", CINCVDIR);
+	sprintf(directory, "%sC41.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.active = defaults->get("ACTIVE", config.active);

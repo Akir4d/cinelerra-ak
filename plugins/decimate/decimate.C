@@ -786,7 +786,7 @@ int Decimate::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sdecimate.rc", CINCVDIR);
+	sprintf(directory, "%sdecimate.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

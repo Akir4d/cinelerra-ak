@@ -55,7 +55,7 @@ Preferences::Preferences()
 	FileSystem fs;
 
 	preferences_lock = new Mutex("Preferences::preferences_lock");
-	sprintf(index_directory, CINCVDIR);
+	sprintf(index_directory, BCASTDIR);
 	if(strlen(index_directory))
 		fs.complete_path(index_directory);
 	cache_size = 0xa00000;

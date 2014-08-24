@@ -135,7 +135,7 @@ int UnsharpMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sunsharp.rc", CINCVDIR);
+	sprintf(directory, "%sunsharp.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

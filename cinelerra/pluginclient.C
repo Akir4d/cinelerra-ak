@@ -403,7 +403,7 @@ int PluginClient::get_project_smp()
 
 const char* PluginClient::get_defaultdir()
 {
-	return CINCVDIR;
+	return BCASTDIR;
 }
 
 

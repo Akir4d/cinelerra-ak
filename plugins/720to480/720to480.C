@@ -207,7 +207,7 @@ double _720to480Main::get_framerate()
 int _720to480Main::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%s720to480.rc", CINCVDIR);
+	sprintf(directory, "%s720to480.rc", BCASTDIR);
 	
 	defaults = new BC_Hash(directory);
 	defaults->load();

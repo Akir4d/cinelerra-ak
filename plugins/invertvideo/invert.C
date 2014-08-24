@@ -249,7 +249,7 @@ void InvertVideoEffect::update_gui()
 int InvertVideoEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
-	sprintf(directory, "%sinvertvideo.rc", CINCVDIR);
+	sprintf(directory, "%sinvertvideo.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.r = defaults->get("R", config.r);

@@ -289,7 +289,7 @@ int FlipMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sflip.rc", CINCVDIR);
+	sprintf(directory, "%sflip.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

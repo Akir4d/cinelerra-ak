@@ -504,7 +504,7 @@ int WaveEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%swave.rc", CINCVDIR);
+	sprintf(directory, "%swave.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

@@ -603,7 +603,7 @@ LOAD_CONFIGURATION_MACRO(DeInterlaceMain, DeInterlaceConfig)
 int DeInterlaceMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sdeinterlace.rc", CINCVDIR);
+	sprintf(directory, "%sdeinterlace.rc", BCASTDIR);
 	
 	defaults = new BC_Hash(directory);
 	defaults->load();

@@ -280,7 +280,7 @@ int BrightnessMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sbrightness.rc", CINCVDIR);
+	sprintf(directory, "%sbrightness.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

@@ -64,7 +64,7 @@ int ReFrame::load_defaults()
 	char directory[1024];
 
 // set the default directory
-	sprintf(directory, "%sreframe.rc", CINCVDIR);
+	sprintf(directory, "%sreframe.rc", BCASTDIR);
 
 // load the defaults
 

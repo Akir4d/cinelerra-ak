@@ -266,7 +266,7 @@ int FreezeFrameMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sfreezeframe.rc", CINCVDIR);
+	sprintf(directory, "%sfreezeframe.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

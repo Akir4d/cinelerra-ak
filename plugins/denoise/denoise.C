@@ -178,7 +178,7 @@ void DenoiseEffect::save_data(KeyFrame *keyframe)
 int DenoiseEffect::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sdenoise.rc", CINCVDIR);
+	sprintf(directory, "%sdenoise.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	

@@ -257,7 +257,7 @@ void YUVEffect::update_gui()
 int YUVEffect::load_defaults()
 {
 	char directory[BCTEXTLEN];
-	sprintf(directory, "%syuv.rc", CINCVDIR);
+	sprintf(directory, "%syuv.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.y = defaults->get("Y", config.y);

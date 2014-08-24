@@ -580,7 +580,7 @@ int LiveVideo::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%slivevideo.rc", CINCVDIR);
+	sprintf(directory, "%slivevideo.rc", BCASTDIR);
 // load the defaults
 	defaults = new BC_Hash(directory);
 	defaults->load();

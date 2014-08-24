@@ -103,7 +103,7 @@ void PitchEffect::save_data(KeyFrame *keyframe)
 int PitchEffect::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%spitch.rc", CINCVDIR);
+	sprintf(directory, "%spitch.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	

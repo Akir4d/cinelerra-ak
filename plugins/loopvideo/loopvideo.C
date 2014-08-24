@@ -264,7 +264,7 @@ int LoopVideo::load_defaults()
 {
 	char directory[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%sloopaudio.rc", CINCVDIR);
+	sprintf(directory, "%sloopaudio.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

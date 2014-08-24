@@ -511,9 +511,6 @@ public:
 // Initialize shared memory
 	void init_shm();
 
-// Show Boot Warning
-	void show_boot_warning();
-
 // Initialize channel DB's for playback
 	void init_channeldb();
 	void init_render();

@@ -351,7 +351,7 @@ void BatchRenderThread::save_defaults(BC_Hash *defaults)
 char* BatchRenderThread::create_path(char *string)
 {
 	FileSystem fs;
-	sprintf(string, "%s", CINCVDIR);
+	sprintf(string, "%s", BCASTDIR);
 	fs.complete_path(string);
 	strcat(string, BATCH_PATH);
 	return string;

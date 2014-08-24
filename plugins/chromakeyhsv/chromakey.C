@@ -917,7 +917,7 @@ int ChromaKeyHSV::load_defaults ()
 {
   char directory[BCTEXTLEN];
 // set the default directory
-  sprintf (directory, "%schromakey-hsv.rc", CINCVDIR);
+  sprintf (directory, "%schromakey-hsv.rc", BCASTDIR);
 
 // load the defaults
   defaults = new BC_Hash (directory);

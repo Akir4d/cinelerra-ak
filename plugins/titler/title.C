@@ -2668,7 +2668,7 @@ int TitleMain::load_defaults()
 {
 	char directory[1024], text_path[1024];
 // set the default directory
-	sprintf(directory, "%stitle.rc", CINCVDIR);
+	sprintf(directory, "%stitle.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);
@@ -2698,7 +2698,7 @@ int TitleMain::load_defaults()
 
 // Store text in separate path to isolate special characters
 	FileSystem fs;
-	sprintf(text_path, "%stitle_text.rc", CINCVDIR);
+	sprintf(text_path, "%stitle_text.rc", BCASTDIR);
 	fs.complete_path(text_path);
 	FILE *fd = fopen(text_path, "rb");
 	if(fd)
@@ -2745,7 +2745,7 @@ int TitleMain::save_defaults()
 
 // Store text in separate path to isolate special characters
 	FileSystem fs;
-	sprintf(text_path, "%stitle_text.rc", CINCVDIR);
+	sprintf(text_path, "%stitle_text.rc", BCASTDIR);
 	fs.complete_path(text_path);
 	FILE *fd = fopen(text_path, "wb");
 	if(fd)

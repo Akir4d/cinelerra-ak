@@ -339,7 +339,7 @@ int MotionMain::load_defaults()
 {
 	char directory[BCTEXTLEN], string[BCTEXTLEN];
 // set the default directory
-	sprintf(directory, "%smotion.rc", CINCVDIR);
+	sprintf(directory, "%smotion.rc", BCASTDIR);
 
 // load the defaults
 	defaults = new BC_Hash(directory);

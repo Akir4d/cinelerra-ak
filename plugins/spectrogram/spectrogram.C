@@ -382,7 +382,7 @@ int Spectrogram::load_defaults()
 {
 	char directory[BCTEXTLEN];
 
-	sprintf(directory, "%sspectrogram.rc", CINCVDIR);
+	sprintf(directory, "%sspectrogram.rc", BCASTDIR);
 	defaults = new BC_Hash(directory);
 	defaults->load();
 	config.level = defaults->get("LEVEL", config.level);

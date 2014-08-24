@@ -381,7 +381,7 @@ int TimeStretch::load_defaults()
 	char directory[BCTEXTLEN];
 
 // set the default directory
-	sprintf(directory, "%stimestretch.rc", CINCVDIR);
+	sprintf(directory, "%stimestretch.rc", BCASTDIR);
 // load the defaults
 	defaults = new BC_Hash(directory);
 	defaults->load();

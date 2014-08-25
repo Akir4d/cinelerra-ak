@@ -1,7 +1,8 @@
 
 /*
- * CINELERRA
+ * CINELERRA warning window based on tooltip window code
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
+ * Copyright (C) 2014 Paolo Rampino <akir4d at gmail dot com>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,20 +20,13 @@
  * 
  */
 
-#ifndef MWINDOW_INC
-#define MWINDOW_INC
+#ifndef WARNWINDOW_INC
+#define WARNWINDOW_INC
 
-#define PROGRAM_NAME "Cinelerra-CV"
-#define DEFAULT_THEME "S.U.V."
-#define CONFIG_FILE "Cinelerra_rc"
 
-// What to call silence in the EDL
-#define SILENCE "SILENCE"
+class WarnWindow;
+class WarnWindowGUI;
 
-// Behavior of region selections
-#define SELECTION_SAMPLES 0
-#define SELECTION_EDIT 1
 
-class MWindow;
 
 #endif

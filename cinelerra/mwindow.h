@@ -84,6 +84,7 @@
 #include "videowindow.inc"
 #include "vwindow.inc"
 #include "wavecache.inc"
+#include "warnwindow.inc"
 
 #include <stdint.h>
 
@@ -510,6 +511,9 @@ public:
 
 // Initialize shared memory
 	void init_shm();
+
+// Show Update Warning
+	void show_update_warning();
 
 // Initialize channel DB's for playback
 	void init_channeldb();

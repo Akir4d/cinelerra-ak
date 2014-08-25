@@ -125,6 +125,11 @@ public:
 // Tip of the day
 	int use_tipwindow;
 
+// Warning
+	int warning_slot1;
+	int warning_slot2;
+	int warning_slot3;
+
 // ====================================== Plugin Set ==============================
 	char global_plugin_dir[BCTEXTLEN];
 	char local_plugin_dir[BCTEXTLEN];

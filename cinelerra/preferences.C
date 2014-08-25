@@ -87,6 +87,9 @@ Preferences::Preferences()
 	local_rate = 0.0;
 
 	use_tipwindow = 1;
+	warning_slot1 = 1;
+	warning_slot2 = 1;
+	warning_slot3 = 1;
 
 	for(int i = 0; i < MAXCHANNELS; i++)
 	{
@@ -154,6 +157,9 @@ void Preferences::copy_from(Preferences *that)
 	strcpy(theme, that->theme);
 
 	use_tipwindow = that->use_tipwindow;
+	warning_slot1 = that->warning_slot1;
+	warning_slot2 = that->warning_slot2;
+	warning_slot3 = that->warning_slot3;
 
 	cache_size = that->cache_size;
 	force_uniprocessor = that->force_uniprocessor;
@@ -258,6 +264,9 @@ int Preferences::load_defaults(BC_Hash *defaults)
 	char string[BCTEXTLEN];
 
 	use_tipwindow = defaults->get("USE_TIPWINDOW", use_tipwindow);
+	warning_slot1 = defaults->get("WARNING_SLOT1", warning_slot1);
+	warning_slot2 = defaults->get("WARNING_SLOT2", warning_slot2);
+	warning_slot3 = defaults->get("WARNING_SLOT3", warning_slot3);
 	defaults->get("INDEX_DIRECTORY", index_directory);
 	index_size = defaults->get("INDEX_SIZE", index_size);
 	index_count = defaults->get("INDEX_COUNT", index_count);
@@ -350,6 +359,9 @@ int Preferences::save_defaults(BC_Hash *defaults)
 
 
 	defaults->update("USE_TIPWINDOW", use_tipwindow);
+	defaults->update("WARNING_SLOT1", warning_slot1);
+	defaults->update("WARNING_SLOT2", warning_slot2);
+	defaults->update("WARNING_SLOT3", warning_slot3);
 
 	defaults->update("CACHE_SIZE", cache_size);
 	defaults->update("INDEX_DIRECTORY", index_directory);

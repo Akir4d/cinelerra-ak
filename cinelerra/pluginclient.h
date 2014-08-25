@@ -24,7 +24,10 @@
 
 // Base class inherited by all the different types of plugins.
 
-#define BCASTDIR "~/.bcast/"
+//#define BCASTDIR "~/.bcast/" //why define also here bcast dir? //Akirad
+#ifndef BCASTDIR
+#include "preferences.inc"
+#endif //better to use preferences.inc //Akirad
 
 class PluginClient;
 

@@ -298,6 +298,7 @@ BinOfCinelerraCv_SOURCES = aattachmentpoint.C \
 		    timebar.C \
 		    timeentry.C \
 		    tipwindow.C \
+		    warnwindow.C \
 		    track.C \
 		    trackcanvas.C \
 		    tracking.C \
@@ -628,6 +629,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 timebomb.h \
 		 timeentry.h \
 		 tipwindow.h \
+		 warnwindow.h \
 		 trackcanvas.h \
 		 track.h \
 		 tracking.h \

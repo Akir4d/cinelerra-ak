@@ -103,6 +103,7 @@
 #include "wavecache.h"
 #include "zoombar.h"
 #include "exportedl.h"
+#include "warnwindow.h"
 
 #include "defaultformats.h"
 #include "ntsczones.h"
@@ -140,8 +141,6 @@ extern "C"
 // 
 
 }
-
-
 
 MWindow::MWindow()
  : Thread(1, 0, 0)
@@ -202,14 +201,23 @@ void MWindow::init_error()
 
 void MWindow::create_defaults_path(char *string)
 {
-// set the .bcast path
+// set the .cincv path
 	FileSystem fs;
 
-	sprintf(string, "%s", BCASTDIR);
+	strcpy(string, BCASTDIR);
 	fs.complete_path(string);
 	if(!fs.is_dir(string)) 
 	{
-		fs.create_dir(string); 
+		fs.create_dir(string);
+		char old_settings_path[BCTEXTLEN];
+		strcpy(old_settings_path, "~/.bcast/");
+		if(fs.complete_path(old_settings_path) == 0 && fs.is_dir(old_settings_path))
+		{
+			char command[BCTEXTLEN];
+			sprintf(command, "cp -a %s* \"%s\" && touch \"%supdate_done\"",
+					old_settings_path, string, string);
+			system(command);
+		}
 	}
 
 // load the defaults
@@ -667,30 +675,29 @@ void MWindow::init_theme()
 			plugin.close_plugin();
 		}
 	}
-	
-        if(!theme)
-        {
-        //try again to repleace theme with DEFAULT_THEME! //akirad
-        strcpy(preferences->theme, DEFAULT_THEME);
-        for(int i = 0; i < plugindb->total; i++)
-	{
-		if(plugindb->values[i]->theme &&
-			!strcasecmp(preferences->theme, plugindb->values[i]->title))
-		{
-			PluginServer plugin = *plugindb->values[i];
-			plugin.open_plugin(0, preferences, 0, 0, -1);
-			theme = plugin.new_theme();
-			theme->mwindow = this;
-			strcpy(theme->path, plugin.path);
-			plugin.close_plugin();
-		}
-	}
-	}
 	if(!theme)
 	{
-	        fprintf(stderr, _("MWindow::init_theme: theme %s not found.\n"), preferences->theme);
+	// Theme load fails, cinelerra now tries again to replace theme with DEFAULT_THEME - Akirad
+		strcpy(preferences->theme, DEFAULT_THEME);
+		for(int i = 0; i < plugindb->total; i++)
+		{
+			if(plugindb->values[i]->theme &&
+				!strcasecmp(preferences->theme, plugindb->values[i]->title))
+			{
+				PluginServer plugin = *plugindb->values[i];
+				plugin.open_plugin(0, preferences, 0, 0, -1);
+				theme = plugin.new_theme();
+				theme->mwindow = this;
+				strcpy(theme->path, plugin.path);
+				plugin.close_plugin();
+			}
+		}
+	}
+	// Theme load fails again, something went wrong on install - Akirad
+	if(!theme)
+	{
+		fprintf(stderr, _("MWindow::init_theme: Default theme %s not exists.\nMaybe an install problem\n"), DEFAULT_THEME);
 		exit(1);
-		
 	}
 
 // Load images which may have been forgotten
@@ -1333,6 +1340,37 @@ void MWindow::test_plugins(EDL *new_edl, char *path)
 	}
 }
 
+void MWindow::show_update_warning()
+{
+	FileSystem fs;
+	char update_warning[1024];
+	sprintf(update_warning, "%supdate_done", BCASTDIR);
+	fs.complete_path(update_warning);
+	if(preferences->warning_slot1 == 0)
+	{
+		if(remove(update_warning) != 0) printf("\n couldn't remove: %s\n", update_warning);
+		//turn off this warning
+		preferences->warning_slot1 = -1;
+	}
+	else
+	{
+		if(access(update_warning, F_OK) == 0)
+		{
+			char update_warning_message[BCTEXTLEN];
+			char string1[BCTEXTLEN];
+			char string2[BCTEXTLEN];
+			strcpy(string1, BCASTDIR);
+			strcpy(string2, "~/.bcast/");
+			fs.complete_path(string1);
+			fs.complete_path(string2);
+			sprintf(update_warning_message, "Detected the folder with old settings inside %s\n"
+					"and copied these on the new folder: %s\n"
+					"\n\n      If you want now you could delete %s\n", string2, string1, string2);
+			WarnWindow *update_warn = new WarnWindow(this, update_warning_message, 1);
+			update_warn->start();
+		}
+	}
+}
 
 void MWindow::init_shm()
 {
@@ -1460,6 +1498,10 @@ SET_TRACE
 	hide_splash();
 SET_TRACE
 	init_shm();
+
+SET_TRACE
+	if(preferences->warning_slot1 != -1)
+		show_update_warning();
 }
 
 

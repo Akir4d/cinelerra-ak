@@ -6,8 +6,8 @@
 #define SUCCESS 0
 #define FAILURE 1
 
-#define TRUE 1
-#define FALSE 0
+#define GCTRUE 1
+#define GCFALSE 0
 
 // print a warning (when return value is ignored) 
 #define WARN(format, args...)  fprintf(stderr, "[%s:%d %s()] " format "\n",  \

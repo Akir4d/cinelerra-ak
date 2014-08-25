@@ -79,7 +79,7 @@ bcast_empty_output_buffer (j_compress_ptr cinfo)
 	dest->pub.next_output_byte = dest->buffer + offset;
 	dest->pub.free_in_buffer = dest->buffer_struct->output_allocated - offset;
 
-	return TRUE;
+	return GCTRUE;
 }
 
 

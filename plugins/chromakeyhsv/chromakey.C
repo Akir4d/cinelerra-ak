@@ -596,8 +596,9 @@ ChromaKeyUnit::ChromaKeyUnit (ChromaKeyHSV * plugin, ChromaKeyServer * server):L
 
 
 
-
+#ifndef ABS
 #define ABS(a) ((a<0)?-(a):a)
+#endif
 // Reuse as much as possible in the opengl version
 #define OUTER_VARIABLES \
   float red = plugin->config.red; \

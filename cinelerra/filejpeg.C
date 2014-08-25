@@ -215,7 +215,7 @@ int FileJPEG::read_frame_header(char *path)
 	jpeg_create_decompress(&jpeg_decompress);
 
 	jpeg_stdio_src(&jpeg_decompress, stream);
-	jpeg_read_header(&jpeg_decompress, TRUE);
+	jpeg_read_header(&jpeg_decompress, GCTRUE);
 
 	asset->width = jpeg_decompress.image_width;
 	asset->height = jpeg_decompress.image_height;

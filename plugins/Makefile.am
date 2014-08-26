@@ -115,7 +115,7 @@ SUBDIRS= \
 	yuv \
 	zoomblur \
 	$(MAYBE_FINDOBJECT) \
-	fonts
+	fonts	\
 	svg 
 
 AUTOMAKE_OPTIONS=foreign

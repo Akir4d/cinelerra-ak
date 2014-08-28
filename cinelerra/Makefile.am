@@ -50,7 +50,7 @@ endif
 
 SUBDIRS = data
 
-bin_PROGRAMS = BinOfCinelerraCv
+bin_PROGRAMS = cinelerracvbin
 
 if HAVE_FIREWIRE
 firewire_SOURCES = \
@@ -64,7 +64,7 @@ firewire_SOURCES = \
 	vdevice1394.C
 endif
 
-BinOfCinelerraCv_SOURCES = aattachmentpoint.C \
+cinelerracvbin_SOURCES = aattachmentpoint.C \
 		    aautomation.C \
 		    aboutprefs.C \
 		    adeviceprefs.C \
@@ -689,7 +689,7 @@ noinst_HEADERS = aattachmentpoint.h \
 		 zoompanel.h \
 		$(srcdir)/*.inc
 		 
-BinOfCinelerraCv_LDADD = \
+cinelerracvbin_LDADD = \
 	data/libimagedata.a \
 	$(top_builddir)/mpeg2enc/libmpeg2enc.la \
 	$(top_builddir)/toolame-02l/libtoolame.la \

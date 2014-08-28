@@ -15,8 +15,8 @@ fi
 # float fix
 export LC_NUMERIC="C"
 
-# Add needed bin path
+# Add bin path
 export PATH=@bindir@:$PATH
 
 # start Cinelerra-CV
-BinOfCinelerraCv $@
+cinelerracvbin $@

@@ -23,7 +23,7 @@
 #define MWINDOW_INC
 
 #define PROGRAM_NAME "Cinelerra-CV"
-#define DEFAULT_THEME "S.U.V."
+#define DEFAULT_THEME "UnFlat Theme"
 #define CONFIG_FILE "Cinelerra_rc"
 
 // What to call silence in the EDL

@@ -789,18 +789,16 @@ AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
 	plugins/shiftinterlace/Makefile \
 	plugins/slide/Makefile \
 	plugins/spectrogram/Makefile \
-	plugins/suv/Makefile \
-	plugins/suv/data/Makefile \
-	plugins/unflattheme/Makefile \
-	plugins/unflattheme/data/Makefile \
-	plugins/bluedottheme/Makefile \
-	plugins/bluedottheme/data/Makefile \
-	plugins/defaulttheme/Makefile \
-	plugins/defaulttheme/data/Makefile \
-	plugins/pinkladytheme/Makefile \
-	plugins/pinkladytheme/data/Makefile \
-	plugins/hulktheme/Makefile \
-	plugins/hulktheme/data/Makefile \
+	plugins/theme-unflat/Makefile \
+	plugins/theme-unflat/data/Makefile \
+	plugins/theme-blue/Makefile \
+	plugins/theme-blue/data/Makefile \
+	plugins/theme-blond/Makefile \
+	plugins/theme-blond/data/Makefile \
+	plugins/theme-pinklady/Makefile \
+	plugins/theme-pinklady/data/Makefile \
+	plugins/theme-hulk/Makefile \
+	plugins/theme-hulk/data/Makefile \
 	plugins/swapchannels/Makefile \
 	plugins/synthesizer/Makefile \
 	plugins/threshold/Makefile \

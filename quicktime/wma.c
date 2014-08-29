@@ -67,7 +67,6 @@ static int init_decode(quicktime_audio_map_t *track_map,
 		if(!ffmpeg_initialized)
 		{
 			ffmpeg_initialized = 1;
-			avcodec_init();
 			avcodec_register_all();
 		}
 
@@ -77,10 +76,10 @@ static int init_decode(quicktime_audio_map_t *track_map,
 			printf("init_decode: avcodec_find_decoder returned NULL.\n");
 			return 1;
 		}
-		codec->decoder_context = avcodec_alloc_context();
+		codec->decoder_context = avcodec_alloc_context3(codec->decoder);
 		codec->decoder_context->sample_rate = trak->mdia.minf.stbl.stsd.table[0].sample_rate;
 		codec->decoder_context->channels = track_map->channels;
-		if(avcodec_open(codec->decoder_context, codec->decoder) < 0)
+		if(avcodec_open2(codec->decoder_context, codec->decoder,NULL) < 0)
 		{
 			printf("init_decode: avcodec_open failed.\n");
 			return 1;
@@ -194,12 +193,16 @@ printf("decode 2 %x %llx %llx\n", chunk_size, chunk_offset, chunk_offset + chunk
 			codec->packet_buffer,
 			chunk_size);
 #else
+#define     AVCODEC_MAX_AUDIO_FRAME_SIZE   192000
 		bytes_decoded = AVCODEC_MAX_AUDIO_FRAME_SIZE;
-		result = avcodec_decode_audio2(codec->decoder_context,
+		AVPacket pkt;
+		av_init_packet( &pkt );
+		pkt.data = codec->packet_buffer;
+		pkt.size = chunk_size;
+		result = avcodec_decode_audio3(codec->decoder_context,
 			(int16_t*)(codec->work_buffer + codec->output_size * sample_size),
 			&bytes_decoded,
-			codec->packet_buffer,
-			chunk_size);
+			&pkt);
 #endif
 
 		pthread_mutex_unlock(&ffmpeg_lock);

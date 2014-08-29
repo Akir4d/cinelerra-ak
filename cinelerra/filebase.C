@@ -137,20 +137,35 @@ void FileBase::append_history(float **new_data, int offset, int len)
 }
 
 
-void FileBase::append_history(const void *in, enum SampleFormat format, int offset, int len)
+void FileBase::append_history(AVFrame *in, enum AVSampleFormat format, int offset, int len)
 {
 	switch (format) {
 	default:
-	case SAMPLE_FMT_NONE:
-		/* uhhhh..... */
+	case AV_SAMPLE_FMT_NONE:
+		// uhhhh.....
 		pad_history(len);
 		break;
 
-	case SAMPLE_FMT_U8:
+	case AV_SAMPLE_FMT_U8P:
 	{
-		/* unsigned 8 bits */
+		// unsigned 8 bits planar
 		allocate_history(len);
-		uint8_t *new_data =  (uint8_t *)in;
+
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			uint8_t *input = (uint8_t *)in->extended_data[i]+offset;
+			for(int j = 0; j < len; j++)
+				*output++ = (double)(*input++) / 128;
+		}
+		break;
+	}
+
+	case AV_SAMPLE_FMT_U8:
+	{
+		// unsigned 8 bits interleaved
+		allocate_history(len);
+		uint8_t *new_data =  (uint8_t *)in->extended_data[0];
 
 		for(int i = 0; i < history_channels; i++){
 			double *output = pcm_history[i] + history_size;
@@ -163,16 +178,33 @@ void FileBase::append_history(const void *in, enum SampleFormat format, int offs
 		break;
 	}
 
-	case SAMPLE_FMT_S16:
+	case AV_SAMPLE_FMT_S16P:
 	{
-		/* signed 16 bits */
+		// signed 16 bits planar
 		allocate_history(len);
-		int16_t *new_data =  (int16_t *)in;
 
-		for(int i = 0; i < history_channels; i++){
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			int16_t *input = (int16_t *)in->extended_data[i]+offset;
+			for(int j = 0; j < len; j++)
+				*output++ = (double)(*input++) / 32768;
+		}
+		break;
+	}
+
+	case AV_SAMPLE_FMT_S16:
+	{
+		// signed 16 bits interleaved
+		allocate_history(len);
+		int16_t *new_data =  (int16_t *)in->extended_data[0];
+
+		for(int i = 0; i < history_channels; i++)
+		{
 			double *output = pcm_history[i] + history_size;
 			int16_t *input = new_data + i + offset*history_channels;
-			for(int j = 0; j < len; j++){
+			for(int j = 0; j < len; j++)
+			{
 				*output++ = (double)*input / 32768;
 				input += history_channels;
 			}
@@ -180,33 +212,67 @@ void FileBase::append_history(const void *in, enum SampleFormat format, int offs
 		break;
 	}
 
-	case SAMPLE_FMT_S32:
+	case AV_SAMPLE_FMT_S32P:
 	{
-		/* signed 32 bits */
+		// signed 32 bits planar
 		allocate_history(len);
-		int32_t *new_data =  (int32_t *)in;
 
-		for(int i = 0; i < history_channels; i++){
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			int32_t *input = (int32_t *)in->extended_data[i]+offset;
+			for(int j = 0; j < len; j++)
+				*output++ = (double)(*input++) / 1073741824;
+		}
+		break;
+	}
+
+	case AV_SAMPLE_FMT_S32:
+	{
+		// signed 32 bits interleaved
+		allocate_history(len);
+		int32_t *new_data =  (int32_t *)in->extended_data[0];
+
+		for(int i = 0; i < history_channels; i++)
+		{
 			double *output = pcm_history[i] + history_size;
 			int32_t *input = new_data + i + offset*history_channels;
-			for(int j = 0; j < len; j++){
-				*output++ = (double)*input / 1073741824.;
+			for(int j = 0; j < len; j++)
+			{
+				*output++ = (double)*input / 1073741824;
 				input += history_channels;
 			}
 		}
 		break;
 	}
 
-	case SAMPLE_FMT_FLT:
+	case AV_SAMPLE_FMT_FLTP:
 	{
-		/* float */
+		// float planar
 		allocate_history(len);
-		float *new_data =  (float *)in;
 
-		for(int i = 0; i < history_channels; i++){
+		for(int i = 0; i < in->channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			float *input = (float *)in->extended_data[i] + offset;
+			for(int j = 0; j < len; j++)
+				*output++ = (double)*input++;
+		}
+		break;
+	}
+
+	case AV_SAMPLE_FMT_FLT:
+	{
+		// float
+		allocate_history(len);
+		float *new_data =  (float *)in->extended_data[0];
+
+		for(int i = 0; i < history_channels; i++)
+		{
 			double *output = pcm_history[i] + history_size;
 			float *input = new_data + i + offset*history_channels;
-			for(int j = 0; j < len; j++){
+			for(int j = 0; j < len; j++)
+			{
 				*output++ = *input;
 				input += history_channels;
 			}
@@ -214,16 +280,33 @@ void FileBase::append_history(const void *in, enum SampleFormat format, int offs
 		break;
 	}
 
-	case SAMPLE_FMT_DBL:
+	case AV_SAMPLE_FMT_DBLP:
 	{
-		/* double */
+		// double planar
 		allocate_history(len);
-		double *new_data =  (double *)in;
 
-		for(int i = 0; i < history_channels; i++){
+		for(int i = 0; i < history_channels; i++)
+		{
+			double *output = pcm_history[i] + history_size;
+			double *input = (double *)in->extended_data[i]+offset;
+			for(int j = 0; j < len; j++)
+				*output++ = *input++;
+		}
+		break;
+	}
+
+	case AV_SAMPLE_FMT_DBL:
+	{
+		// double interleaved
+		allocate_history(len);
+		double *new_data =  (double *)in->extended_data[0];
+
+		for(int i = 0; i < history_channels; i++)
+		{
 			double *output = pcm_history[i] + history_size;
 			double *input = new_data + i + offset*history_channels;
-			for(int j = 0; j < len; j++){
+			for(int j = 0; j < len; j++)
+			{
 				*output++ = *input;
 				input += history_channels;
 			}

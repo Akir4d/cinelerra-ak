@@ -85,7 +85,6 @@ int FileAC3::open_file(int rd, int wr)
 
 	if(wr)
 	{
-  		avcodec_init();
 		avcodec_register_all();
 		codec = avcodec_find_encoder(CODEC_ID_AC3);
 		if(!codec)
@@ -93,11 +92,11 @@ int FileAC3::open_file(int rd, int wr)
 			eprintf("codec not found.\n");
 			return 1;
 		}
-		codec_context = avcodec_alloc_context();
+		codec_context = avcodec_alloc_context3(codec);
 		codec_context->bit_rate = asset->ac3_bitrate * 1000;
 		codec_context->sample_rate = asset->sample_rate;
 		codec_context->channels = asset->channels;
-		if(avcodec_open(codec_context, codec))
+		if(avcodec_open2(codec_context, codec,NULL))
 		{
 			eprintf("failed to open codec.\n");
 			return 1;

@@ -433,22 +433,23 @@ AC_CHECK_HEADER(x264.h, [libx264h=yes])
 AC_SUBST(LIBX264_LIBS)
 ##############
 
-############## MMX / 3DNOW  POWERPC / ALTIVEC
+############## MMX / 3DNOW  POWERPC / ALTIVECf
 
 case "$target_cpu" in
 i586) 
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS" # -D_MMX_ doesn't work
 		enable_mmx32=yes
-		ffmpeg_cpumask="--cpu=i586 "
+		ffmpeg_cpu_min="--cpu=i586 "
 ;;
 i686)
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS" # -D_MMX_ doesn't work
 		enable_mmx32=yes
-		ffmpeg_cpumask="--cpu=i686 "
+		ffmpeg_cpu_min="--cpu=i686 "
 ;;
 x86_64)
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS"
 		enable_mmx=yes
+		ffmpeg_cpu_min="--cpu=amd64 "
 ;;
 esac
 
@@ -474,29 +475,11 @@ AM_CONDITIONAL(ALT_SCRIPT_PREFIX, test "x$use_sprefix" = "xyes")
 AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
 
 if test "x$with_external_ffmpeg" = "xyes"; then
-     PKG_CHECK_MODULES([FFMPEG_TEMP], [libavcodec libpostproc])
-     FFMPEG_FOLDER=""
-     FFMPEG_EXTERNALTEXT="External ffmpeg"
-		   
-     dnl --------------------------------------------------------------
-     dnl check if libavcodec contains img_convert
-     dnl if not, that means that libswscale is compiled in
-     
-     AC_MSG_CHECKING(for ffmpeg swscale support)
-     saved_LIBS="$LIBS"
-     LIBS="$saved_LIBS $FFMPEG_TEMP_LIBS"
-     AC_TRY_LINK([#include <libavcodec/avcodec.h>],
-		 [img_convert(0, 0, 0,0,0,0)],
-		 enable_ffmpeg_swscale=no,enable_ffmpeg_swscale=yes)
-     LIBS="$saved_LIBS"
-     AC_MSG_RESULT($enable_ffmpeg_swscale)
-     if test x"$enable_ffmpeg_swscale" = xyes; then
-	     dnl AC_DEFINE(HAVE_SWSCALER)
-	     PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc libswscale libavformat])
-	     FFMPEG_CFLAGS="$FFMPEG_CFLAGS -I/usr/include/libavcodec -I/usr/include/libswscale -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
-     else
-	   PKG_CHECK_MODULES([FFMPEG], [libavcodec libpostproc libavformat])
-     fi
+
+     PKG_CHECK_MODULES([FFMPEG], [libavcodec libavutil libpostproc libswscale libavformat])
+     FFMPEG_CFLAGS="$FFMPEG_CFLAGS -I/usr/include/libavcodec -I/usr/include/libswscale -I/usr/include/libavutil\
+     				 -I/usr/include/libavformat -I/usr/include/libpostproc -I/usr/include/libswresample\
+     				 -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
      FFMPEG_EXTERNALTEXT="External ffmpeg"
 else
      FFMPEG_FOLDER=ffmpeg
@@ -506,6 +489,8 @@ else
      FFMPEG_LIBS="-L\$(top_builddir)/quicktime/ffmpeg/libavcodec -lavcodec-cinelerra \
 		-L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerra \
 		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerra \
+		-L\$(top_builddir)/quicktime/ffmpeg/libpostproc -lpostproc-cinelerra \
+		-L\$(top_builddir)/quicktime/ffmpeg/libswresample -lswresample-cinelerra \
 		-L\$(top_builddir)/quicktime/ffmpeg/libavformat -lavformat-cinelerra"
      FFMPEG_EXTERNALTEXT="Internal ffmpeg"
 fi
@@ -521,11 +506,11 @@ echo --- FFMPEG CONFIGURATION SECTION --------------
 if test "x$with_external_ffmpeg" = "xyes"; then
 	echo Using external ffmpeg - no configuration needed
 else
-	ff_conf_args="--disable-debug --disable-ffmpeg --disable-ffserver --disable-ffplay \
-		--disable-static --enable-shared --enable-gpl --build-suffix=-cinelerra"
-	if test "x$enable_mmx32" = "xyes"; then
-	ff_conf_args=$ffmpeg_cpumask$ff_conf_args
-	fi
+	# build smallest library
+	ff_conf_args=$ffmpeg_cpu_min" --disable-programs \
+		--disable-doc --disable-devices --disable-avdevice \
+		--disable-avfilter --disable-network --disable-static --enable-shared --enable-gpl \
+		--build-suffix=-cinelerra"
 
 	srcdir_c=$(readlink -f $srcdir) &&
 	mkdir -p quicktime/ffmpeg/ &&

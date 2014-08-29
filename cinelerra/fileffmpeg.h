@@ -28,6 +28,11 @@
 #include "filebase.h"
 #include "file.inc"
 #include "mutex.inc"
+extern "C"
+{
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+}
 
 
 // Decoding for all FFMPEG formats
@@ -45,6 +50,7 @@ public:
 	void reset();
 	int open_file(int rd, int wr);
 	int close_file();
+	int last_valid_keyframe;
 
 	int64_t get_memory_usage();
 	int colormodel_supported(int colormodel);
@@ -54,9 +60,9 @@ public:
 
 	void dump_context(void *ptr);
 	void *ffmpeg_format;
-	void *ffmpeg_file_context;
-	void *ffmpeg_frame;
-	short *ffmpeg_samples;
+	AVFormatContext* ffmpeg_file_context;
+	AVFrame *ffmpeg_frame;
+	AVFrame *ffmpeg_audio_frame;
 
 	// Streams to decode
 	int audio_index;

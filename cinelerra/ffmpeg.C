@@ -3,7 +3,7 @@
 #define __STDC_CONSTANT_MACROS 1
 #ifdef HAVE_SWSCALER
 extern "C" {
-#include <libswscale/swscale.h>
+#include "libswscale/swscale.h"
 }
 #endif
 
@@ -25,19 +25,18 @@ FFMPEG::FFMPEG(Asset *asset) {
 
 int FFMPEG::init(char *codec_string) {
 
-	avcodec_init();
 	avcodec_register_all();
 
-	CodecID id = codec_id(codec_string);
+	AVCodecID id = codec_id(codec_string);
 	codec = avcodec_find_decoder(id);
 	if (codec == NULL) {
 		printf("FFMPEG::init no decoder for '%s'", codec_string);
 		return 1;
 	}
 
-	context = avcodec_alloc_context();
+	context = avcodec_alloc_context3(codec);
 
-	if (avcodec_open(context, codec)) {
+	if (avcodec_open2(context, codec,NULL)) {
 		printf("FFMPEG::init avcodec_open() failed\n");
 	}
 
@@ -54,7 +53,7 @@ FFMPEG::~FFMPEG() {
 }
 
 
-CodecID FFMPEG::codec_id(char *codec_string) {
+AVCodecID FFMPEG::codec_id(char *codec_string) {
 #define CODEC_IS(x) (! strncmp(codec_string, x, 4))
 
 	if (CODEC_IS(QUICKTIME_DV) ||
@@ -68,7 +67,7 @@ CodecID FFMPEG::codec_id(char *codec_string) {
 #undef CODEC_IS
 }
 
-PixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
+AVPixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
 	switch (color_model) 
 	{
 	case BC_YUV422:
@@ -113,7 +112,7 @@ PixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
 	return PIX_FMT_NB;
 }
 
-int FFMPEG::pix_fmt_to_color_model(PixelFormat pix_fmt) {
+int FFMPEG::pix_fmt_to_color_model(AVPixelFormat pix_fmt) {
 	switch (pix_fmt) 
 	{
 	case PIX_FMT_YUYV422:
@@ -351,13 +350,16 @@ return result;
 int FFMPEG::decode(uint8_t *data, long data_size, VFrame *frame_out) { 
 
 	// NOTE: frame must already have data space allocated
-
+	
+	AVPacket pkt;
 	got_picture = 0;
-	int length = avcodec_decode_video(context,
-			picture,
-			&got_picture,
-			data,
-			data_size);
+	av_init_packet( &pkt );
+	pkt.data = data;
+	pkt.size = data_size;
+	int length = avcodec_decode_video2(context,
+					  picture,
+					  &got_picture,
+					  &pkt);
 
 	if (length < 0) {
 		printf("FFMPEG::decode error decoding frame\n");

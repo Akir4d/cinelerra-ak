@@ -35,7 +35,7 @@
 
 extern "C"
 {
-#include <libavcodec/avcodec.h>
+#include "libavcodec/avcodec.h"
 }
 #include <sys/types.h>
 
@@ -121,8 +121,8 @@ public:
 	// contiguous float
 	void append_history(float **new_data, int offset, int len);
 	// Interleaved
-	void append_history(const void *new_data,
-			enum SampleFormat format,
+	void append_history(AVFrame *new_data,
+			enum AVSampleFormat format,
 			int offset, int samples);
 
 	void pad_history(int len);

@@ -54,7 +54,6 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 	if(!ffmpeg_initialized)
 	{
 		ffmpeg_initialized = 1;
-  		avcodec_init();
 		avcodec_register_all();
 	}
 
@@ -68,7 +67,9 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 			return 0;
 		}
 
-		AVCodecContext *context = ptr->decoder_context[i] = avcodec_alloc_context();
+		//AVCodecContext *context = ptr->decoder_context[i] = avcodec_alloc_context();
+		AVCodecContext *context = avcodec_alloc_context3(ptr->decoder[i]);
+		ptr->decoder_context[i] = context;
 		static char fake_data[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 		context->width = ptr->width_i;
 		context->height = ptr->height_i;
@@ -90,14 +91,11 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 				(ffmpeg_id == CODEC_ID_MPEG4 ||
 			         ffmpeg_id == CODEC_ID_MPEG1VIDEO ||
 			         ffmpeg_id == CODEC_ID_MPEG2VIDEO ||
-			         ffmpeg_id == CODEC_ID_H263P || 
-			         ffmpeg_id == CODEC_FLAG_H263P_SLICE_STRUCT))
+			         ffmpeg_id == CODEC_ID_H263P))
 		{
-			avcodec_thread_init(context, cpus);
 			context->thread_count = cpus;
 		}
-		if(avcodec_open(context, 
-			ptr->decoder[i]) < 0)
+		if(avcodec_open2(context, ptr->decoder[i], NULL) < 0)
 		{
 			printf("quicktime_new_ffmpeg: avcodec_open failed.\n");
 			quicktime_delete_ffmpeg(ptr);
@@ -183,6 +181,7 @@ static int decode_wrapper(quicktime_t *file,
  
 	if(!result) 
 	{ 
+		AVPacket pkt;
 
 
 // No way to determine if there was an error based on nonzero status.
@@ -191,11 +190,13 @@ static int decode_wrapper(quicktime_t *file,
 			ffmpeg->decoder_context[current_field]->skip_frame = AVDISCARD_NONREF /* AVDISCARD_BIDIR */;
 		else
 			ffmpeg->decoder_context[current_field]->skip_frame = AVDISCARD_DEFAULT;
-		result = avcodec_decode_video(ffmpeg->decoder_context[current_field], 
+		av_init_packet( &pkt );
+		pkt.data = ffmpeg->work_buffer;
+		pkt.size = bytes + header_bytes;
+		result = avcodec_decode_video2(ffmpeg->decoder_context[current_field], 
 			&ffmpeg->picture[current_field], 
 			&got_picture, 
-			ffmpeg->work_buffer, 
-			bytes + header_bytes);
+			&pkt);
 
 
 

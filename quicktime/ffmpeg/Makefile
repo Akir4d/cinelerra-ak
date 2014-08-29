@@ -140,7 +140,7 @@ ifdef AVPROGS
 install: install-progs install-data
 endif
 
-install: install-libs install-headers
+install: install-libs
 
 install-libs: install-libs-yes
 
@@ -156,7 +156,7 @@ install-data: $(DATA_FILES) $(EXAMPLES_FILES)
 	$(INSTALL) -m 644 $(DATA_FILES) "$(DATADIR)"
 	$(INSTALL) -m 644 $(EXAMPLES_FILES) "$(DATADIR)/examples"
 
-uninstall: uninstall-libs uninstall-headers uninstall-progs uninstall-data
+uninstall: uninstall-libs uninstall-progs uninstall-data
 
 uninstall-progs:
 	$(RM) $(addprefix "$(BINDIR)/", $(ALLAVPROGS))

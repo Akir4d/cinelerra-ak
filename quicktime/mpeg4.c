@@ -629,7 +629,6 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 			if(!ffmpeg_initialized)
 			{
 				ffmpeg_initialized = 1;
-  				avcodec_init();
 				avcodec_register_all();
 			}
 
@@ -641,7 +640,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 				return 1;
 			}
 
-			codec->encoder_context[current_field] = avcodec_alloc_context();
+			codec->encoder_context[current_field] = avcodec_alloc_context3(codec->encoder[current_field]);
 			AVCodecContext *context = codec->encoder_context[current_field];
 
 			context->width = width_i;
@@ -674,7 +673,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
 			context->error_resilience = FF_ER_CAREFUL;
 #else
-			context->error_recognition = FF_ER_CAREFUL;
+			context->err_recognition = AV_EF_CRCCHECK;
 #endif
 			context->error_concealment = 3;
 			context->frame_skip_cmp = FF_CMP_DCTMAX;
@@ -699,7 +698,6 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
         	context->profile= FF_PROFILE_UNKNOWN;
 			context->rc_buffer_aggressivity = 1.0;
         	context->level= FF_LEVEL_UNKNOWN;
-			context->flags |= CODEC_FLAG_H263P_UMV;
 			context->flags |= CODEC_FLAG_AC_PRED;
 
 // All the forbidden settings can be extracted from libavcodec/mpegvideo.c of ffmpeg...
@@ -717,10 +715,8 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 				(codec->ffmpeg_id == CODEC_ID_MPEG4 ||
 			         codec->ffmpeg_id == CODEC_ID_MPEG1VIDEO ||
 			         codec->ffmpeg_id == CODEC_ID_MPEG2VIDEO ||
-			         codec->ffmpeg_id == CODEC_ID_H263P || 
-			         codec->ffmpeg_id == CODEC_FLAG_H263P_SLICE_STRUCT))
+			         codec->ffmpeg_id == CODEC_ID_H263P))
 			{
-				avcodec_thread_init(context, file->cpus);
 				context->thread_count = file->cpus;
 			}
 
@@ -740,7 +736,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
  * codec->fix_bitrate,
  * codec->quantizer);
  */
-			avcodec_open(context, codec->encoder[current_field]);
+			avcodec_open2(context, codec->encoder[current_field],NULL);
 
    			avcodec_get_frame_defaults(&codec->picture[current_field]);
 

@@ -22,11 +22,6 @@
 
 #define __STDC_CONSTANT_MACROS 1
 #include "asset.h"
-extern "C"
-{
-#include "libavcodec/avcodec.h"
-#include "libavformat/avformat.h"
-}
 #include "bcsignals.h"
 #include "clip.h"
 #include "file.h"
@@ -44,7 +39,7 @@ FileFFMPEG::FileFFMPEG(Asset *asset, File *file)
 : FileBase(asset, file)
 {
 	ffmpeg_frame = 0;
-	ffmpeg_samples = 0;
+	ffmpeg_audio_frame = 0;
 	reset();
 	if(asset->format == FILE_UNKNOWN)
 		asset->format = FILE_FFMPEG;
@@ -58,10 +53,9 @@ FileFFMPEG::~FileFFMPEG()
 void FileFFMPEG::reset()
 {
 	if(ffmpeg_frame) av_free(ffmpeg_frame);
-	if(ffmpeg_samples) free(ffmpeg_samples);
+	if(ffmpeg_audio_frame) av_free(ffmpeg_audio_frame);
 	ffmpeg_frame = 0;
-	ffmpeg_samples = 0;
-
+	ffmpeg_audio_frame = 0;
 	ffmpeg_file_context = 0;
 	ffmpeg_format = 0;
 	audio_index = -1;
@@ -69,6 +63,7 @@ void FileFFMPEG::reset()
 	current_frame = 0;
 	current_sample = 0;
 	unsynced = 1;
+	last_valid_keyframe = -1;
 }
 
 char* FileFFMPEG::get_format_string(Asset *asset)
@@ -101,28 +96,23 @@ int FileFFMPEG::check_sig(Asset *asset)
 	if(ptr) return 0;
 
 	ffmpeg_lock->lock("FileFFMPEG::check_sig");
-	avcodec_init();
 	avcodec_register_all();
 	av_register_all();
 
 	AVFormatContext *ffmpeg_file_context = 0;
-	AVFormatParameters params;
-	bzero(&params, sizeof(params));
-	int result = av_open_input_file(
+	int result = avformat_open_input(
 			&ffmpeg_file_context,
 			asset->path,
 			0,
-			0,
-			&params);
+			NULL);
 
 	if(result >= 0)
 	{
-		result = av_find_stream_info(ffmpeg_file_context);
-
+		result = avformat_find_stream_info(ffmpeg_file_context, NULL);
 
 		if(result >= 0)
 		{
-			av_close_input_file(ffmpeg_file_context);
+			avformat_close_input(&ffmpeg_file_context);
 			ffmpeg_lock->unlock();
 			return 1;
 		}
@@ -140,25 +130,21 @@ int FileFFMPEG::check_sig(Asset *asset)
 int FileFFMPEG::open_file(int rd, int wr)
 {
 	int result = 0;
-	AVFormatParameters params;
-	bzero(&params, sizeof(params));
 
 	ffmpeg_lock->lock("FileFFMPEG::open_file");
-	avcodec_init();
 	avcodec_register_all();
 	av_register_all();
 
 	if(rd){
-		result = av_open_input_file(
-				(AVFormatContext**)&ffmpeg_file_context,
+		result = avformat_open_input(
+				&ffmpeg_file_context,
 				asset->path,
 				0,
-				0,
-				&params);
+				NULL);
 
 		if(result >= 0)
 		{
-			result = av_find_stream_info((AVFormatContext*)ffmpeg_file_context);
+			result = avformat_find_stream_info(ffmpeg_file_context, NULL);
 		}
 		else
 		{
@@ -171,20 +157,20 @@ int FileFFMPEG::open_file(int rd, int wr)
 		{
 			result = 0;
 			asset->format = FILE_FFMPEG;
-			for(int i = 0; i < ((AVFormatContext*)ffmpeg_file_context)->nb_streams; i++)
+			for(int i = 0; i < ffmpeg_file_context->nb_streams; i++)
 			{
-				AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[i];
+				AVStream *stream = ffmpeg_file_context->streams[i];
 				AVCodecContext *decoder_context = stream->codec;
 				switch(decoder_context->codec_type)
 				{
-				case CODEC_TYPE_AUDIO:
+				case AVMEDIA_TYPE_AUDIO:
 					if(audio_index < 0)
 					{
 						audio_index = i;
 						asset->audio_data = 1;
 						asset->channels = decoder_context->channels;
 						asset->sample_rate = decoder_context->sample_rate;
-						asset->audio_length = (int64_t)(((AVFormatContext*)ffmpeg_file_context)->duration *
+						asset->audio_length = (int64_t)(ffmpeg_file_context->duration *
 								asset->sample_rate /
 								AV_TIME_BASE);
 						AVCodec *codec = avcodec_find_decoder(decoder_context->codec_id);
@@ -197,34 +183,32 @@ int FileFFMPEG::open_file(int rd, int wr)
 						}
 						else
 						{
-							avcodec_thread_init(decoder_context, file->cpus);
-							avcodec_open(decoder_context, codec);
+							avcodec_open2(decoder_context, codec, NULL);
 						}
-						asset->bits = av_get_bits_per_sample_format(decoder_context->sample_fmt);
+						asset->bits = av_get_bytes_per_sample(decoder_context->sample_fmt)*8;
 					}
 					break;
 
-				case CODEC_TYPE_VIDEO:
+				case AVMEDIA_TYPE_VIDEO:
 					if(video_index < 0)
 					{
-
 						video_index = i;
 						asset->video_data = 1;
 						asset->layers = 1;
 						asset->width = decoder_context->width;
 						asset->height = decoder_context->height;
 
-						if(EQUIV(asset->frame_rate, 0)){
-
-							/* Look for Canon 24F; it's the oddball in the bunch */
+						if(EQUIV(asset->frame_rate, 0))
+						{
+							// Look for Canon 24F; it's the oddball in the bunch
 							if(decoder_context->coded_width == 1440 &&
 									decoder_context->coded_height == 1080 &&
 									decoder_context->coded_height == 1080 &&
 									1. * stream->avg_frame_rate.num / stream->avg_frame_rate.den <
 									1. * decoder_context->time_base.den / decoder_context->time_base.num /
-									decoder_context->ticks_per_frame){
-								asset->frame_rate = 24000/1001.;
-							}else{
+									decoder_context->ticks_per_frame) asset->frame_rate = 24000/1001.;
+							else
+							{
 								/* otherwise, believe the codec. naturally, this can't work with VFR */
 								asset->frame_rate =
 										(double)decoder_context->time_base.den /
@@ -233,15 +217,14 @@ int FileFFMPEG::open_file(int rd, int wr)
 							}
 						}
 
-						asset->video_length = (int64_t)(((AVFormatContext*)ffmpeg_file_context)->duration *
+						asset->video_length = (int64_t)(ffmpeg_file_context->duration *
 								asset->frame_rate /
 								AV_TIME_BASE);
 						asset->aspect_ratio =
 								(double)(decoder_context->coded_width*decoder_context->sample_aspect_ratio.num) /
 								(decoder_context->coded_height * decoder_context->sample_aspect_ratio.den);
 						AVCodec *codec = avcodec_find_decoder(decoder_context->codec_id);
-						avcodec_thread_init(decoder_context, file->cpus);
-						avcodec_open(decoder_context, codec);
+						avcodec_open2(decoder_context, codec, NULL);
 
 					}
 					break;
@@ -266,26 +249,29 @@ int FileFFMPEG::close_file()
 {
 	ffmpeg_lock->lock("FileFFMPEG::close_file");
 
-	if(ffmpeg_file_context){
-		if(video_index >= 0){
-			AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[video_index];
-			if(stream){
+	if(ffmpeg_file_context)
+	{
+		if(video_index >= 0)
+		{
+			AVStream *stream = ffmpeg_file_context->streams[video_index];
+			if(stream)
+			{
 				AVCodecContext *decoder_context = stream->codec;
-				if(decoder_context)
-					avcodec_close(decoder_context);
+				if(decoder_context) avcodec_close(decoder_context);
 			}
 		}
 
-		if(audio_index >= 0){
-			AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[audio_index];
-			if(stream){
+		if(audio_index >= 0)
+		{
+			AVStream *stream = ffmpeg_file_context->streams[audio_index];
+			if(stream)
+			{
 				AVCodecContext *decoder_context = stream->codec;
-				if(decoder_context)
-					avcodec_close(decoder_context);
+				if(decoder_context) avcodec_close(decoder_context);
 			}
 		}
 
-		av_close_input_file((AVFormatContext*)ffmpeg_file_context);
+		avformat_close_input(&ffmpeg_file_context);
 	}
 	ffmpeg_file_context = 0;
 	reset();
@@ -327,17 +313,17 @@ int FileFFMPEG::read_frame(VFrame *frame)
 {
 	int error = 0;
 	ffmpeg_lock->lock("FileFFMPEG::read_frame");
-	AVStream *stream = ((AVFormatContext*)ffmpeg_file_context)->streams[video_index];
+	AVStream *stream = ffmpeg_file_context->streams[video_index];
 	AVCodecContext *decoder_context = stream->codec;
-	AVFormatContext *avcontext = (AVFormatContext *)ffmpeg_file_context;
+	AVFormatContext *avcontext = ffmpeg_file_context;
 
-	/* file start time, adjusted to the stream's timebase */
+	// file start time, adjusted to the stream's timebase
 	int64_t stream_start = av_rescale_q(avcontext->start_time, AV_TIME_BASE_Q,
 			stream->time_base);
 
-#define SEEK_THRESHOLD 16
-#define SEEK_BACK_START 24
-#define SEEK_BACK_LIMIT 600
+#define SEEK_THRESHOLD 8
+#define SEEK_BACK_START 12
+#define SEEK_BACK_LIMIT 300
 
 	int64_t target =
 			file->current_frame / asset->frame_rate *
@@ -355,159 +341,141 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 	if((file->current_frame <= current_frame) ||
 			(file->current_frame > current_frame + SEEK_THRESHOLD) ||
-			unsynced)
-		pre_sync = 0;
-	else{
-		pre_sync = 1;
-	}
+			unsynced) pre_sync = 0;
+	else pre_sync = 1;
 
-	if((file->current_frame != current_frame+1) || unsynced) {
-		//fprintf(stderr,"video_pts SEEK %d %d requested=%.03f (min=%0.3f) ",
-		//  file->current_frame, current_frame,
-		//  1.*file->current_frame/asset->frame_rate,
-		//  1.*(target_min-stream_start)*
-		//  stream->time_base.num/stream->time_base.den);
 
+	if((file->current_frame != current_frame + 1) || unsynced)
+	{
 		unsynced = 0;
 
 		while(!got_it && !error && seek_back <= SEEK_BACK_LIMIT){
 			got_keyframe = 1;
 
-			/* Due to reordering and lax/unknown A/V sync in a given file,
-         the ffmpeg frame seek is not particularly accurate, nor is
-         the slush is well bounded. In addition, assuming pessimal
-         behavior will badly hurt performance on files that don't show
-         the imprecision...
+			// Due to reordering and lax/unknown A/V sync in a given file,
+			// the ffmpeg frame seek is not particularly accurate, nor is
+			// the slush is well bounded. In addition, assuming pessimal
+			// behavior will badly hurt performance on files that don't show
+			// the imprecision...
 
-         If the next PTS we want is behind us (or *well* ahead), we
-         seek in an 'expanding circle'; if the PTS we finally get from
-         good data is too late, backtrack further and try again.
-         Limit the damage.
+			// If the next PTS we want is behind us (or *well* ahead), we
+			// seek in an 'expanding circle'; if the PTS we finally get from
+			// good data is too late, backtrack further and try again.
+			// Limit the damage.
 
-         Otherwise, we simply read ahead to the desired point.
-			 */
+			// Otherwise, we simply read ahead to the desired point.
 
-			if(!pre_sync){
-
+			if(!pre_sync)
+			{
 				int64_t seekto = target - seek_back *
-						stream->time_base.den/stream->time_base.num/asset->frame_rate;
+						stream->time_base.den /
+						stream->time_base.num /
+						asset->frame_rate;
 
-				if(seekto <= stream_start+EPSILON){
-					//fprintf(stderr,"ZERO ");
+				if(seekto <= stream_start + EPSILON)
+				{
 					seekto = 0;
 					seek_back = SEEK_BACK_LIMIT;
 				}
 
 				got_keyframe = 0;
 
-				//fprintf(stderr,"adjusted=%.03f ",1.*(seekto-stream_start)*
-				//      stream->time_base.num/stream->time_base.den);
+				if(0) fprintf(stderr,"adjusted=%.03f \n",1.*(seekto-stream_start)*
+						stream->time_base.num/stream->time_base.den);
 
 				if(av_seek_frame(avcontext,
 						video_index,
 						seekto,
 						AVSEEK_FLAG_BACKWARD))
 					if(av_seek_frame(avcontext,
-							video_index,
+							last_valid_keyframe,
 							seekto,
-							AVSEEK_FLAG_ANY))
+							AVSEEK_FLAG_BACKWARD))
 						if(av_seek_frame(avcontext,
 								-1,
 								seekto,
-								AVSEEK_FLAG_FRAME))
-						{
-							error = 1;
-							fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
-						}
-
+								AVSEEK_FLAG_BACKWARD))
+							{
+								error = 1;
+								fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
+							}
 				avcodec_flush_buffers(decoder_context);
 			}
 
-			/* read till we successfully decode *some* picture.  If the
-         resulting picture has a pts preceeding our syncpoint, we've
-         achieved pre_sync. */
-			/* Note: we're having ffmpeg reorder for us, so we're properly
-         working according to opaque_reordered PTS */
+			// read till we successfully decode *some* picture.  If the
+			// resulting picture has a pts preceeding our syncpoint, we've
+			// achieved pre_sync.
+			// Note: we're having ffmpeg reorder for us, so we're properly
+			// working according to opaque_reordered PTS
 
-			while(!error){
+			while(!error)
+			{
 				AVPacket packet;
 				int got_pic = 0;
 
 				error = av_read_frame(avcontext, &packet);
-				//if(error) fprintf(stderr,"PERROR ");
-				if(!error){
-					if(packet.size > 0 && packet.stream_index == video_index){
 
-						//fprintf(stderr,"packet=%.03f ",
-						//      1.*(packet.pts-stream_start)*
-						//      stream->time_base.num/stream->time_base.den);
+				if(!error)
+				{
+					if(packet.size > 0 && packet.stream_index == video_index)
+					{
+						// After the seek, we don't usually get a keyframe
+						// (libavcodec documentation be damned).  Do not submit a
+						// non-keyframe first packet to the decoder, as eg the
+						// mpeg2 decoder is known to misidentify non-keyframes as
+						// keyframes, resulting in garbled output.
 
-						/* After the seek, we don't usually get a keyframe
-               (libavcodec documentation be damned).  Do not submit a
-               non-keyframe first packet to the decoder, as eg the
-               mpeg2 decoder is known to misidentify non-keyframes as
-               keyframes, resulting in garbled output. */
-
-						if(packet.flags&PKT_FLAG_KEY){
+						if(packet.flags == AV_PKT_FLAG_KEY)
+						{
+							last_valid_keyframe = packet.stream_index - 1;
 							got_keyframe = 1;
-							//fprintf(stderr,"KEYFRAME ");
 						}
 
+
 						// starting past where we want to be?
-						if(!pre_sync && packet.pts != AV_NOPTS_VALUE && packet.pts > target_abort){
+						if(!pre_sync &&
+								packet.pts != AV_NOPTS_VALUE &&
+								target_abort < EPSILON &&
+								packet.pts > target_abort)
+						{
 							av_free_packet(&packet);
 							break;
 						}
 
-						if(got_keyframe){
+						if(got_keyframe)
+						{
 							int64_t packet_pts = packet.pts;
 							int64_t packet_dts = packet.dts;
 
-							if(!ffmpeg_frame)
-								ffmpeg_frame = avcodec_alloc_frame();
-							avcodec_get_frame_defaults((AVFrame*)ffmpeg_frame);
+							if(!ffmpeg_frame) ffmpeg_frame = av_frame_alloc();
+							av_frame_unref(ffmpeg_frame);
 
 							decoder_context->reordered_opaque = packet_pts;
-							int result =
-									avcodec_decode_video2(decoder_context,
-											(AVFrame*)ffmpeg_frame,
-											&got_pic,
-											&packet);
+							int result = avcodec_decode_video2(decoder_context,
+									ffmpeg_frame,
+									&got_pic,
+									&packet);
 							av_free_packet(&packet);
 
-							//fprintf(stderr,">>>VID results: reordered=%.03f pts=%.03f dts=%.03f result=%d got_pic=%d %s %s %s\n",
-									//    (((AVFrame *)ffmpeg_frame)->reordered_opaque-stream_start)*
-							//    1.*stream->time_base.num/stream->time_base.den,
-							//    (packet.pts-stream_start)*
-							//    1.*stream->time_base.num/stream->time_base.den,
-							//    (packet.dts-stream_start)*
-							//    1.*stream->time_base.num/stream->time_base.den,
-							//    result,got_pic,
-							//    ((((AVFrame*)ffmpeg_frame)->data[0])?"DATA":""),
-							//    ((packet.flags&PKT_FLAG_KEY)?"PACKETKEY":""),
-							//    ((((AVFrame*)ffmpeg_frame)->key_frame)?"FRAMEKEY":""));
+							if(!ffmpeg_frame->data[0] || result<=0) got_pic = 0;
 
-							if(!((AVFrame*)ffmpeg_frame)->data[0] || result<=0) got_pic = 0;
+							// although we checked that the packet was marked
+							// keyframe above, some backends (eg, AVI) also mis-mark
+							// packets depending on seek mode.  Between the packet
+							// check and the frame check below, we should be sure to avoid
+							// all false positives
+							if(got_pic && !pre_sync && !ffmpeg_frame->key_frame) got_pic = 0;
 
-							/* although we checked that the packet was marked
-                 keyframe above, some backends (eg, AVI) also mis-mark
-                 packets depending on seek mode.  Between the packet
-                 check and the frame check below, we should be sure to avoid
-                 all false positives */
-							if(got_pic && !pre_sync && !((AVFrame*)ffmpeg_frame)->key_frame) got_pic = 0;
-
-							if(got_pic){
-								int64_t returned_pts =
-										((AVFrame *)ffmpeg_frame)->reordered_opaque;
-
-								//fprintf(stderr,"delivered=%.03f ",
-								//      1.*(returned_pts-stream_start)*
-								//      stream->time_base.num/stream->time_base.den);
+							if(got_pic)
+							{
+								int64_t returned_pts = ffmpeg_frame->reordered_opaque;
 
 								if(returned_pts == AV_NOPTS_VALUE){
 									if (packet_dts != AV_NOPTS_VALUE){
 										returned_pts= packet_dts;
-									}else{
+									}
+									else
+									{
 										if (packet_dts != AV_NOPTS_VALUE)
 											returned_pts= packet_pts;
 										else{
@@ -521,14 +489,11 @@ int FileFFMPEG::read_frame(VFrame *frame)
 									}
 								}
 
-								if(returned_pts <= target && !pre_sync){
-									//fprintf(stderr,"PRESYNC ");
-									pre_sync = 1;
-								}
+								if(returned_pts <= target && !pre_sync) pre_sync = 1;
 
-								/* is the PTS in the landing zone */
-								if(pre_sync && returned_pts >= target_min){
-									//fprintf(stderr,"POSTSYNC");
+								// is the PTS in the landing zone
+								if(pre_sync && returned_pts >= target_min)
+								{
 									got_it = 1;
 									current_frame = file->current_frame;
 									break;
@@ -538,34 +503,36 @@ int FileFFMPEG::read_frame(VFrame *frame)
 									break;
 							}
 						}
-					}else{
+					}
+					else
+					{
 						av_free_packet(&packet);
 					}
 				}
 			}
-
-			if(seek_back==0){
+			if(seek_back==0)
+			{
 				seek_back = SEEK_BACK_START;
-			}else{
+			}
+			else
+			{
 				seek_back<<=1;
 			}
 			pre_sync = 0;
 		}
-
-		//fprintf(stderr,"\n");
-		if(error || !got_it)
-			unsynced = 1;
-
-		if(error){
-			/* at this point we have failed */
+		if(error || !got_it) unsynced = 1;
+		if(error)
+		{
+			// at this point we have failed
 			ffmpeg_lock->unlock();
 			return error;
 		}
-	}else{
-
-		/* this is the nominal, non-seek case.  Read a frame, don't bother checking sync */
-
-		while(!error){
+	}
+	else
+	{
+		// this is the nominal, non-seek case.  Read a frame, don't bother checking sync
+		while(!error)
+		{
 			AVPacket packet;
 			int got_pic = 0;
 
@@ -574,9 +541,8 @@ int FileFFMPEG::read_frame(VFrame *frame)
 			if(!error){
 				if(packet.size > 0 && packet.stream_index == video_index){
 
-					if(!ffmpeg_frame)
-						ffmpeg_frame = avcodec_alloc_frame();
-					avcodec_get_frame_defaults((AVFrame*)ffmpeg_frame);
+					if(!ffmpeg_frame) ffmpeg_frame = av_frame_alloc();
+					av_frame_unref(ffmpeg_frame);
 
 					decoder_context->reordered_opaque = packet.pts;
 					int result =
@@ -586,13 +552,11 @@ int FileFFMPEG::read_frame(VFrame *frame)
 									&packet);
 					av_free_packet(&packet);
 
-					if(!((AVFrame*)ffmpeg_frame)->data[0] || !result) got_pic = 0;
+					if(!ffmpeg_frame->data[0] || !result) got_pic = 0;
 
-					if(got_pic){
-						int64_t returned_pts =
-								((AVFrame *)ffmpeg_frame)->reordered_opaque-stream_start;
-						//fprintf(stderr,"VIDEO: nominal pts=%.03f",
-								//      1.*returned_pts*stream->time_base.num/stream->time_base.den);
+					if(got_pic)
+					{
+						int64_t returned_pts = ffmpeg_frame->reordered_opaque - stream_start;
 						current_frame++;
 						got_it = 1;
 						break;
@@ -602,9 +566,8 @@ int FileFFMPEG::read_frame(VFrame *frame)
 				}
 			}
 		}
-
-		//fprintf(stderr,"\n");
-		if(error){
+		if(error)
+		{
 			ffmpeg_lock->unlock();
 			return error;
 		}
@@ -617,33 +580,32 @@ int FileFFMPEG::read_frame(VFrame *frame)
 		FFMPEG::convert_cmodel((AVPicture *)ffmpeg_frame, decoder_context->pix_fmt,
 				decoder_context->width, decoder_context->height, frame);
 	}else{
-		/* No frame to transfer, but not due to an error; there really
-       is no frame at this point. */
-		//fprintf(stderr,"\nVIDEO: SENDING BACK NOTHING\n");
+		// No frame to transfer, but not due to an error; there really
+		// is no frame at this point.
 		unsigned char *buf=(unsigned char *)calloc(decoder_context->width*2,1);
 		memset(buf+decoder_context->width,128,decoder_context->width);
 
-		cmodel_transfer(frame->get_rows(), /* Leave NULL if non existent */
+		cmodel_transfer(frame->get_rows(), // Leave NULL if non existent
 				NULL,
-				frame->get_y(), /* Leave NULL if non existent */
+				frame->get_y(), // Leave NULL if non existent
 				frame->get_u(),
 				frame->get_v(),
 				buf,
 				buf+decoder_context->width,
 				buf+decoder_context->width,
-				0,        /* Dimensions to capture from input frame */
+				0,        // Dimensions to capture from input frame
 				0,
 				decoder_context->width,
 				decoder_context->height,
-				0,       /* Dimensions to project on output frame */
+				0,       // Dimensions to project on output frame
 				0,
 				frame->get_w(),
 				frame->get_h(),
 				BC_YUV420P,
 				frame->get_color_model(),
-				0, /* When transfering BC_RGBA8888 to non-alpha
-                          this is the background color in 0xRRGGBB
-                          hex */
+				0, // When transfering BC_RGBA8888 to non-alpha
+				// this is the background color in 0xRRGGBB
+				// hex
 				0,
 				frame->get_w());
 		free(buf);
@@ -657,30 +619,27 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 {
 	int error = 0;
 	ffmpeg_lock->lock("FileFFMPEG::read_samples");
-	AVFormatContext *avcontext = (AVFormatContext *)ffmpeg_file_context;
+	AVFormatContext *avcontext = ffmpeg_file_context;
 	AVStream *stream = avcontext->streams[audio_index];
 	AVCodecContext *decoder_context = stream->codec;
 	int accumulation = 0;
 	const int debug = 0;
 
-	/* file start time, adjusted to the stream's timebase */
-	int64_t stream_start = av_rescale_q(avcontext->start_time, AV_TIME_BASE_Q,
+	// file start time, adjusted to the stream's timebase
+	int64_t stream_start = av_rescale_q(avcontext->start_time,
+			AV_TIME_BASE_Q,
 			stream->time_base);
 	update_pcm_history(len);
 
 	// Seek occurred
-	if(decode_start != decode_end || unsynced) {
-
-		//fprintf(stderr,"audio_pts SEEK requested=%.03lf(%.03lf) ",1.*decode_start / asset->sample_rate,
-		//      1.*(decode_start+decode_len) / asset->sample_rate);
-
-
+	if(decode_start != decode_end || unsynced)
+	{
 #define A_SEEK_THRESHOLD 1.
 #define A_SEEK_BACK_START .2
 #define A_SEEK_BACK_LIMIT 5.
 
-		/* as with video, ffmpeg doesn't generally give us the specific
-       PTSes we asked for.  It's usually several frames late. */
+		// as with video, ffmpeg doesn't generally give us the specific
+		// PTSes we asked for.  It's usually several frames late.
 
 		int64_t target;
 		double seek_back = A_SEEK_BACK_START;
@@ -691,61 +650,59 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 				asset->sample_rate + stream_start;
 
 		unsynced = 0;
-		while(!got_it && !error && seek_back <= A_SEEK_BACK_LIMIT){
-
+		while(!got_it && !error && seek_back <= A_SEEK_BACK_LIMIT)
+		{
 			int64_t seekto = target - seek_back * stream->time_base.den / stream->time_base.num;
 			accumulation = 0;
 
-			if(seekto < stream_start){
+			if(seekto < stream_start)
+			{
 				seekto = stream_start;
 				seek_back = A_SEEK_BACK_LIMIT;
 			}
-
-			//fprintf(stderr,"adjusted=%.03lf ",1.f * (seekto-stream_start) * stream->time_base.num / stream->time_base.den);
-
-			/* AV_SEEK_FLAG_ANY must be set for the AVI backend to seek in audio at all */
+			// AV_SEEK_FLAG_ANY must be set for the AVI backend to seek in audio at all
 			if(av_seek_frame(avcontext,
 					audio_index,
 					seekto,
 					AVSEEK_FLAG_ANY))
 				if(av_seek_frame(avcontext,
-						audio_index,
+						-1,
 						seekto,
 						AVSEEK_FLAG_BACKWARD))
-					if(av_seek_frame(avcontext,
-							audio_index,
-							seekto,
-							AVSEEK_FLAG_FRAME))
-						{
-							error = 1;
-							fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
-						}
-
+				{
+					error = 1;
+					fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
+				}
 			decode_end = decode_start;
 			current_sample = file->current_sample;
 			avcodec_flush_buffers(decoder_context);
 
-			/* parallel video process; read forward until we see PTSes we
-         like.  If we start too late, backtrack and try again. */
+			// parallel video process; read forward until we see PTSes we
+			// like.  If we start too late, backtrack and try again.
 
-			while(!error && (!got_it || accumulation<decode_len)){
+			while(!error && (!got_it || accumulation<decode_len))
+			{
 				AVPacket packet;
-
 				error = av_read_frame(avcontext,&packet);
 
-				if(!error){
-
-					if(packet.size > 0 && packet.stream_index == audio_index){
+				if(!error)
+				{
+					if(packet.size > 0 && packet.stream_index == audio_index)
+					{
 						int packet_len = packet.size;
 						uint8_t *packet_ptr = packet.data;
 						int64_t pts_sample = AV_NOPTS_VALUE;
 
-						if(packet.pts == AV_NOPTS_VALUE){
+						if(packet.pts == AV_NOPTS_VALUE)
+						{
 							fprintf(stderr,"FileFFMPEG::read_samples Missing Timestamps during SYNC!\n"
 									"\tAborting sync on this audio stream for now!\n");
 							pts_sample = 1. * (seekto-stream_start) *
-									stream->time_base.num*asset->sample_rate/stream->time_base.den;
-						}else{
+									stream->time_base.num*asset->sample_rate /
+									stream->time_base.den;
+						}
+						else
+						{
 							pts_sample = 1. * (packet.pts-stream_start) *
 									stream->time_base.num*asset->sample_rate/stream->time_base.den;
 						}
@@ -762,88 +719,92 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 								// don't assume the A/V sync offset will be less than
 								// the maximum history depth
 								// len and decode_len are equivalent here
-								if(padding<decode_len){
+								if(padding<decode_len)
+								{
 									pad_history(padding);
 									accumulation += padding;
 									pre_sync = 1;
 									got_it = 1;
-								}else{
-									/* only account for the padding of the requested
-                     range; we'll need to repeat this process next call */
+								}
+								else
+								{
+									// only account for the padding of the requested
+									// range; we'll need to repeat this process next call
 									pad_history(decode_len);
 									unsynced = 1;
-									/* be sure */
+									// be sure
 									seek_back = A_SEEK_BACK_LIMIT+EPSILON;
 									av_free_packet(&packet);
 									break;
 								}
-							}else{
-								/* Normal case; backtrack and try again */
+							}
+							else
+							{
+								// Normal case; backtrack and try again
 								av_free_packet(&packet);
 								break;
 							}
 						}
 
-						//fprintf(stderr,"packet = %.03f:%d:%d:%d ",
-						//      1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num,
-						//      error,packet.size,packet.stream_index);
-
 						while(packet_len > 0){
-							int data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
-							if(!ffmpeg_samples) ffmpeg_samples = (short*)malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
-							int bytes_decoded = avcodec_decode_audio3(decoder_context,
-									ffmpeg_samples,
-									&data_size,
+							int frame_decoded;
+							if(!ffmpeg_audio_frame) ffmpeg_audio_frame = av_frame_alloc();
+							int bytes_decoded = avcodec_decode_audio4(decoder_context,
+									ffmpeg_audio_frame,
+									&frame_decoded,
 									&packet);
-							if(bytes_decoded < 0){
-								/* Do not set error; this is standard operating
-                   procedure for eg mp3, where a packet often begins in
-                   the middle of a frame.  Proper behavior is to handle
-                   next packet. */
+							if(!frame_decoded)
+							{
+								// Do not set error; this is standard operating
+								// procedure for eg mp3, where a packet often begins in
+								// the middle of a frame.  Proper behavior is to handle
+								// next packet.
 								break;
-							}else{
-								int samples_decoded = data_size /
-										asset->channels /
-										(av_get_bits_per_sample_format(decoder_context->sample_fmt)/8);
+							}
+							else
+							{
+								int samples_decoded = ffmpeg_audio_frame->nb_samples;
 
 								packet_ptr += bytes_decoded;
 								packet_len -= bytes_decoded;
 
-								/* anything predating or at the target sample sets presync */
-								if(!pre_sync && pts_sample <= file->current_sample){
-									pre_sync = 1;
-									//fprintf(stderr,"PRESYNC ");
-								}
+								// anything predating or at the target sample sets presync
+								if(!pre_sync && pts_sample <= file->current_sample) pre_sync = 1;
 
-								/* Do any of the produced samples fall at the target or later? */
-								if(got_it || pts_sample+samples_decoded > decode_start){
+								// Do any of the produced samples fall at the target or later?
+								if(got_it || pts_sample+samples_decoded > decode_start)
+								{
 									if (!pre_sync) break;
 
-									if(got_it || pts_sample>=decode_start){
-										/* all samples are past 'start'; use all samples */
-										append_history((void *)ffmpeg_samples,
+									if(got_it || pts_sample>=decode_start)
+									{
+										// all samples are past 'start'; use all samples
+										append_history(ffmpeg_audio_frame,
 												decoder_context->sample_fmt,
 												0,
 												samples_decoded);
 										accumulation += samples_decoded;
-									}else{
-										/* decode partially precedes the range we want;
-                       use only the samples at and past the start
-                       marker */
+									}
+									else
+									{
+										// decode partially precedes the range we want;
+										// use only the samples at and past the start
+										// marker
 										int offset = decode_start - pts_sample;
-										if(offset<samples_decoded){
-											append_history((void *)ffmpeg_samples,
+										if(offset<samples_decoded)
+										{
+											append_history(ffmpeg_audio_frame,
 													decoder_context->sample_fmt,
 													offset,
 													samples_decoded-offset);
 											accumulation += samples_decoded-offset;
 										}
 									}
-									//if(!got_it)
-									//fprintf(stderr,"delivered = %.03f(%.03f) ",
-									//        1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num,
-									//        1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num+
-									//        1.*samples_decoded/asset->sample_rate);
+									if(0 && !got_it)
+										fprintf(stderr,"delivered = %.03f(%.03f) ",
+												1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num,
+												1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num+
+												1.*samples_decoded/asset->sample_rate);
 
 									got_it=1;
 								}
@@ -858,45 +819,36 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 			seek_back *= 2.;
 			pre_sync = 0;
 		}
+	}
+	else
+	{
+		// nominal case; no seek, just keep reading samples
 
-		//fprintf(stderr,"\n");
-
-	}else{
-
-		/* nominal case; no seek, just keep reading samples */
-
-		while(!error && accumulation<decode_len){
+		while(!error && accumulation<decode_len)
+		{
 			AVPacket packet;
-
 			error = av_read_frame(avcontext,&packet);
 
-			if(!error){
-				if(packet.size > 0 && packet.stream_index == audio_index){
+			if(!error)
+			{
+				if(packet.size > 0 && packet.stream_index == audio_index)
+				{
 					int packet_len = packet.size;
 					uint8_t *packet_ptr = packet.data;
-					int data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
-					if(!ffmpeg_samples) ffmpeg_samples = (short*)realloc(ffmpeg_samples, data_size);
-					int bytes_decoded = avcodec_decode_audio3(decoder_context,
-							ffmpeg_samples,
-							&data_size,
+					int frame_decoded;
+					if(!ffmpeg_audio_frame) ffmpeg_audio_frame = av_frame_alloc();
+					int bytes_decoded = avcodec_decode_audio4(decoder_context,
+							ffmpeg_audio_frame,
+							&frame_decoded,
 							&packet);
-					if(bytes_decoded < 0){
-						error = 1;
-					}else{
-						int samples_decoded = data_size /
-								asset->channels /
-								(av_get_bits_per_sample_format(decoder_context->sample_fmt)/8);
-
-						//if(accumulation==0)
-							//fprintf(stderr,"nominal = %.03f(%.03f) ",
-									//      1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num,
-									//      1.*(packet.pts-stream_start)/stream->time_base.den*stream->time_base.num+
-						//      1.*samples_decoded/asset->sample_rate);
-
+					if(!frame_decoded) error = 1;
+					else
+					{
+						int samples_decoded = ffmpeg_audio_frame->nb_samples;;
 						packet_ptr += bytes_decoded;
 						packet_len -= bytes_decoded;
 
-						append_history(ffmpeg_samples,
+						append_history(ffmpeg_audio_frame,
 								decoder_context->sample_fmt,
 								0,
 								samples_decoded);
@@ -907,12 +859,9 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 			}
 		}
 
-		/* at end of stream, audio may have ended early-- if we didn't get
-       the full accumulation, pad */
-		if(accumulation<decode_len){
-			pad_history(decode_len-accumulation);
-			//unsynced=1; error is set so this will be handled below
-		}
+		// at end of stream, audio may have ended early-- if we didn't get
+		// the full accumulation, pad
+		if(accumulation < decode_len) pad_history(decode_len - accumulation);
 	}
 
 

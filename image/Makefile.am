@@ -21,7 +21,6 @@ do_subst_desk = sed -e 's,[@]BNDIR[@],$(BNDIR),g'
 
 cinelerra-cv: cinelerra-cv.in Makefile
 			$(do_subst) < $(srcdir)/cinelerra-cv.in > cinelerra-cv
-			echo ${DTDIR}
 			chmod +x cinelerra-cv
 
 cinelerra-cv.desktop: cinelerra-cv.desktop.in Makefile
@@ -32,10 +31,14 @@ install: cinelerra-cv cinelerra-cv.desktop cinelerra-cv.xpm
 	mv -f cinelerra-cv ${BNDIR}
 	mv -f cinelerra-cv.desktop ${DTDIR}/applications
 	cp -f cinelerra-cv.xpm ${DTDIR}/pixmaps
+	cp -f cinelerra-cv.conf /etc/sysctl.d/50-cinelerra-cv.conf
+	-/etc/init.d/procps reload
 	
 uninstall: cinelerra-cv cinelerra-cv.desktop cinelerra-cv.xpm
 	rm -f ${BNDIR}/cinelerra-cv
 	rm -f  ${DTDIR}/applications/cinelerra-cv.desktop
 	rm -f  ${DTDIR}/pixmaps/cinelerra-cv.xpm
+	rm -f /etc/sysctl.d/50-cinelerra-cv.conf
+	-/etc/init.d/procps reload
 
       

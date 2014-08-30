@@ -461,6 +461,15 @@ AC_SUBST(CPU_CFLAGS)
 
 ############## END OF MMX / 3DNOW
 
+############ custom-script-prefix
+AC_ARG_WITH([sprefix], AC_HELP_STRING([--with-sprefix], 
+			[use /usr prefix to install script]),
+			[use_sprefix=$withval],
+			[use_sprefix=no])
+	
+AM_CONDITIONAL(ALT_SCRIPT_PREFIX, test "x$use_sprefix" = "xyes")
+############ END custom-script-prefix
+
 ############ external ffmpeg
 AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
 

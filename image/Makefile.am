@@ -1,5 +1,10 @@
-DTDIR = /usr/share
+if ALT_SCRIPT_PREFIX
 BNDIR = /usr/bin
+DTDIR = /usr/share
+else
+BNDIR = $(bindir)
+DTDIR = $(prefix)/share
+endif
 desktopdir = ${DTDIR}/applications
 desktop_DATA = cinelerra-cv.desktop
 bin_SCRIPTS = cinelerra-cv
@@ -12,13 +17,15 @@ EXTRA_DIST = \
         cinelerra-cv.desktop.in cinelerra-cv.xpm cinelerra-cv.in
 
 do_subst = sed -e 's,[@]bindir[@],$(bindir),g'
+do_subst_desk = sed -e 's,[@]BNDIR[@],$(BNDIR),g'
 
 cinelerra-cv: cinelerra-cv.in Makefile
 			$(do_subst) < $(srcdir)/cinelerra-cv.in > cinelerra-cv
+			echo ${DTDIR}
 			chmod +x cinelerra-cv
 
 cinelerra-cv.desktop: cinelerra-cv.desktop.in Makefile
-			$(do_subst) < $(srcdir)/cinelerra-cv.desktop.in > cinelerra-cv.desktop
+			$(do_subst_desk) < $(srcdir)/cinelerra-cv.desktop.in > cinelerra-cv.desktop
 			chmod +x cinelerra-cv.desktop
 
 install: cinelerra-cv cinelerra-cv.desktop cinelerra-cv.xpm

@@ -102,7 +102,7 @@ void FileBase::update_pcm_history(int64_t len)
 			for(int i = 0; i < asset->channels; i++)
 			{
 				double *temp = pcm_history[i];
-				memcpy(temp, temp + diff, (history_size - diff) * sizeof(double));
+				if(diff != 0) memcpy(temp, temp + diff, (history_size - diff) * sizeof(double));
 			}
 
 			history_start += diff;

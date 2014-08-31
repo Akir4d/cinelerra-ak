@@ -290,6 +290,7 @@ int FileFFMPEG::close_file()
 	ffmpeg_file_context = 0;
 	reset();
 	ffmpeg_lock->unlock();
+	return 0;
 }
 
 
@@ -405,10 +406,19 @@ int FileFFMPEG::read_frame(VFrame *frame)
 				if(av_seek_frame(avcontext,
 						video_index,
 						seekto,
-						AVSEEK_FLAG_BACKWARD)){
-					error = 1;
-					fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
-				}
+						AVSEEK_FLAG_BACKWARD))
+					if(av_seek_frame(avcontext,
+							video_index,
+							seekto,
+							AVSEEK_FLAG_ANY))
+						if(av_seek_frame(avcontext,
+								-1,
+								seekto,
+								AVSEEK_FLAG_FRAME))
+						{
+							error = 1;
+							fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
+						}
 
 				avcodec_flush_buffers(decoder_context);
 			}
@@ -423,7 +433,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
 				AVPacket packet;
 				int got_pic = 0;
 
-				error = av_read_frame(avcontext,&packet);
+				error = av_read_frame(avcontext, &packet);
 				//if(error) fprintf(stderr,"PERROR ");
 				if(!error){
 					if(packet.size > 0 && packet.stream_index == video_index){
@@ -459,11 +469,10 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 							decoder_context->reordered_opaque = packet_pts;
 							int result =
-									avcodec_decode_video(decoder_context,
+									avcodec_decode_video2(decoder_context,
 											(AVFrame*)ffmpeg_frame,
 											&got_pic,
-											packet.data,
-											packet.size);
+											&packet);
 							av_free_packet(&packet);
 
 							//fprintf(stderr,">>>VID results: reordered=%.03f pts=%.03f dts=%.03f result=%d got_pic=%d %s %s %s\n",
@@ -571,11 +580,10 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 					decoder_context->reordered_opaque = packet.pts;
 					int result =
-							avcodec_decode_video(decoder_context,
+							avcodec_decode_video2(decoder_context,
 									(AVFrame*)ffmpeg_frame,
 									&got_pic,
-									packet.data,
-									packet.size);
+									&packet);
 					av_free_packet(&packet);
 
 					if(!((AVFrame*)ffmpeg_frame)->data[0] || !result) got_pic = 0;
@@ -697,12 +705,21 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 
 			/* AV_SEEK_FLAG_ANY must be set for the AVI backend to seek in audio at all */
 			if(av_seek_frame(avcontext,
-					-1, //audio_index, // it's better to leave ffmpeg automatic search// Akirad
+					audio_index,
 					seekto,
-					AVSEEK_FLAG_ANY)){
-				error = 1;
-				fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
-			}
+					AVSEEK_FLAG_ANY))
+				if(av_seek_frame(avcontext,
+						audio_index,
+						seekto,
+						AVSEEK_FLAG_BACKWARD))
+					if(av_seek_frame(avcontext,
+							audio_index,
+							seekto,
+							AVSEEK_FLAG_FRAME))
+						{
+							error = 1;
+							fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
+						}
 
 			decode_end = decode_start;
 			current_sample = file->current_sample;
@@ -735,16 +752,16 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 
 						if(!pre_sync && packet.pts > target){
 							if(seek_back*2.+EPSILON >= A_SEEK_BACK_LIMIT){
-								/* we've searched as far back as permitted; we've found
-                   no audio at the requested starting point so pad up to
-                   this point and continue */
+								// we've searched as far back as permitted; we've found
+								// no audio at the requested starting point so pad up to
+								// this point and continue
 								int64_t padding = (packet.pts - stream_start) *
 										asset->sample_rate * stream->time_base.num / stream->time_base.den -
 										file->current_sample;
 
-								/* don't assume the A/V sync offset will be less than
-                   the maximum history depth */
-								/* len and decode_len are equivalent here */
+								// don't assume the A/V sync offset will be less than
+								// the maximum history depth
+								// len and decode_len are equivalent here
 								if(padding<decode_len){
 									pad_history(padding);
 									accumulation += padding;
@@ -774,11 +791,10 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 						while(packet_len > 0){
 							int data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 							if(!ffmpeg_samples) ffmpeg_samples = (short*)malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
-							int bytes_decoded = avcodec_decode_audio2(decoder_context,
+							int bytes_decoded = avcodec_decode_audio3(decoder_context,
 									ffmpeg_samples,
 									&data_size,
-									packet_ptr,
-									packet_len);
+									&packet);
 							if(bytes_decoded < 0){
 								/* Do not set error; this is standard operating
                    procedure for eg mp3, where a packet often begins in
@@ -860,11 +876,10 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 					uint8_t *packet_ptr = packet.data;
 					int data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 					if(!ffmpeg_samples) ffmpeg_samples = (short*)realloc(ffmpeg_samples, data_size);
-					int bytes_decoded = avcodec_decode_audio2(decoder_context,
+					int bytes_decoded = avcodec_decode_audio3(decoder_context,
 							ffmpeg_samples,
 							&data_size,
-							packet_ptr,
-							packet_len);
+							&packet);
 					if(bytes_decoded < 0){
 						error = 1;
 					}else{

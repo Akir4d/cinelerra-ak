@@ -38,11 +38,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "libavcodec/dsputil.h"
+#include "libavutil/mem.h"
+#include "libavutil/x86/asm.h"
 #include "idct_xvid.h"
-#include "dsputil_mmx.h"
+#include "idctdsp.h"
 
-/*!
+#if HAVE_SSE2_INLINE
+
+/**
  * @file
  * @brief SSE2 idct compatible with xvidmmx
  */
@@ -144,7 +147,7 @@ DECLARE_ASM_CONST(16, int32_t, walkenIdctRounders)[] = {
 
 #endif
 
-#define ROUND(x) "paddd   "MANGLE(x)
+#define ROUND(x) "paddd   "x
 
 #define JZ(reg, to)                         \
     "testl     "reg","reg"            \n\t" \
@@ -340,22 +343,22 @@ DECLARE_ASM_CONST(16, int32_t, walkenIdctRounders)[] = {
     "movdqa   %%xmm6, 4*16("dct")     \n\t" \
     "movdqa   "SREG2", 7*16("dct")    \n\t"
 
-inline void ff_idct_xvid_sse2(short *block)
+av_extern_inline void ff_idct_xvid_sse2(short *block)
 {
     __asm__ volatile(
     "movq     "MANGLE(m127)", %%mm0                              \n\t"
-    iMTX_MULT("(%0)",     MANGLE(iTab1), ROUND(walkenIdctRounders),      PUT_EVEN(ROW0))
-    iMTX_MULT("1*16(%0)", MANGLE(iTab2), ROUND(walkenIdctRounders+1*16), PUT_ODD(ROW1))
-    iMTX_MULT("2*16(%0)", MANGLE(iTab3), ROUND(walkenIdctRounders+2*16), PUT_EVEN(ROW2))
+    iMTX_MULT("(%0)",     MANGLE(iTab1), ROUND(MANGLE(walkenIdctRounders)),      PUT_EVEN(ROW0))
+    iMTX_MULT("1*16(%0)", MANGLE(iTab2), ROUND("1*16+"MANGLE(walkenIdctRounders)), PUT_ODD(ROW1))
+    iMTX_MULT("2*16(%0)", MANGLE(iTab3), ROUND("2*16+"MANGLE(walkenIdctRounders)), PUT_EVEN(ROW2))
 
     TEST_TWO_ROWS("3*16(%0)", "4*16(%0)", "%%eax", "%%ecx", CLEAR_ODD(ROW3), CLEAR_EVEN(ROW4))
     JZ("%%eax", "1f")
-    iMTX_MULT("3*16(%0)", MANGLE(iTab4), ROUND(walkenIdctRounders+3*16), PUT_ODD(ROW3))
+    iMTX_MULT("3*16(%0)", MANGLE(iTab4), ROUND("3*16+"MANGLE(walkenIdctRounders)), PUT_ODD(ROW3))
 
     TEST_TWO_ROWS("5*16(%0)", "6*16(%0)", "%%eax", "%%edx", CLEAR_ODD(ROW5), CLEAR_EVEN(ROW6))
     TEST_ONE_ROW("7*16(%0)", "%%esi", CLEAR_ODD(ROW7))
     iLLM_HEAD
-    ASMALIGN(4)
+    ".p2align 4 \n\t"
     JNZ("%%ecx", "2f")
     JNZ("%%eax", "3f")
     JNZ("%%edx", "4f")
@@ -365,31 +368,40 @@ inline void ff_idct_xvid_sse2(short *block)
     "2:                                                          \n\t"
     iMTX_MULT("4*16(%0)", MANGLE(iTab1), "#", PUT_EVEN(ROW4))
     "3:                                                          \n\t"
-    iMTX_MULT("5*16(%0)", MANGLE(iTab4), ROUND(walkenIdctRounders+4*16), PUT_ODD(ROW5))
+    iMTX_MULT("5*16(%0)", MANGLE(iTab4), ROUND("4*16+"MANGLE(walkenIdctRounders)), PUT_ODD(ROW5))
     JZ("%%edx", "1f")
     "4:                                                          \n\t"
-    iMTX_MULT("6*16(%0)", MANGLE(iTab3), ROUND(walkenIdctRounders+5*16), PUT_EVEN(ROW6))
+    iMTX_MULT("6*16(%0)", MANGLE(iTab3), ROUND("5*16+"MANGLE(walkenIdctRounders)), PUT_EVEN(ROW6))
     JZ("%%esi", "1f")
     "5:                                                          \n\t"
-    iMTX_MULT("7*16(%0)", MANGLE(iTab2), ROUND(walkenIdctRounders+5*16), PUT_ODD(ROW7))
-#if !ARCH_X86_64
+    iMTX_MULT("7*16(%0)", MANGLE(iTab2), ROUND("5*16+"MANGLE(walkenIdctRounders)), PUT_ODD(ROW7))
+#if ARCH_X86_32
     iLLM_HEAD
 #endif
     iLLM_PASS("%0")
     "6:                                                          \n\t"
     : "+r"(block)
-    :
-    : "%eax", "%ecx", "%edx", "%esi", "memory");
+    : NAMED_CONSTRAINTS_ARRAY(m127,iTab1,walkenIdctRounders,iTab2,iTab3,iTab4,tan3,tan1,tan2,sqrt2)
+    : XMM_CLOBBERS("%xmm0" , "%xmm1" , "%xmm2" , "%xmm3" ,
+                   "%xmm4" , "%xmm5" , "%xmm6" , "%xmm7" ,)
+#if ARCH_X86_64
+      XMM_CLOBBERS("%xmm8" , "%xmm9" , "%xmm10", "%xmm11",
+                   "%xmm12", "%xmm13", "%xmm14",)
+#endif
+      "%eax", "%ecx", "%edx", "%esi", "memory"
+    );
 }
 
 void ff_idct_xvid_sse2_put(uint8_t *dest, int line_size, short *block)
 {
     ff_idct_xvid_sse2(block);
-    put_pixels_clamped_mmx(block, dest, line_size);
+    ff_put_pixels_clamped_mmx(block, dest, line_size);
 }
 
 void ff_idct_xvid_sse2_add(uint8_t *dest, int line_size, short *block)
 {
     ff_idct_xvid_sse2(block);
-    add_pixels_clamped_mmx(block, dest, line_size);
+    ff_add_pixels_clamped_mmx(block, dest, line_size);
 }
+
+#endif /* HAVE_SSE2_INLINE */

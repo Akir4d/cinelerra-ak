@@ -82,11 +82,7 @@ GwFileChooserGui::GwFileChooserGui()
 GwFileChooserGui::~GwFileChooserGui()
 {
 	dummy->show();
-#ifdef HAVE_GTKMM30
-	dummy->close();
-#else
 	dummy->hide();
-#endif
 	delete dummy;
 }
 

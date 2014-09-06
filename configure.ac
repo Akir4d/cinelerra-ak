@@ -439,12 +439,12 @@ case "$target_cpu" in
 i586) 
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS" # -D_MMX_ doesn't work
 		enable_mmx32=yes
-		ffmpeg_cpu_min="--cpu=i586 "
+		ffmpeg_cpu_min="--cpu=i586 --disable-yasm "
 ;;
 i686)
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS" # -D_MMX_ doesn't work
 		enable_mmx32=yes
-		ffmpeg_cpu_min="--cpu=i686 "
+		ffmpeg_cpu_min="--cpu=i686 --disable-yasm "
 ;;
 x86_64)
 	CPU_CFLAGS="-DX86_CPU -DUSE_MMX $CPU_CFLAGS"

@@ -71,67 +71,71 @@ AVPixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
 	switch (color_model) 
 	{
 	case BC_YUV422:
-		return PIX_FMT_YUYV422;
+		return AV_PIX_FMT_YUYV422;
 	case BC_RGB888:
-		return PIX_FMT_RGB24;
+		return AV_PIX_FMT_RGB24;
 	case BC_BGR8888:
-		return PIX_FMT_BGRA;
+		return AV_PIX_FMT_BGRA;
 	case BC_BGR888:
-		return PIX_FMT_BGR24;
+		return AV_PIX_FMT_BGR24;
 	case BC_YUV420P:
-		return PIX_FMT_YUV420P;
+		return AV_PIX_FMT_YUV420P;
 	case BC_YUV422P:
-		return PIX_FMT_YUV422P;
+		return AV_PIX_FMT_YUV422P;
 	case BC_YUV444P:
-		return PIX_FMT_YUV444P;
+		return AV_PIX_FMT_YUV444P;
 	case BC_YUV411P:
-		return PIX_FMT_YUV411P;
+		return AV_PIX_FMT_YUV411P;
 	case BC_RGB565:
-		return PIX_FMT_RGB565;
+		if(get_byte_order())
+			return AV_PIX_FMT_RGB565LE;
+		else
+			return AV_PIX_FMT_RGB565LE;
 
 	case BC_RGBA8888:
-		return PIX_FMT_RGBA;
+		return AV_PIX_FMT_RGBA;
 	case BC_RGB8:
-		return PIX_FMT_RGB8;
+		return AV_PIX_FMT_RGB8;
 	case BC_BGR565:
 		if(get_byte_order())
-			return PIX_FMT_BGR565LE;
+			return AV_PIX_FMT_BGR565LE;
 		else
-			return PIX_FMT_BGR565BE;
+			return AV_PIX_FMT_BGR565BE;
 	case BC_ARGB8888:
-		return PIX_FMT_ARGB;
+		return AV_PIX_FMT_ARGB;
 	case BC_ABGR8888:
-		return PIX_FMT_ABGR;
+		return AV_PIX_FMT_ABGR;
 	case BC_RGB161616:
 		if(get_byte_order())
-			return PIX_FMT_RGB48LE;
+			return AV_PIX_FMT_RGB48LE;
 		else
-			return PIX_FMT_RGB48BE;
+			return AV_PIX_FMT_RGB48BE;
 	};
 
-	return PIX_FMT_NB;
+	return AV_PIX_FMT_NB;
 }
 
 int FFMPEG::pix_fmt_to_color_model(AVPixelFormat pix_fmt) {
 	switch (pix_fmt) 
 	{
-	case PIX_FMT_YUYV422:
+	case AV_PIX_FMT_YUYV422:
 		return BC_YUV422;
-	case PIX_FMT_RGB24:
+	case AV_PIX_FMT_RGB24:
 		return BC_RGB888;
-	case PIX_FMT_RGBA:
+	case AV_PIX_FMT_RGBA:
 		return BC_BGR8888;
-	case PIX_FMT_BGR24:
+	case AV_PIX_FMT_BGR24:
 		return BC_BGR888;
-	case PIX_FMT_YUV420P:
+	case AV_PIX_FMT_YUV420P:
 		return BC_YUV420P;
-	case PIX_FMT_YUV422P:
+	case AV_PIX_FMT_YUV422P:
 		return BC_YUV422P;
-	case PIX_FMT_YUV444P:
+	case AV_PIX_FMT_YUV444P:
 		return BC_YUV444P;
-	case PIX_FMT_YUV411P:
+	case AV_PIX_FMT_YUV411P:
 		return BC_YUV411P;
-	case PIX_FMT_RGB565:
+	case AV_PIX_FMT_RGB565BE:
+	case AV_PIX_FMT_RGB565LE:
 		return BC_RGB565;
 	};
 
@@ -171,7 +175,7 @@ int FFMPEG::convert_cmodel(VFrame *frame_in,  VFrame *frame_out) {
 	struct SwsContext *convert_ctx;
 #endif
 	// do conversion within libavcodec if possible
-	if (pix_fmt_in != PIX_FMT_NB && pix_fmt_out != PIX_FMT_NB) {
+	if (pix_fmt_in != AV_PIX_FMT_NB && pix_fmt_out != AV_PIX_FMT_NB) {
 		// set up a temporary pictures from frame_in and frame_out
 		AVPicture picture_in, picture_out;
 		if(init_picture_from_frame(&picture_in, frame_in)>=0 &&
@@ -260,7 +264,7 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
 	if(init_picture_from_frame(&picture_out, frame_out)>=0){
 
 
-		if (pix_fmt_out != PIX_FMT_NB) {
+		if (pix_fmt_out != AV_PIX_FMT_NB) {
 #ifndef HAVE_SWSCALER
 			// do conversion within libavcodec if possible
 			result = img_convert(&picture_out,

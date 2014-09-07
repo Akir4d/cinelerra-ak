@@ -1697,8 +1697,8 @@ int MOVConfigVideo::create_objects()
 
 	if(asset->format == FILE_MOV)
 	{
-		compression_items.append(new BC_ListBoxItem(_(H264_NAME)));
-		compression_items.append(new BC_ListBoxItem(_(HV64_NAME)));
+//		compression_items.append(new BC_ListBoxItem(_(H264_NAME)));
+//		compression_items.append(new BC_ListBoxItem(_(HV64_NAME)));
 //		compression_items.append(new BC_ListBoxItem(_(DIVX_NAME)));
 		compression_items.append(new BC_ListBoxItem(_(MP4V_NAME)));
 		compression_items.append(new BC_ListBoxItem(_(HV60_NAME)));

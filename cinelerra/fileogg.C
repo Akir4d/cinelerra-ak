@@ -177,7 +177,7 @@ static int take_page_out_autoadvance(FILE *in, sync_window_t *sw, ogg_page *og)
 		}
 		else if (ret < 0)
 		{
-			eprintf("FileOGG: Taking page out on nonsynced stream!\n");
+			printf("FileOGG: Taking page out on nonsynced stream!\n");
 			return ret;
 			
 		} else
@@ -234,7 +234,7 @@ int FileOGG::open_file(int rd, int wr)
 
 		if((stream = fopen(asset->path, "w+b")) == 0)
 		{
-			eprintf("Error while opening \"%s\" for writing. %m\n", asset->path);
+			printf("Error while opening \"%s\" for writing. %m\n", asset->path);
 			return 1;
 		}
 
@@ -269,7 +269,7 @@ int FileOGG::open_file(int rd, int wr)
 			tf->ti.height = ((asset->height + 15) >>4)<<4; // round up to the nearest multiple of 16
 			if (tf->ti.width != tf->ti.frame_width || tf->ti.height != tf->ti.frame_height)
 			{
-				eprintf("WARNING: Encoding theora when width or height are not dividable by 16 is suboptimal\n");
+				printf("WARNING: Encoding theora when width or height are not dividable by 16 is suboptimal\n");
 			}
 			
 			tf->ti.offset_x = 0;
@@ -318,7 +318,7 @@ int FileOGG::open_file(int rd, int wr)
 					
 			if (theora_encode_init (&tf->td, &tf->ti))
 			{
-				eprintf("(FileOGG:file_open) initialization of theora codec failed\n");
+				printf("(FileOGG:file_open) initialization of theora codec failed\n");
 			}
 		}
 		/* init theora done */
@@ -353,7 +353,7 @@ int FileOGG::open_file(int rd, int wr)
 
 			if (ret)
 			{
-				eprintf("The Vorbis encoder could not set up a mode according to\n"
+				printf("The Vorbis encoder could not set up a mode according to\n"
 							"the requested quality or bitrate.\n\n");
 
 				fclose (stream);
@@ -379,7 +379,7 @@ int FileOGG::open_file(int rd, int wr)
 			ogg_stream_packetin (&tf->to, &tf->op);
 			if (ogg_stream_pageout (&tf->to, &tf->og) != 1)
 			{
-				eprintf("Internal Ogg library error.\n");
+				printf("Internal Ogg library error.\n");
 				return 1;
 			}
 			fwrite (tf->og.header, 1, tf->og.header_len, stream);
@@ -409,7 +409,7 @@ int FileOGG::open_file(int rd, int wr)
 			vorbis_comment_clear(&tf->vc);
 			if (ogg_stream_pageout (&tf->vo, &tf->og) != 1)
 			{
-				eprintf("Internal Ogg library error.\n");
+				printf("Internal Ogg library error.\n");
 				return 1;
 			}
 			fwrite (tf->og.header, 1, tf->og.header_len, stream);
@@ -429,7 +429,7 @@ int FileOGG::open_file(int rd, int wr)
 			if (result < 0)
 			{
 				/* can't get here */
-				eprintf("Internal Ogg library error.\n");
+				printf("Internal Ogg library error.\n");
 				return 1;
 			}
 			if (result == 0)
@@ -443,7 +443,7 @@ int FileOGG::open_file(int rd, int wr)
 			if (result < 0)
 			{
 				/* can't get here */
-				eprintf("Internal Ogg library error.\n");
+				printf("Internal Ogg library error.\n");
 				return 1;
 			}
 			if (result == 0)
@@ -459,7 +459,7 @@ int FileOGG::open_file(int rd, int wr)
 
 		if((stream = fopen(asset->path, "rb")) == 0)
 		{
-			eprintf("Error while opening %s for reading. %m\n", asset->path);
+			printf("Error while opening %s for reading. %m\n", asset->path);
 			return 1;
 		}
 
@@ -557,12 +557,12 @@ int FileOGG::open_file(int rd, int wr)
 			{
 				if(ret < 0)
 				{
-					eprintf("Error parsing Theora stream headers; corrupt stream?\n");
+					printf("Error parsing Theora stream headers; corrupt stream?\n");
 					return 1;
 				}
 				if(theora_decode_header(&tf->ti, &tf->tc, &tf->op))
 				{
-					eprintf("Error parsing Theora stream headers; corrupt stream?\n");
+					printf("Error parsing Theora stream headers; corrupt stream?\n");
 					return 1;
 				}
 				theora_p++;
@@ -575,12 +575,12 @@ int FileOGG::open_file(int rd, int wr)
 			{
 				if(ret<0)
 				{
-					eprintf("Error parsing Vorbis stream headers; corrupt stream?\n");
+					printf("Error parsing Vorbis stream headers; corrupt stream?\n");
 					return 1;
 				}
 				if (vorbis_synthesis_headerin(&tf->vi, &tf->vc, &tf->op))
 				{
-					eprintf("Error parsing Vorbis stream headers; corrupt stream?\n");
+					printf("Error parsing Vorbis stream headers; corrupt stream?\n");
 					return 1;
 				}
 				vorbis_p++;
@@ -601,7 +601,7 @@ int FileOGG::open_file(int rd, int wr)
 
 			} else
 			{
-				eprintf("End of file while searching for codec headers.\n");
+				printf("End of file while searching for codec headers.\n");
 				return 1;
 			}
 		}
@@ -643,7 +643,7 @@ Not yet available in alpha4, we assume 420 for now
 			
 			if(tf->ti.width!=tf->ti.frame_width || tf->ti.height!=tf->ti.frame_height)
 			{
-				eprintf("Frame content is %dx%d with offset (%d,%d), We do not support this yet. You will get black border.\n",
+				printf("Frame content is %dx%d with offset (%d,%d), We do not support this yet. You will get black border.\n",
 							tf->ti.frame_width, tf->ti.frame_height, tf->ti.offset_x, tf->ti.offset_y);
 			}
 			tf->videosync = new sync_window_t;
@@ -662,7 +662,7 @@ Not yet available in alpha4, we assume 420 for now
 				{
 					if (!ogg_get_next_page(tf->videosync, tf->to.serialno, &tf->videopage))
 					{
-						eprintf("Cannot find next page while looking for first non-header packet\n");
+						printf("Cannot find next page while looking for first non-header packet\n");
 						return 1;
 					}
 					ogg_stream_pagein(&tf->to, &tf->videopage);
@@ -676,7 +676,7 @@ Not yet available in alpha4, we assume 420 for now
 			{
 				if (ogg_page_granulepos(&tf->videopage) != -1)
 				{
-					eprintf("Broken ogg file - broken page: ogg_page_packets == 0 and granulepos != -1\n");
+					printf("Broken ogg file - broken page: ogg_page_packets == 0 and granulepos != -1\n");
 					return 1;
 				}
 				ogg_get_next_page(tf->videosync, tf->to.serialno, &tf->videopage);
@@ -1021,7 +1021,7 @@ int FileOGG::ogg_get_page_of_sample(sync_window_t *sw, long serialno, ogg_page *
 // First make an educated guess about position
 	if (sample >= asset->audio_length + start_sample)
 	{
-		eprintf("Illegal seek beyond end of samples\n");
+		printf("Illegal seek beyond end of samples\n");
 		return 0;
 	}
 	off_t educated_guess = filedata_begin + (file_length - filedata_begin) * (sample - start_sample) / asset->audio_length - READ_SIZE;
@@ -1081,7 +1081,7 @@ int FileOGG::ogg_seek_to_sample(sync_window_t *sw, long serialno, int64_t sample
 //	printf("Calling get page of sample\n");
 	if (!ogg_get_page_of_sample(sw, serialno, &og, sample))
 	{
-		eprintf("Seeking to sample's page failed\n");
+		printf("Seeking to sample's page failed\n");
 
 		return 0;
 	}
@@ -1101,7 +1101,7 @@ int FileOGG::ogg_seek_to_sample(sync_window_t *sw, long serialno, int64_t sample
 		{
 			if (!ogg_get_next_page(sw, serialno, &og))
 			{
-				eprintf("Cannot find next page while seeking\n");
+				printf("Cannot find next page while seeking\n");
 				return 0;
 			}
 			ogg_stream_pagein(&tf->vo, &og);
@@ -1119,7 +1119,7 @@ int FileOGG::ogg_seek_to_sample(sync_window_t *sw, long serialno, int64_t sample
 				{
 					if (previous_comming_sample > sample)
 					{
-						eprintf("Ogg decoding error while seeking sample\n");
+						printf("Ogg decoding error while seeking sample\n");
 					}
 					vorbis_synthesis_read(&tf->vd, (sample - previous_comming_sample));
 //					printf("WE GOT IT, samples already decoded: %li\n", vorbis_synthesis_pcmout(&tf->vd,NULL));
@@ -1141,7 +1141,7 @@ int FileOGG::ogg_seek_to_sample(sync_window_t *sw, long serialno, int64_t sample
 				vorbis_synthesis_blockin(&tf->vd, &tf->vb);
 				if (vorbis_synthesis_pcmout(&tf->vd, NULL) != 0)
 				{
-					eprintf("Something wrong while trying to seek\n");
+					printf("Something wrong while trying to seek\n");
 					return 0;
 				}
 			
@@ -1158,7 +1158,7 @@ int FileOGG::ogg_get_page_of_frame(sync_window_t *sw, long serialno, ogg_page *o
 {
 	if (frame >= asset->video_length + start_frame)
 	{
-		eprintf("Illegal seek beyond end of frames\n");
+		printf("Illegal seek beyond end of frames\n");
 		return 0;
 	}
 //	printf("frame: %lli start frame: %lli\n", frame, start_frame);
@@ -1247,7 +1247,7 @@ int FileOGG::ogg_seek_to_keyframe(sync_window_t *sw, long serialno, int64_t fram
 //	printf("Searching for the proper position to start decoding frame %lli\n", frame);
 	if (!ogg_get_page_of_frame(sw, serialno, &og, frame))
 	{
-		eprintf("Seeking to frame failed\n");
+		printf("Seeking to frame failed\n");
 		return 0;
 	}
 	// TODO: if the frame we are looking for continoues on the next page, we don't need to do this
@@ -1284,7 +1284,7 @@ int FileOGG::ogg_seek_to_keyframe(sync_window_t *sw, long serialno, int64_t fram
 		// get the page where keyframe starts
 		if (!ogg_get_page_of_frame(sw, serialno, &og, iframe))
 		{
-			eprintf("Seeking to frame failed\n");
+			printf("Seeking to frame failed\n");
 			return 0;
 		}
 	}		
@@ -1304,7 +1304,7 @@ int FileOGG::ogg_seek_to_keyframe(sync_window_t *sw, long serialno, int64_t fram
 		{
 			if (!ogg_get_next_page(sw, serialno, &og))
 			{
-				eprintf("Cannot find next page while seeking\n");
+				printf("Cannot find next page while seeking\n");
 				return 0;
 			}
 			ogg_stream_pagein(&tf->to, &og);
@@ -1465,7 +1465,7 @@ int FileOGG::read_frame(VFrame *frame)
 	{
 		if (!ogg_seek_to_keyframe(tf->videosync, tf->to.serialno, next_frame_position, &ogg_frame_position))
 		{
-			eprintf("Error while seeking to frame's keyframe (frame: %lli, keyframe: %lli)\n", next_frame_position, ogg_frame_position);
+			printf("Error while seeking to frame's keyframe (frame: %lli, keyframe: %lli)\n", next_frame_position, ogg_frame_position);
 			return 1;
 		}
 //		printf("For frame: %lli, keyframe is: %lli\n", next_frame_position,ogg_frame_position);
@@ -1474,7 +1474,7 @@ int FileOGG::read_frame(VFrame *frame)
 		ogg_frame_position --; // ogg_frame_position is at last decoded frame, so it will point right 
 		if (decode_frames <= 0) 
 		{
-			eprintf("Error while seeking to keyframe, wrong keyframe number (frame: %lli, keyframe: %lli)\n", next_frame_position, ogg_frame_position);
+			printf("Error while seeking to keyframe, wrong keyframe number (frame: %lli, keyframe: %lli)\n", next_frame_position, ogg_frame_position);
 			return 1;
 			
 		}
@@ -1492,7 +1492,7 @@ int FileOGG::read_frame(VFrame *frame)
 		{
 			if (!ogg_get_next_page(tf->videosync, tf->to.serialno, &og))
 			{
-				eprintf("Cannot find next page while seeking\n");
+				printf("Cannot find next page while seeking\n");
 				return 1;
 			}
 			ogg_stream_pagein(&tf->to, &og);
@@ -1500,7 +1500,8 @@ int FileOGG::read_frame(VFrame *frame)
 		ogg_stream_packetout(&tf->to, &op);
 		if (expect_keyframe && !theora_packet_iskeyframe(&op))
 		{
-				eprintf("Expecting a keyframe, but didn't get it\n");
+				printf("Expecting a keyframe, but didn't get it\n"
+						"         			this is generally not a fatal error.\n");
 			//	return 1; this is generally not a fatal error
 		}
 		expect_keyframe = 0;
@@ -1516,7 +1517,7 @@ int FileOGG::read_frame(VFrame *frame)
 		int ret = theora_decode_YUVout (&tf->td, &yuv);
 		if (ret)
 		{
-			eprintf("theora_decode_YUVout() failed with code %i\n", ret);
+			printf("theora_decode_YUVout() failed with code %i\n", ret);
 		}
 
 // Dirty magic 
@@ -1577,7 +1578,7 @@ int FileOGG::ogg_decode_more_samples(sync_window_t *sw, long serialno)
 		{
 			if (!ogg_get_next_page(sw, serialno, &og))
 			{
-				eprintf("Cannot find next page while trying to decode more samples\n");
+				printf("Cannot find next page while trying to decode more samples\n");
 				return 0;
 			}
 			ogg_stream_pagein(&tf->vo, &og);
@@ -1617,7 +1618,7 @@ int FileOGG::read_samples(double *buffer, int64_t len)
 
 	if(len > HISTORY_MAX)
 	{
-		eprintf("max samples=%d\n", HISTORY_MAX);
+		printf("max samples=%d\n", HISTORY_MAX);
 		return 1;
 	}
 
@@ -1678,7 +1679,7 @@ int FileOGG::read_samples(double *buffer, int64_t len)
 	{
 		if (hole_start < 0 || hole_len <= 0 || hole_absstart < 0)
 		{
-			eprintf("Error at finding out which range to read from file\n");
+			printf("Error at finding out which range to read from file\n");
 			return 1;
 		}
 		
@@ -1700,7 +1701,7 @@ int FileOGG::read_samples(double *buffer, int64_t len)
 			ogg_sample_position = hole_absstart;
 			if (!ogg_seek_to_sample(tf->audiosync, tf->vo.serialno, ogg_sample_position))
 			{
-				eprintf("Error while seeking to sample\n");
+				printf("Error while seeking to sample\n");
 				return 1;
 			}
 		}
@@ -1747,7 +1748,7 @@ int FileOGG::read_samples(double *buffer, int64_t len)
 	// now we can be sure our history is correct, just copy it out
 	if (next_sample_position < history_start || next_sample_position + len > history_start + history_size)
 	{
-		eprintf("History not aligned properly \n\tnext_sample_position: %ji, length: %ji\n\thistory_start: %ji, length: %ji\n", next_sample_position, len, history_start, history_size);
+		printf("History not aligned properly \n\tnext_sample_position: %ji, length: %ji\n\thistory_start: %ji, length: %ji\n", next_sample_position, len, history_start, history_size);
 		return 1;
 	}
 	float *input = pcm_history[file->current_channel] + next_sample_position - history_start;
@@ -1766,7 +1767,7 @@ int FileOGG::write_audio_page()
 	ret = fwrite(tf->apage, 1, tf->apage_len, stream);
 	if(ret < tf->apage_len) 
 	{
-		eprintf("error writing audio page\n");
+		printf("error writing audio page\n");
 	}
 	tf->apage_valid = 0;
 	tf->a_pkg -= ogg_page_packets((ogg_page *)&tf->apage);
@@ -1780,7 +1781,7 @@ int FileOGG::write_video_page()
 	ret = fwrite(tf->vpage, 1, tf->vpage_len, stream);
 	if(ret < tf->vpage_len) 
 	{
-		eprintf("error writing video page\n");
+		printf("error writing video page\n");
 	}
 	tf->vpage_valid = 0;
 	tf->v_pkg -= ogg_page_packets((ogg_page *)&tf->vpage);
@@ -1958,7 +1959,7 @@ int FileOGG::write_frames_theora(VFrame ***frames, int len, int e_o_s)
 			int ret = theora_encode_YUVin (&tf->td, &yuv);
 			if (ret)
 			{
-				eprintf("theora_encode_YUVin() failed with code %i\nyuv_buffer: y_width: %i, y_height: %i, y_stride: %i, uv_width: %i, uv_height: %i, uv_stride: %i\n", 
+				printf("theora_encode_YUVin() failed with code %i\nyuv_buffer: y_width: %i, y_height: %i, y_stride: %i, uv_width: %i, uv_height: %i, uv_stride: %i\n",
 					ret,
 					yuv.y_width,
 					yuv.y_height,

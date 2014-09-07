@@ -400,6 +400,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileEXR(this->asset, this);
 			}
 			else
+#ifndef FFMPEGDIRECT
 			if(FileYUV::check_sig(this->asset))
 			{
 // YUV file
@@ -407,6 +408,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileYUV(this->asset, this);
 			}
 			else
+#endif
 			if(FileCR2::check_sig(this->asset))
 			{
 // JPEG file
@@ -428,6 +430,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileTIFF(this->asset, this);
 			}
 			else
+#ifndef FFMPEGDIRECT
 			if(FileOGG::check_sig(this->asset))
 			{
 // OGG file
@@ -456,6 +459,7 @@ int File::open_file(Preferences *preferences,
 				file = new FileMPEG(this->asset, this);
 			}
 			else*/
+#endif
 			if(test[0] == '<' && test[1] == 'E' && test[2] == 'D' && test[3] == 'L' && test[4] == '>' ||
 				test[0] == '<' && test[1] == 'H' && test[2] == 'T' && test[3] == 'A' && test[4] == 'L' && test[5] == '>' ||
 				test[0] == '<' && test[1] == '?' && test[2] == 'x' && test[3] == 'm' && test[4] == 'l')

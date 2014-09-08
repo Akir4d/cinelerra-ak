@@ -635,7 +635,7 @@ if test "x$enable_gtk" = "xyes" ; then
 	found_gtk30="no"
 	found_gtk24="no"
 
-	PKG_CHECK_MODULES([GTKMM30], [gtkmm-3.0], found_gtk30="yes", :)
+	PKG_CHECK_MODULES([GTKMM30], [gtkmm-3.0 >= 3.10.0], found_gtk30="yes", :)
 
 	if test "x$found_gtk30" = "xno"; then 
 		PKG_CHECK_MODULES([GTKMM24], [gtkmm-2.4], found_gtk24="yes", :)

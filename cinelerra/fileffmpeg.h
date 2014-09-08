@@ -50,7 +50,6 @@ public:
 	void reset();
 	int open_file(int rd, int wr);
 	int close_file();
-	int last_valid_keyframe;
 
 	int64_t get_memory_usage();
 	int colormodel_supported(int colormodel);

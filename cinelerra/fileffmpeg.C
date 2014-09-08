@@ -63,7 +63,6 @@ void FileFFMPEG::reset()
 	current_frame = 0;
 	current_sample = 0;
 	unsynced = 1;
-	last_valid_keyframe = -1;
 }
 
 char* FileFFMPEG::get_format_string(Asset *asset)
@@ -382,23 +381,24 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 				if(0) fprintf(stderr,"adjusted=%.03f \n",1.*(seekto-stream_start)*
 						stream->time_base.num/stream->time_base.den);
+				int fixed_index = video_index;
+				int flags = AVSEEK_FLAG_BACKWARD;
+				if(avcontext->iformat->name)
+				{
+					if(strcmp(avcontext->iformat->name, "avi") == 0) flags = AVSEEK_FLAG_ANY;
+					if(strcmp(avcontext->iformat->name, "asf") == 0) fixed_index = -1;
+					if(strcmp(avcontext->iformat->name, "mpegts") == 0) {fixed_index = -1; flags = AVSEEK_FLAG_ANY;}
+				}
+				printf("\n ext2: %s", (char*)avcontext->iformat->name);
 
 				if(av_seek_frame(avcontext,
-						video_index,
+						fixed_index,
 						seekto,
-						AVSEEK_FLAG_BACKWARD))
-					if(av_seek_frame(avcontext,
-							last_valid_keyframe,
-							seekto,
-							AVSEEK_FLAG_BACKWARD))
-						if(av_seek_frame(avcontext,
-								-1,
-								seekto,
-								AVSEEK_FLAG_BACKWARD))
-							{
-								error = 1;
-								fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
-							}
+						flags))
+				{
+					error = 1;
+					fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
+				}
 				avcodec_flush_buffers(decoder_context);
 			}
 
@@ -427,7 +427,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 						if(packet.flags == AV_PKT_FLAG_KEY)
 						{
-							last_valid_keyframe = packet.stream_index - 1;
 							got_keyframe = 1;
 						}
 
@@ -464,7 +463,8 @@ int FileFFMPEG::read_frame(VFrame *frame)
 							// packets depending on seek mode.  Between the packet
 							// check and the frame check below, we should be sure to avoid
 							// all false positives
-							if(got_pic && !pre_sync && !ffmpeg_frame->key_frame) got_pic = 0;
+							if(got_pic && !pre_sync &&
+								!ffmpeg_frame->key_frame) got_pic = 0;
 
 							if(got_pic)
 							{
@@ -547,7 +547,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
 					decoder_context->reordered_opaque = packet.pts;
 					int result =
 							avcodec_decode_video2(decoder_context,
-									(AVFrame*)ffmpeg_frame,
+									ffmpeg_frame,
 									&got_pic,
 									&packet);
 					av_free_packet(&packet);
@@ -660,19 +660,24 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 				seekto = stream_start;
 				seek_back = A_SEEK_BACK_LIMIT;
 			}
-			// AV_SEEK_FLAG_ANY must be set for the AVI backend to seek in audio at all
+			// If format is unknown use more secure (and slow) auto index
+			int flags = AVSEEK_FLAG_BACKWARD;
+			int fixed_index = audio_index;
+			if(avcontext->iformat->name)
+			{
+				if(strcmp(avcontext->iformat->name, "avi") == 0) flags = AVSEEK_FLAG_ANY;
+				if(strcmp(avcontext->iformat->name, "asf") == 0) fixed_index = -1;
+				if(strcmp(avcontext->iformat->name, "mpegts") == 0) {fixed_index = -1; flags = AVSEEK_FLAG_ANY;}
+			}
+
 			if(av_seek_frame(avcontext,
-					audio_index,
+					fixed_index,
 					seekto,
-					AVSEEK_FLAG_ANY))
-				if(av_seek_frame(avcontext,
-						-1,
-						seekto,
-						AVSEEK_FLAG_BACKWARD))
-				{
-					error = 1;
-					fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
-				}
+					flags))
+			{
+				error = 1;
+				fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
+			}
 			decode_end = decode_start;
 			current_sample = file->current_sample;
 			avcodec_flush_buffers(decoder_context);

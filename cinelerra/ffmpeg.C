@@ -1,11 +1,10 @@
 #include <string.h>
 
 #define __STDC_CONSTANT_MACROS 1
-#ifdef HAVE_SWSCALER
-extern "C" {
+extern "C"
+{
 #include "libswscale/swscale.h"
 }
-#endif
 
 
 #include "filebase.h"
@@ -15,7 +14,8 @@ extern "C" {
 #include "byteorder.h"
 
 
-FFMPEG::FFMPEG(Asset *asset) {
+FFMPEG::FFMPEG(Asset *asset)
+{
 	this->asset = asset;
 	codec = 0;
 	context = 0;
@@ -23,7 +23,8 @@ FFMPEG::FFMPEG(Asset *asset) {
 	got_picture = 0;
 }
 
-int FFMPEG::init(char *codec_string) {
+int FFMPEG::init(char *codec_string)
+{
 
 	avcodec_register_all();
 
@@ -40,20 +41,22 @@ int FFMPEG::init(char *codec_string) {
 		printf("FFMPEG::init avcodec_open() failed\n");
 	}
 
-	picture = avcodec_alloc_frame();
+	picture = av_frame_alloc();
 
 
 	return 0;
 }
 
-FFMPEG::~FFMPEG() {
+FFMPEG::~FFMPEG()
+{
 	avcodec_close(context);
-	free(context);
-	free(picture);
+	av_free(context);
+	av_free(picture);
 }
 
 
-AVCodecID FFMPEG::codec_id(char *codec_string) {
+AVCodecID FFMPEG::codec_id(char *codec_string)
+{
 #define CODEC_IS(x) (! strncmp(codec_string, x, 4))
 
 	if (CODEC_IS(QUICKTIME_DV) ||
@@ -67,7 +70,8 @@ AVCodecID FFMPEG::codec_id(char *codec_string) {
 #undef CODEC_IS
 }
 
-AVPixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
+AVPixelFormat FFMPEG::color_model_to_pix_fmt(int color_model)
+{
 	switch (color_model) 
 	{
 	case BC_YUV422:
@@ -115,7 +119,8 @@ AVPixelFormat FFMPEG::color_model_to_pix_fmt(int color_model) {
 	return AV_PIX_FMT_NB;
 }
 
-int FFMPEG::pix_fmt_to_color_model(AVPixelFormat pix_fmt) {
+int FFMPEG::pix_fmt_to_color_model(AVPixelFormat pix_fmt)
+{
 	switch (pix_fmt) 
 	{
 	case AV_PIX_FMT_YUYV422:
@@ -142,18 +147,18 @@ int FFMPEG::pix_fmt_to_color_model(AVPixelFormat pix_fmt) {
 	return BC_TRANSPARENCY;
 }
 
-int FFMPEG::init_picture_from_frame(AVPicture *picture, VFrame *frame) {
+int FFMPEG::init_picture_from_frame(AVPicture *picture, VFrame *frame)
+{
 	int cmodel = frame->get_color_model();
 	PixelFormat pix_fmt = color_model_to_pix_fmt(cmodel);
 
 	int size = avpicture_fill(picture, frame->get_data(), pix_fmt, 
 			frame->get_w(), frame->get_h());
 
-	if (size < 0) {
-		return -1;
-	}
+	if (size < 0) return -1;
 
-	if (cmodel_is_planar(frame->get_color_model())) {
+	if (cmodel_is_planar(frame->get_color_model()))
+	{
 		// override avpicture_fill() for planar types
 		picture->data[0] = frame->get_y();
 		picture->data[1] = frame->get_u();
@@ -164,40 +169,28 @@ int FFMPEG::init_picture_from_frame(AVPicture *picture, VFrame *frame) {
 }
 
 
-int FFMPEG::convert_cmodel(VFrame *frame_in,  VFrame *frame_out) {
-
+int FFMPEG::convert_cmodel(VFrame *frame_in,  VFrame *frame_out)
+{
 	PixelFormat pix_fmt_in = 
 			color_model_to_pix_fmt(frame_in->get_color_model());
 	PixelFormat pix_fmt_out = 
 			color_model_to_pix_fmt(frame_out->get_color_model());
-#ifdef HAVE_SWSCALER
 	// We need a context for swscale
 	struct SwsContext *convert_ctx;
-#endif
 	// do conversion within libavcodec if possible
 	if (pix_fmt_in != AV_PIX_FMT_NB && pix_fmt_out != AV_PIX_FMT_NB) {
 		// set up a temporary pictures from frame_in and frame_out
 		AVPicture picture_in, picture_out;
 		if(init_picture_from_frame(&picture_in, frame_in)>=0 &&
-				init_picture_from_frame(&picture_out, frame_out)>=0){
-
+				init_picture_from_frame(&picture_out, frame_out)>=0)
+		{
 			int result=0;
-#ifndef HAVE_SWSCALER
-			result = img_convert(&picture_out,
-					pix_fmt_out,
-					&picture_in,
-					pix_fmt_in,
-					frame_in->get_w(),
-					frame_out->get_h());
-			if (result) {
-				printf("FFMPEG::convert_cmodel img_convert() failed\n");
-			}
-#else
 			convert_ctx = sws_getContext(frame_in->get_w(), frame_in->get_h(),pix_fmt_in,
 					frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
 					SWS_BICUBIC, NULL, NULL, NULL);
 
-			if(convert_ctx == NULL){
+			if(convert_ctx == NULL)
+			{
 				printf("FFMPEG::convert_cmodel : swscale context initialization failed\n");
 				return 1;
 			}
@@ -209,8 +202,7 @@ int FFMPEG::convert_cmodel(VFrame *frame_in,  VFrame *frame_out) {
 					picture_out.data, picture_out.linesize);
 
 			sws_freeContext(convert_ctx);
-#endif
-return result;
+			return result;
 		}
 	}
 
@@ -218,7 +210,8 @@ return result;
 	return convert_cmodel_transfer(frame_in, frame_out);
 }  
 
-int FFMPEG::convert_cmodel_transfer(VFrame *frame_in, VFrame *frame_out) {
+int FFMPEG::convert_cmodel_transfer(VFrame *frame_in, VFrame *frame_out)
+{
 
 	// WARNING: cmodel_transfer is said to be broken with BC_YUV411P
 	cmodel_transfer
@@ -253,7 +246,8 @@ int FFMPEG::convert_cmodel_transfer(VFrame *frame_in, VFrame *frame_out) {
 
 
 int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
-		int width_in, int height_in, VFrame *frame_out) {
+		int width_in, int height_in, VFrame *frame_out)
+{
 
 	// set up a temporary picture_out from frame_out
 	AVPicture picture_out;
@@ -261,23 +255,10 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
 	PixelFormat pix_fmt_out = color_model_to_pix_fmt(cmodel_out);
 	int result = 0;
 
-	if(init_picture_from_frame(&picture_out, frame_out)>=0){
-
-
-		if (pix_fmt_out != AV_PIX_FMT_NB) {
-#ifndef HAVE_SWSCALER
-			// do conversion within libavcodec if possible
-			result = img_convert(&picture_out,
-					pix_fmt_out,
-					picture_in,
-					pix_fmt_in,
-					width_in,
-					height_in);
-			if (result) {
-				printf("FFMPEG::convert_cmodel img_convert() failed\n");
-			}
-#else
-
+	if(init_picture_from_frame(&picture_out, frame_out)>=0)
+	{
+		if (pix_fmt_out != AV_PIX_FMT_NB)
+		{
 			struct SwsContext *convert_ctx;
 			convert_ctx = sws_getContext(width_in, height_in,pix_fmt_in,
 					frame_out->get_w(),frame_out->get_h(),pix_fmt_out,
@@ -295,8 +276,7 @@ int FFMPEG::convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt_in,
 					picture_out.data, picture_out.linesize);
 			sws_freeContext(convert_ctx);
 
-#endif
-return result;
+			return result;
 		}
 	}
 
@@ -304,7 +284,8 @@ return result;
            pix_fmt_in to Cineleraa's/Quicktimes frame_out colormodel.
            So-- an intermediate conversion is called for */
 
-	if (cmodel_out == BC_RGBA8888) {
+	if (cmodel_out == BC_RGBA8888)
+	{
 		// avoid infinite recursion if things are broken
 		printf("FFMPEG::convert_cmodel pix_fmt_in broken!\n");
 		return 1;
@@ -351,26 +332,29 @@ return result;
 	return 0;
 }
 
-int FFMPEG::decode(uint8_t *data, long data_size, VFrame *frame_out) { 
+int FFMPEG::decode(uint8_t *data, long data_size, VFrame *frame_out)
+{
 
 	// NOTE: frame must already have data space allocated
-	
+
 	AVPacket pkt;
 	got_picture = 0;
 	av_init_packet( &pkt );
 	pkt.data = data;
 	pkt.size = data_size;
 	int length = avcodec_decode_video2(context,
-					  picture,
-					  &got_picture,
-					  &pkt);
+			picture,
+			&got_picture,
+			&pkt);
 
-	if (length < 0) {
+	if (length < 0)
+	{
 		printf("FFMPEG::decode error decoding frame\n");
 		return 1;
 	}
 
-	if (! got_picture) {
+	if (! got_picture)
+	{
 		// signal the caller there is no picture yet
 		return FFMPEG_LATENCY;
 	}

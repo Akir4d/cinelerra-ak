@@ -1,7 +1,8 @@
 #ifndef FFMPEG_H
 #define FFMPEG_H
 
-extern "C" {
+extern "C"
+{
 #include "libavcodec/avcodec.h"
 }
 
@@ -12,15 +13,15 @@ extern "C" {
 
 class FFMPEG
 {
- public:
+public:
 	FFMPEG(Asset *asset_in);
 	~FFMPEG();
 	int init(char *codec_string);
 	int decode(uint8_t *data, long data_size, VFrame *frame_out);
 
 	static int convert_cmodel(AVPicture *picture_in, PixelFormat pix_fmt,
-				  int width_in, int height_in, 
-				  VFrame *frame_out);
+			int width_in, int height_in,
+			VFrame *frame_out);
 	static int convert_cmodel(VFrame *frame_in, VFrame *frame_out);
 
 	static int convert_cmodel_transfer(VFrame *frame_in,VFrame *frame_out);
@@ -28,7 +29,7 @@ class FFMPEG
 
 	static AVCodecID codec_id(char *codec_string);
 
- private:
+private:
 	static PixelFormat color_model_to_pix_fmt(int color_model);
 	static int pix_fmt_to_color_model(AVPixelFormat pix_fmt);
 

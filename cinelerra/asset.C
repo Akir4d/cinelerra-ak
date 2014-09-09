@@ -357,13 +357,19 @@ char* Asset::get_compression_text(int audio, int video)
 	{
 		switch(format)
 		{
-			case FILE_MOV:
-			case FILE_AVI:
-				if(acodec[0])
-					return quicktime_acodec_title(acodec);
-				else
-					return 0;
-				break;
+		case FILE_MOV:
+		case FILE_AVI:
+			if(acodec[0])
+				return quicktime_acodec_title(acodec);
+			else
+				return 0;
+			break;
+		case FILE_FFMPEG:
+			if(acodec[0])
+				return acodec;
+			else
+				return 0;
+			break;
 		}
 	}
 	else
@@ -375,6 +381,12 @@ char* Asset::get_compression_text(int audio, int video)
 			case FILE_AVI:
 				if(vcodec[0])
 					return quicktime_vcodec_title(vcodec);
+				else
+					return 0;
+				break;
+			case FILE_FFMPEG:
+				if(vcodec[0])
+					return vcodec;
 				else
 					return 0;
 				break;

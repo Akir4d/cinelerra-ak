@@ -91,8 +91,6 @@ char* FileFFMPEG::get_format_string(Asset *asset)
 
 int FileFFMPEG::check_sig(Asset *asset)
 {
-	char *ptr = strstr(asset->path, ".pcm");
-	if(ptr) return 0;
 
 	ffmpeg_lock->lock("FileFFMPEG::check_sig");
 	avcodec_register_all();
@@ -156,6 +154,7 @@ int FileFFMPEG::open_file(int rd, int wr)
 		{
 			result = 0;
 			asset->format = FILE_FFMPEG;
+			printf("\n open format: %s", (char*)ffmpeg_file_context->iformat->name);
 			for(int i = 0; i < ffmpeg_file_context->nb_streams; i++)
 			{
 				AVStream *stream = ffmpeg_file_context->streams[i];
@@ -184,6 +183,7 @@ int FileFFMPEG::open_file(int rd, int wr)
 						{
 							avcodec_open2(decoder_context, codec, NULL);
 						}
+						strncpy(asset->acodec, decoder_context->codec->name, 4);
 						asset->bits = av_get_bytes_per_sample(decoder_context->sample_fmt)*8;
 					}
 					break;
@@ -197,24 +197,8 @@ int FileFFMPEG::open_file(int rd, int wr)
 						asset->width = decoder_context->width;
 						asset->height = decoder_context->height;
 
-						if(EQUIV(asset->frame_rate, 0))
-						{
-							// Look for Canon 24F; it's the oddball in the bunch
-							if(decoder_context->coded_width == 1440 &&
-									decoder_context->coded_height == 1080 &&
-									decoder_context->coded_height == 1080 &&
-									1. * stream->avg_frame_rate.num / stream->avg_frame_rate.den <
-									1. * decoder_context->time_base.den / decoder_context->time_base.num /
-									decoder_context->ticks_per_frame) asset->frame_rate = 24000/1001.;
-							else
-							{
-								/* otherwise, believe the codec. naturally, this can't work with VFR */
-								asset->frame_rate =
-										(double)decoder_context->time_base.den /
-										decoder_context->time_base.num /
-										decoder_context->ticks_per_frame;
-							}
-						}
+						asset->frame_rate = (double)ffmpeg_file_context->streams[i]->r_frame_rate.num /
+								ffmpeg_file_context->streams[i]->r_frame_rate.den;
 
 						asset->video_length = (int64_t)(ffmpeg_file_context->duration *
 								asset->frame_rate /
@@ -224,6 +208,7 @@ int FileFFMPEG::open_file(int rd, int wr)
 								(decoder_context->coded_height * decoder_context->sample_aspect_ratio.den);
 						AVCodec *codec = avcodec_find_decoder(decoder_context->codec_id);
 						avcodec_open2(decoder_context, codec, NULL);
+						strncpy(asset->vcodec, codec->name, 4);
 
 					}
 					break;
@@ -389,7 +374,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
 					if(strcmp(avcontext->iformat->name, "asf") == 0) fixed_index = -1;
 					if(strcmp(avcontext->iformat->name, "mpegts") == 0) {fixed_index = -1; flags = AVSEEK_FLAG_ANY;}
 				}
-				printf("\n ext2: %s", (char*)avcontext->iformat->name);
 
 				if(av_seek_frame(avcontext,
 						fixed_index,
@@ -667,7 +651,6 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 			{
 				if(strcmp(avcontext->iformat->name, "avi") == 0) flags = AVSEEK_FLAG_ANY;
 				if(strcmp(avcontext->iformat->name, "asf") == 0) fixed_index = -1;
-				if(strcmp(avcontext->iformat->name, "mpegts") == 0) {fixed_index = -1; flags = AVSEEK_FLAG_ANY;}
 			}
 
 			if(av_seek_frame(avcontext,

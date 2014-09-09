@@ -154,7 +154,6 @@ int FileFFMPEG::open_file(int rd, int wr)
 		{
 			result = 0;
 			asset->format = FILE_FFMPEG;
-			printf("\n open format: %s", (char*)ffmpeg_file_context->iformat->name);
 			for(int i = 0; i < ffmpeg_file_context->nb_streams; i++)
 			{
 				AVStream *stream = ffmpeg_file_context->streams[i];
@@ -197,8 +196,8 @@ int FileFFMPEG::open_file(int rd, int wr)
 						asset->width = decoder_context->width;
 						asset->height = decoder_context->height;
 
-						asset->frame_rate = (double)ffmpeg_file_context->streams[i]->r_frame_rate.num /
-								ffmpeg_file_context->streams[i]->r_frame_rate.den;
+						asset->frame_rate = (double)stream->r_frame_rate.num /
+								stream->r_frame_rate.den;
 
 						asset->video_length = (int64_t)(ffmpeg_file_context->duration *
 								asset->frame_rate /
@@ -305,9 +304,9 @@ int FileFFMPEG::read_frame(VFrame *frame)
 	int64_t stream_start = av_rescale_q(avcontext->start_time, AV_TIME_BASE_Q,
 			stream->time_base);
 
-#define SEEK_THRESHOLD 8
-#define SEEK_BACK_START 12
-#define SEEK_BACK_LIMIT 300
+#define SEEK_THRESHOLD 16
+#define SEEK_BACK_START 24
+#define SEEK_BACK_LIMIT 600
 
 	int64_t target =
 			file->current_frame / asset->frame_rate *
@@ -368,13 +367,11 @@ int FileFFMPEG::read_frame(VFrame *frame)
 						stream->time_base.num/stream->time_base.den);
 				int fixed_index = video_index;
 				int flags = AVSEEK_FLAG_BACKWARD;
-				if(avcontext->iformat->name)
+				if(strstr(avcontext->iformat->name, "mpegts"))
 				{
-					if(strcmp(avcontext->iformat->name, "avi") == 0) flags = AVSEEK_FLAG_ANY;
-					if(strcmp(avcontext->iformat->name, "asf") == 0) fixed_index = -1;
-					if(strcmp(avcontext->iformat->name, "mpegts") == 0) {fixed_index = -1; flags = AVSEEK_FLAG_ANY;}
+					fixed_index = -1;
+					flags = AVSEEK_FLAG_ANY;
 				}
-
 				if(av_seek_frame(avcontext,
 						fixed_index,
 						seekto,
@@ -647,12 +644,11 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 			// If format is unknown use more secure (and slow) auto index
 			int flags = AVSEEK_FLAG_BACKWARD;
 			int fixed_index = audio_index;
-			if(avcontext->iformat->name)
+			if(strstr(avcontext->iformat->name, "mpegts"))
 			{
-				if(strcmp(avcontext->iformat->name, "avi") == 0) flags = AVSEEK_FLAG_ANY;
-				if(strcmp(avcontext->iformat->name, "asf") == 0) fixed_index = -1;
+				fixed_index = -1;
+				flags = AVSEEK_FLAG_ANY;
 			}
-
 			if(av_seek_frame(avcontext,
 					fixed_index,
 					seekto,

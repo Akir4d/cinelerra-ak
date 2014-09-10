@@ -305,8 +305,8 @@ int FileFFMPEG::read_frame(VFrame *frame)
 			stream->time_base);
 
 #define SEEK_THRESHOLD 16
-#define SEEK_BACK_START 24
-#define SEEK_BACK_LIMIT 600
+#define SEEK_BACK_START 8
+#define SEEK_BACK_LIMIT 512
 
 	int64_t target =
 			file->current_frame / asset->frame_rate *
@@ -365,21 +365,25 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 				if(0) fprintf(stderr,"adjusted=%.03f \n",1.*(seekto-stream_start)*
 						stream->time_base.num/stream->time_base.den);
-				int fixed_index = video_index;
 				int flags = AVSEEK_FLAG_BACKWARD;
+				int rflags = AVSEEK_FLAG_ANY;
 				if(strstr(avcontext->iformat->name, "mpegts"))
 				{
-					fixed_index = -1;
 					flags = AVSEEK_FLAG_ANY;
+					rflags = AVSEEK_FLAG_BACKWARD;
 				}
 				if(av_seek_frame(avcontext,
-						fixed_index,
+						video_index,
 						seekto,
 						flags))
-				{
-					error = 1;
-					fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
-				}
+					if(av_seek_frame(avcontext,
+							video_index,
+							seekto,
+							rflags))
+					{
+						error = 1;
+						fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
+					}
 				avcodec_flush_buffers(decoder_context);
 			}
 
@@ -445,7 +449,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
 							// check and the frame check below, we should be sure to avoid
 							// all false positives
 							if(got_pic && !pre_sync &&
-								!ffmpeg_frame->key_frame) got_pic = 0;
+									!ffmpeg_frame->key_frame) got_pic = 0;
 
 							if(got_pic)
 							{
@@ -643,20 +647,24 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 			}
 			// If format is unknown use more secure (and slow) auto index
 			int flags = AVSEEK_FLAG_BACKWARD;
-			int fixed_index = audio_index;
+			int rflags = AVSEEK_FLAG_ANY;
 			if(strstr(avcontext->iformat->name, "mpegts"))
 			{
-				fixed_index = -1;
 				flags = AVSEEK_FLAG_ANY;
+				rflags = AVSEEK_FLAG_BACKWARD;
 			}
 			if(av_seek_frame(avcontext,
-					fixed_index,
+					audio_index,
 					seekto,
 					flags))
-			{
-				error = 1;
-				fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
-			}
+				if(av_seek_frame(avcontext,
+						audio_index,
+						seekto,
+						rflags))
+				{
+					error = 1;
+					fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
+				}
 			decode_end = decode_start;
 			current_sample = file->current_sample;
 			avcodec_flush_buffers(decoder_context);

@@ -466,7 +466,7 @@ AC_SUBST(CPU_CFLAGS)
 AC_ARG_WITH([sprefix], AC_HELP_STRING([--with-sprefix], 
 			[use /usr prefix to install script]),
 			[use_sprefix=$withval],
-			[use_sprefix=no])
+			[use_sprefix="no"])
 	
 AM_CONDITIONAL(ALT_SCRIPT_PREFIX, test "x$use_sprefix" = "xyes")
 ############ END custom-script-prefix
@@ -623,9 +623,10 @@ AC_SUBST(OBJCOPYARCH, $ocarch)
 
 ############# GTKMM - EXPERIMENTAL
 AC_MSG_CHECKING([experimental gtkmm support])
-AC_ARG_ENABLE(gtk, AC_HELP_STRING([--enable-gtk],
+AC_ARG_ENABLE(gtk, 
+	AC_HELP_STRING([--enable-gtk],
 	[use gtkmm experimental support (default: no)]),
-	[enable_gtk=$enableval], [enable_gtk=no])
+	[enable_gtk=$enableval], [enable_gtk="no"])
 
 GTK_CFLAGS=""
 GTK_LIBS=""
@@ -652,14 +653,13 @@ if test "x$enable_gtk" = "xyes" ; then
 		AH_TEMPLATE(HAVE_GTKMM24, [Define to 1 If gtkmm-2.4 is available.])
 		AC_DEFINE(HAVE_GTKMM24) 
 	fi
-fi
 
-if test "x$found_gtk" = "xno" ; then
+	if test "x$found_gtk" = "xno" ; then
 		AC_MSG_WARN([Can't find gtkmm configuration, or gtkmm is unusable $enable_gtk $found_gtk])
 		enable_gtk="no"
 		GTK_CFLAGS=""
 		GTK_LIBS=""
-else
+	else
 		found_gtk="yes"
 		enable_gtk=ok
 		GTK_CFLAGS="$GTKMM30_CFLAGS $GTKMM24_CFLAGS"
@@ -667,6 +667,7 @@ else
 		CXXFLAGS="$GTK_CFLAGS $CXXFLAGS"
 		AH_TEMPLATE(HAVE_GTK, [Define to 1 If gtkmm is available.])
 		AC_DEFINE(HAVE_GTK)
+	fi
 fi
 AM_CONDITIONAL(ENABLE_GTK,test "x$enable_gtk" = "xok")
 AC_SUBST(GTK_CFLAGS)
@@ -888,7 +889,7 @@ ORPT(enable_findobject,findobject plugin using OpenCV 2.0,--disable-findobject,
 	RPT(opencvh,opencv headers)
 )
 
-ORPT(enable_gtk,GTKMM EXPERIMENTAL support,--disable-gtk,
+ORPT(enable_gtk,GTKMM EXPERIMENTAL support, enable_gtk default(no),
 	RPT(found_gtk,gtkmm support)
 )
 

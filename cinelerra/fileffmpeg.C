@@ -289,50 +289,7 @@ int FileFFMPEG::get_best_colormodel(Asset *asset, int driver)
 }
 
 #define EPSILON .000001
-/*
-bool seekMs(int tsms)
-{
-   //printf("**** SEEK TO ms %d. LLT: %d. LT: %d. LLF: %d. LF: %d. LastFrameOk: %d\n",tsms,LastLastFrameTime,LastFrameTime,LastLastFrameNumber,LastFrameNumber,(int)LastFrameOk);
 
-   // Convert time into frame number
-   int64_t DesiredFrameNumber =
-   	   av_rescale(tsms,
-   	   pFormatCtx->streams[videoStream]->time_base.den,
-   	   pFormatCtx->streams[videoStream]->time_base.num);
-
-   DesiredFrameNumber /= 1000;
-
-   return seekFrame(DesiredFrameNumber);
-}
-
-bool seekFrame(int64_t frame)
-{
-
-   //printf("**** seekFrame to %d. LLT: %d. LT: %d. LLF: %d. LF: %d. LastFrameOk: %d\n",(int)frame,LastLastFrameTime,LastFrameTime,LastLastFrameNumber,LastFrameNumber,(int)LastFrameOk);
-
-   // Seek if:
-   // - we don't know where we are (Ok=false)
-   // - we know where we are but:
-   //    - the desired frame is after the last decoded frame (this could be optimized: if the distance is small, calling decodeSeekFrame may be faster than seeking from the last key frame)
-   //    - the desired frame is smaller or equal than the previous to the last decoded frame. Equal because if frame==LastLastFrameNumber we don't want the LastFrame, but the one before->we need to seek there
-   if( (LastFrameOk==false) || ((LastFrameOk==true) && (frame<=LastLastFrameNumber || frame>LastFrameNumber) ) )
-   {
-      //printf("\t avformat_seek_file\n");
-      if(avformat_seek_file(ffmpeg_file_context,videoStream,0,frame,frame,AVSEEK_FLAG_FRAME)<0)
-         return false;
-
-      avcodec_flush_buffers(pCodecCtx);
-
-      DesiredFrameNumber = frame;
-      LastFrameOk=false;
-   }
-   //printf("\t decodeSeekFrame\n");
-
-   return decodeSeekFrame(frame);
-
-   return true;
-}
- */
 int FileFFMPEG::read_frame(VFrame *frame)
 {
 	int error = 0;
@@ -406,28 +363,42 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 				if(0) fprintf(stderr,"adjusted=%.03f \n",1.*(seekto-stream_start)*
 						stream->time_base.num/stream->time_base.den);
-				if(avformat_seek_file(avcontext, video_index, target_min/2, target, seekto,  AVSEEK_FLAG_FRAME) < 0)
+				if(avformat_seek_file(avcontext,
+						video_index,
+						target_min,
+						target,
+						seekto,
+						AVSEEK_FLAG_BACKWARD) < 0)
 				{
-					//fallback
-					int flags = AVSEEK_FLAG_BACKWARD;
-					int rflags = AVSEEK_FLAG_ANY;
-					if(strstr(avcontext->iformat->name, "mpegts"))
-					{
-						flags = AVSEEK_FLAG_ANY;
-						rflags = AVSEEK_FLAG_BACKWARD;
-					}
-					if(av_seek_frame(avcontext,
+					if(avformat_seek_file(avcontext,
 							video_index,
+							0,
+							target,
 							seekto,
-							flags))
+							AVSEEK_FLAG_ANY) < 0)
+					{
+						printf("\nTrying secure video_seek at %lld...", target);
+						int flags = AVSEEK_FLAG_BACKWARD;
+						int rflags = AVSEEK_FLAG_ANY;
+						if(strstr(avcontext->iformat->name, "mpegts"))
+						{
+							flags = AVSEEK_FLAG_ANY;
+							rflags = AVSEEK_FLAG_BACKWARD;
+						}
 						if(av_seek_frame(avcontext,
 								video_index,
 								seekto,
-								rflags))
-						{
-							error = 1;
-							fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
-						}
+								flags))
+							if(av_seek_frame(avcontext,
+									video_index,
+									seekto,
+									rflags))
+							{
+								error = 1;
+								fprintf(stderr,"FileFFMPEG::read_frame SEEK FAILED!!!\n");
+							}else printf(" 2 success!");
+						else printf(" 1 success!");
+					}
 				}
 				avcodec_flush_buffers(decoder_context);
 			}
@@ -688,28 +659,42 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 				seekto = stream_start;
 				seek_back = A_SEEK_BACK_LIMIT;
 			}
-			if(avformat_seek_file(avcontext, audio_index, 0, target, seekto,  AVSEEK_FLAG_BACKWARD) < 0)
+			if(avformat_seek_file(avcontext,
+					audio_index,
+					0,
+					target,
+					seekto,
+					AVSEEK_FLAG_BACKWARD) < 0)
 			{
-				//fallback
-				int flags = AVSEEK_FLAG_BACKWARD;
-				int rflags = AVSEEK_FLAG_ANY;
-				if(strstr(avcontext->iformat->name, "mpegts"))
-				{
-					flags = AVSEEK_FLAG_ANY;
-					rflags = AVSEEK_FLAG_BACKWARD;
-				}
-				if(av_seek_frame(avcontext,
+				if(avformat_seek_file(avcontext,
 						audio_index,
+						0,
+						target,
 						seekto,
-						flags))
+						AVSEEK_FLAG_ANY) < 0)
+				{
+					printf("\nTrying secure audio_seek at %lld...", target);
+					int flags = AVSEEK_FLAG_BACKWARD;
+					int rflags = AVSEEK_FLAG_ANY;
+					if(strstr(avcontext->iformat->name, "mpegts"))
+					{
+						flags = AVSEEK_FLAG_ANY;
+						rflags = AVSEEK_FLAG_BACKWARD;
+					}
 					if(av_seek_frame(avcontext,
 							audio_index,
 							seekto,
-							rflags))
-					{
-						error = 1;
-						fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
-					}
+							flags))
+						if(av_seek_frame(avcontext,
+								audio_index,
+								seekto,
+								rflags))
+						{
+							error = 1;
+							fprintf(stderr,"FileFFMPEG:read_samples SEEK FAILED!!!\n");
+						} else printf(" 2 Success!");
+						else printf(" 1 Success!");
+				}
 			}
 			decode_end = decode_start;
 			current_sample = file->current_sample;

@@ -6,8 +6,8 @@
 
 %{?_with_opengl: %{expand: %%global with_OPENGL 1}}
 
-Summary: Cinelerra CV
-Name: cinelerra
+Summary: Cinelerra CVA
+Name: cinelerra-cva
 Version: @VERSION@.cv981
 %if %{with_OPENGL}
 ##Version: @VERSION@.CV.svn.%{build_nick}.opengl
@@ -42,10 +42,10 @@ Provides: cinelerra
 
 %description
 %if %{with_OPENGL}
-Cinelerra unofficial cvs package
+Cinelerra unofficial cva package
 build options: --with opengl
 %else
-Cinelerra unofficial cvs package
+Cinelerra unofficial cva package
 without OpenGL support
 build options: [none]
 %endif
@@ -55,9 +55,9 @@ build options: [none]
 
 %build
 %if %{with_OPENGL}
-./configure --prefix=%{prefix} --libdir=%_libdir --with-plugindir=%{_libdir}/cinelerra --enable-freetype2 --with-buildinfo=cust/"SVN r981 SUSE" --enable-opengl
+./configure --prefix=%{prefix} --libdir=%_libdir --with-plugindir=%{_libdir}/cinelerracva --enable-freetype2 --with-buildinfo=cust/"SVN r981 SUSE" --enable-opengl
 %else
-./configure --prefix=%{prefix} --libdir=%_libdir --with-plugindir=%{_libdir}/cinelerra --enable-freetype2 --with-buildinfo=cust/"SVN r981 SUSE"
+./configure --prefix=%{prefix} --libdir=%_libdir --with-plugindir=%{_libdir}/cinelerracva --enable-freetype2 --with-buildinfo=cust/"SVN r981 SUSE"
 %endif
 %{__make} %{?_smp_mflags} %{?mflags}
 
@@ -66,10 +66,10 @@ rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT install
 # rename the mpeg3 utils so they can be installed alongside SuSE native versions
 ( cd $RPM_BUILD_ROOT%{prefix}/bin
-  mv mpeg3toc mpeg3toc.hv
-  mv mpeg3cat mpeg3cat.hv
-  mv mpeg3dump mpeg3dump.hv
-  ln -s /usr/bin/mpeg2enc $RPM_BUILD_ROOT%{_libdir}/cinelerra/mpeg2enc.plugin
+  mv mpeg3toc mpeg3toc.cva
+  mv mpeg3cat mpeg3cat.cva
+  mv mpeg3dump mpeg3dump.cva
+  ln -s /usr/bin/mpeg2enc $RPM_BUILD_ROOT%{_libdir}/cinelerracva/mpeg2enc.plugin
 )
 
 %clean
@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc
 #%{prefix}/bin/*
-%{prefix}/bin/cinelerra
+%{prefix}/bin/cinelerra-cva
 
 # missing in the 2.0 build?
 #%{prefix}/bin/mplexhi
@@ -88,9 +88,9 @@ rm -rf $RPM_BUILD_ROOT
 #%exclude %{prefix}/bin/mpeg3dump
 #%exclude %{prefix}/bin/mpeg3toc
 #%exclude %{prefix}/bin/mpeg3cat
-%{prefix}/bin/mpeg3dump.hv
-%{prefix}/bin/mpeg3toc.hv
-%{prefix}/bin/mpeg3cat.hv
+%{prefix}/bin/mpeg3dump.cva
+%{prefix}/bin/mpeg3toc.cva
+%{prefix}/bin/mpeg3cat.cva
 
 %{prefix}/share/locale/*
 %exclude %{prefix}/include/*
@@ -100,20 +100,20 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/cinelerra/shapewipe/*
 
 # remove below for no static libs
-# %exclude %{_libdir}/lib/cinelerra/*.a
-%exclude %{_libdir}/cinelerra/*.la
+# %exclude %{_libdir}/lib/cinelerracva/*.a
+%exclude %{_libdir}/cinelerracva/*.la
 
-%{_libdir}/cinelerra/fonts/*
+%{_libdir}/cinelerracva/fonts/*
 
-%{_libdir}/libguicast*
-%{_libdir}/libmpeg3hv*
-%{_libdir}/libquicktimehv*
+%{_libdir}/libguicastcva*
+%{_libdir}/libmpeg3cva*
+%{_libdir}/libquicktimecva*
 # missing in 2.0
-#%{prefix}/lib/libsndfilehv*
+#%{prefix}/lib/libsndfilecva*
 #%{prefix}/lib/pkgconfig*
 
-%{prefix}/share/applications/cinelerra.desktop
-%{prefix}/share/pixmaps/cinelerra.xpm
+%{prefix}/share/applications/cinelerra-cva.desktop
+%{prefix}/share/pixmaps/cinelerracva.xpm
 
 
 %changelog

@@ -19,4 +19,4 @@ export LC_NUMERIC="C"
 export PATH=@bindir@:$PATH
 
 # start Cinelerra-CV
-cinelerracvbin $@
+cinelerracvabin $@

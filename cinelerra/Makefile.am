@@ -50,7 +50,7 @@ endif
 
 SUBDIRS = data
 
-bin_PROGRAMS = cinelerracvbin
+bin_PROGRAMS = cinelerracvabin
 
 if HAVE_FIREWIRE
 firewire_SOURCES = \
@@ -64,7 +64,7 @@ firewire_SOURCES = \
 	vdevice1394.C
 endif
 
-cinelerracvbin_SOURCES = aattachmentpoint.C \
+cinelerracvabin_SOURCES = aattachmentpoint.C \
 		    aautomation.C \
 		    aboutprefs.C \
 		    adeviceprefs.C \
@@ -689,13 +689,13 @@ noinst_HEADERS = aattachmentpoint.h \
 		 zoompanel.h \
 		$(srcdir)/*.inc
 		 
-cinelerracvbin_LDADD = \
+cinelerracvabin_LDADD = \
 	data/libimagedata.a \
-	$(top_builddir)/mpeg2enc/libmpeg2enc.la \
-	$(top_builddir)/toolame-02l/libtoolame.la \
-	$(top_builddir)/quicktime/libquicktimehv.la \
-	$(top_builddir)/guicast/libguicast.la \
-	$(top_builddir)/libmpeg3/libmpeg3hv.la \
+	$(top_builddir)/mpeg2enc/libmpeg2enccva.la \
+	$(top_builddir)/toolame-02l/libtoolamecva.la \
+	$(top_builddir)/quicktime/libquicktimecva.la \
+	$(top_builddir)/guicast/libguicastcva.la \
+	$(top_builddir)/libmpeg3/libmpeg3cva.la \
 	$(GTK_LIBS) \
 	@FFMPEG_LIBS@ \
 	$(XIPH_LIBS) \

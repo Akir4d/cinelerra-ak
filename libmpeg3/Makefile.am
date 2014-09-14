@@ -1,9 +1,9 @@
-lib_LTLIBRARIES = libmpeg3hv.la
+lib_LTLIBRARIES = libmpeg3cva.la
 AM_CFLAGS = $(CPU_CFLAGS) $(LARGEFILE_CFLAGS) $(CSS_CFLAGS)
-libmpeg3hv_la_LDFLAGS = -version-info 1:0:0 -release 1.5.0 -Wl,--no-undefined
-libmpeg3hv_la_LIBADD = -la52 video/libmpeg3_video.la audio/libmpeg3_audio.la -lm \
+libmpeg3cva_la_LDFLAGS = -version-info 1:0:0 -release 1.5.0 -Wl,--no-undefined
+libmpeg3cva_la_LIBADD = -la52 video/libmpeg3_video.la audio/libmpeg3_audio.la -lm \
 		     -lpthread
-libmpeg3hv_la_SOURCES = bitstream.c libmpeg3.c mpeg3atrack.c mpeg3css.c \
+libmpeg3cva_la_SOURCES = bitstream.c libmpeg3.c mpeg3atrack.c mpeg3css.c \
 	mpeg3demux.c \
 	mpeg3ifo.c \
 	mpeg3io.c \
@@ -13,11 +13,11 @@ libmpeg3hv_la_SOURCES = bitstream.c libmpeg3.c mpeg3atrack.c mpeg3css.c \
 											mpeg3vtrack.c workarounds.c 
 bin_PROGRAMS = mpeg3dump mpeg3toc mpeg3cat
 mpeg3dump_SOURCES = mpeg3dump.c
-mpeg3dump_LDADD = libmpeg3hv.la
+mpeg3dump_LDADD = libmpeg3cva.la
 mpeg3toc_SOURCES = mpeg3toc.c
-mpeg3toc_LDADD = libmpeg3hv.la
+mpeg3toc_LDADD = libmpeg3cva.la
 mpeg3cat_SOURCES = mpeg3cat.c
-mpeg3cat_LDADD = libmpeg3hv.la
+mpeg3cat_LDADD = libmpeg3cva.la
 
 SUBDIRS = audio video 
 

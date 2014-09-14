@@ -1,4 +1,4 @@
-AC_INIT(cinelerra-cv, 2.2Akirad)
+AC_INIT(cinelerra-cva, 2.2)
 
 AC_CANONICAL_SYSTEM
 
@@ -118,7 +118,7 @@ AC_CHECK_HEADER([linux/videodev2.h],
 AC_ARG_WITH(plugindir,
 						AC_HELP_STRING([--with-plugindir], [sets the directory where the plugins should be installed]),
 						[ plugindir=$withval ],
-						[ plugindir="\${exec_prefix}/lib/cinelerra" ])
+						[ plugindir="\${exec_prefix}/lib/cinelerracva" ])
 AC_SUBST(plugindir)
 
 AC_ARG_WITH(fontsdir,
@@ -486,12 +486,12 @@ else
 
      FFMPEG_CFLAGS="-I\$(top_srcdir)/quicktime/ffmpeg -DHAVE_SWSCALER -D__STDC_CONSTANT_MACROS"
 
-     FFMPEG_LIBS="-L\$(top_builddir)/quicktime/ffmpeg/libavcodec -lavcodec-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libpostproc -lpostproc-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libswresample -lswresample-cinelerra \
-		-L\$(top_builddir)/quicktime/ffmpeg/libavformat -lavformat-cinelerra"
+     FFMPEG_LIBS="-L\$(top_builddir)/quicktime/ffmpeg/libavcodec -lavcodec-cinelerracva \
+		-L\$(top_builddir)/quicktime/ffmpeg/libswscale -lswscale-cinelerracva \
+		-L\$(top_builddir)/quicktime/ffmpeg/libavutil -lavutil-cinelerracva \
+		-L\$(top_builddir)/quicktime/ffmpeg/libpostproc -lpostproc-cinelerracva \
+		-L\$(top_builddir)/quicktime/ffmpeg/libswresample -lswresample-cinelerracva \
+		-L\$(top_builddir)/quicktime/ffmpeg/libavformat -lavformat-cinelerracva"
      FFMPEG_EXTERNALTEXT="Internal ffmpeg"
 fi
 
@@ -510,7 +510,7 @@ else
 	ff_conf_args=$ffmpeg_cpu_min" --disable-programs \
 		--disable-doc --disable-devices --disable-avdevice \
 		--disable-avfilter --disable-network --disable-static --enable-shared --enable-gpl \
-		--build-suffix=-cinelerra"
+		--build-suffix=-cinelerracva"
 
 	srcdir_c=$(readlink -f $srcdir) &&
 	mkdir -p quicktime/ffmpeg/ &&
@@ -691,7 +691,7 @@ fi
 AM_CONDITIONAL(ENABLE_FFMPEGDIRECT,test "x$enable_dffmpeg" = "xok")
 ############## END DIRECT FFMPEG
 
-AC_OUTPUT(Makefile cinelerra-cvs-current.spec po/Makefile.in \
+AC_OUTPUT(Makefile cinelerra-cva-current.spec po/Makefile.in \
 	m4/Makefile \
 	libmpeg3/Makefile \
 	libmpeg3/video/Makefile \

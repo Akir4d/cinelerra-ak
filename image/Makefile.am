@@ -6,39 +6,38 @@ BNDIR = $(bindir)
 DTDIR = $(prefix)/share
 endif
 desktopdir = ${DTDIR}/applications
-desktop_DATA = cinelerra-cv.desktop
-bin_SCRIPTS = cinelerra-cv
+desktop_DATA = cinelerra-cva.desktop
+bin_SCRIPTS = cinelerra-cva
 CLEANFILES = $(bin_SCRIPTS) $(desktop_DATA)
 
 pixmapdir = ${DTDIR}/pixmaps
-pixmap_DATA = cinelerra-cv.xpm
+pixmap_DATA = cinelerra-cva.xpm
 
 EXTRA_DIST = \
-        cinelerra-cv.desktop.in cinelerra-cv.xpm cinelerra-cv.in
+        cinelerra-cva.desktop.in cinelerra-cva.xpm cinelerra-cva.in
 
 do_subst = sed -e 's,[@]bindir[@],$(bindir),g'
 do_subst_desk = sed -e 's,[@]BNDIR[@],$(BNDIR),g'
 
-cinelerra-cv: cinelerra-cv.in Makefile
-			$(do_subst) < $(srcdir)/cinelerra-cv.in > cinelerra-cv
-			chmod +x cinelerra-cv
+cinelerra-cva: cinelerra-cva.in Makefile
+			$(do_subst) < $(srcdir)/cinelerra-cva.in > cinelerra-cva
+			chmod +x cinelerra-cva
 
-cinelerra-cv.desktop: cinelerra-cv.desktop.in Makefile
-			$(do_subst_desk) < $(srcdir)/cinelerra-cv.desktop.in > cinelerra-cv.desktop
-			chmod +x cinelerra-cv.desktop
+cinelerra-cva.desktop: cinelerra-cva.desktop.in Makefile
+			$(do_subst_desk) < $(srcdir)/cinelerra-cva.desktop.in > cinelerra-cva.desktop
+			chmod +x cinelerra-cva.desktop
 
-install: cinelerra-cv cinelerra-cv.desktop cinelerra-cv.xpm
-	mv -f cinelerra-cv ${BNDIR}
-	mv -f cinelerra-cv.desktop ${DTDIR}/applications
-	cp -f cinelerra-cv.xpm ${DTDIR}/pixmaps
-	cp -f cinelerra-cv.conf /etc/sysctl.d/50-cinelerra-cv.conf
+install: cinelerra-cva cinelerra-cva.desktop cinelerra-cva.xpm
+	mv -f cinelerra-cva ${BNDIR}
+	mv -f cinelerra-cva.desktop ${DTDIR}/applications
+	cp -f cinelerra-cva.xpm ${DTDIR}/pixmaps
+	cp -f cinelerra-cva.conf /etc/sysctl.d/50-cinelerra-cva.conf
 	-/etc/init.d/procps reload
 	
-uninstall: cinelerra-cv cinelerra-cv.desktop cinelerra-cv.xpm
-	rm -f ${BNDIR}/cinelerra-cv
-	rm -f  ${DTDIR}/applications/cinelerra-cv.desktop
-	rm -f  ${DTDIR}/pixmaps/cinelerra-cv.xpm
-	rm -f /etc/sysctl.d/50-cinelerra-cv.conf
-	-/etc/init.d/procps reload
+uninstall: cinelerra-cva cinelerra-cva.desktop cinelerra-cva.xpm
+	rm -f ${BNDIR}/cinelerra-cva
+	rm -f  ${DTDIR}/applications/cinelerra-cva.desktop
+	rm -f  ${DTDIR}/pixmaps/cinelerra-cva.xpm
+	rm -f /etc/sysctl.d/50-cinelerra-cva.conf
 
       

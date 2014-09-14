@@ -1,6 +1,6 @@
-noinst_LTLIBRARIES = libtoolame.la
+noinst_LTLIBRARIES = libtoolamecva.la
 
-libtoolame_la_SOURCES = common.c \
+libtoolamecva_la_SOURCES = common.c \
 	encode.c \
 	ieeefloat.c \
 	toolame.c \
@@ -59,6 +59,6 @@ AM_CFLAGS = $(LARGEFILE_CFLAGS) \
 	-fomit-frame-pointer \
 	-DNDEBUG -DINLINE=inline -DNEWENCODE -DNEWATAN
 
-libtoolame_la_LDFLAGS =  -lm
+libtoolamecva_la_LDFLAGS =  -lm
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool $(LTC_FLAGS)

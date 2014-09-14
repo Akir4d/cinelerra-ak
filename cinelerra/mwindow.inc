@@ -22,7 +22,7 @@
 #ifndef MWINDOW_INC
 #define MWINDOW_INC
 
-#define PROGRAM_NAME "Cinelerra-CV"
+#define PROGRAM_NAME "Cinelerra-CVA"
 #define DEFAULT_THEME "UnFlat Theme"
 #define CONFIG_FILE "Cinelerra_rc"
 

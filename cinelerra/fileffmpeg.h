@@ -51,6 +51,9 @@ public:
 	int open_file(int rd, int wr);
 	int close_file();
 
+	// yet an other seek method that uses low level libav seek function
+	int multi_seek_file(AVFormatContext *s, int index, int min_ts, int target, int seekto);
+
 	int64_t get_memory_usage();
 	int colormodel_supported(int colormodel);
 	int get_best_colormodel(Asset *asset, int driver);

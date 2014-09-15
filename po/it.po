@@ -17,7 +17,6 @@ msgstr ""
 "Content-Type: text/plain; charset=iso-8859-15\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-
 #: cinelerra/aboutprefs.C:80
 #, c-format
 msgid ""
@@ -5876,8 +5875,8 @@ msgid ""
 "The file %s that was generated from %s is not in RAWC format. Try to delete "
 "all *.raw files.\n"
 msgstr ""
-"Il file %s che è stato generato da %s non è in formato RAWC. Prova a cancellare "
-"tutti i file *.raw.\n"
+"Il file %s che è stato generato da %s non è in formato RAWC. Prova a "
+"cancellare tutti i file *.raw.\n"
 
 #: plugins/svg/svg.C:310
 #, c-format
@@ -6145,7 +6144,8 @@ msgid "Inversion"
 msgstr "Inversione"
 
 #: plugins/timefront/timefront.C:626
-msgid "Show grayscale (for tuning)"
+#, fuzzy
+msgid "Show grayscale (for tuning"
 msgstr "Mostra scala di grigi (per tarare)"
 
 #: plugins/timefront/timefront.C:659

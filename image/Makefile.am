@@ -32,7 +32,7 @@ install: cinelerra-cva cinelerra-cva.desktop cinelerra-cva.xpm
 	mv -f cinelerra-cva.desktop ${DTDIR}/applications
 	cp -f cinelerra-cva.xpm ${DTDIR}/pixmaps
 	cp -f cinelerra-cva.conf /etc/sysctl.d/50-cinelerra-cva.conf
-	-/etc/init.d/procps reload
+	-echo "0x7fffffff" > /proc/sys/kernel/shmmax
 	
 uninstall: cinelerra-cva cinelerra-cva.desktop cinelerra-cva.xpm
 	rm -f ${BNDIR}/cinelerra-cva

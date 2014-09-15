@@ -135,6 +135,7 @@ mpeg3_release());
 "Einar R\374nkaru\n"
 #endif
 "Monty Montgomery\n"
+"Paolo Rampino\n"
 );
 
 	y = get_h() - 170;

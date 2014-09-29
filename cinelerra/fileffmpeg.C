@@ -289,26 +289,26 @@ int FileFFMPEG::get_best_colormodel(Asset *asset, int driver)
 	}
 }
 
-int FileFFMPEG::multi_seek_file(AVFormatContext *s, int index, int min_ts, int target, int seekto)
+int FileFFMPEG::seek_streams(AVFormatContext *s, int index, int target, int seekto)
 {
 	int flags = AVSEEK_FLAG_BACKWARD;
 	int ret = 1;
 
-	// known format that needs flag_any
-	if(strstr(s->iformat->name, "mpegts")) flags = AVSEEK_FLAG_ANY;
+	if(s->seek2any) flags |= AVSEEK_FLAG_ANY;
 
-	// If available read_seek2 for this format
-	if (s->iformat->read_seek2)
-	{
-		ret = avformat_seek_file(s, index, min_ts, target, seekto, flags);
-	}
-	else // else fallback to seek_frame
+	ret = avformat_seek_file(s,
+			index,
+			INT64_MIN,
+			target < seekto ? target : seekto,
+			seekto > target ? seekto : INT64_MAX,
+			flags);
+	if (ret != 0)
 	{
 		ret = av_seek_frame(s, index, seekto, flags);
 	}
 	return ret;
 }
-#define EPSILON .000001
+#define EPSILON .0000001
 
 int FileFFMPEG::read_frame(VFrame *frame)
 {
@@ -322,12 +322,13 @@ int FileFFMPEG::read_frame(VFrame *frame)
 	int64_t stream_start = av_rescale_q(avcontext->start_time, AV_TIME_BASE_Q,
 			stream->time_base);
 
-#define SEEK_THRESHOLD 16
-#define SEEK_BACK_START 8
+#define SEEK_THRESHOLD 32
+#define SEEK_BACK_START 16
 #define SEEK_BACK_LIMIT 512
-
+	int adj = 0;
+	if(file->current_frame < 1) adj = 1;
 	int64_t target =
-			file->current_frame / asset->frame_rate *
+			(file->current_frame + adj)/ asset->frame_rate *
 			stream->time_base.den/stream->time_base.num + stream_start;
 	int64_t target_min = target -
 			(1.*stream->time_base.den/stream->time_base.num/asset->frame_rate) +
@@ -383,9 +384,8 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 				if(0) fprintf(stderr,"adjusted=%.03f \n",1.*(seekto-stream_start)*
 						stream->time_base.num/stream->time_base.den);
-				if(multi_seek_file(avcontext,
+				if(seek_streams(avcontext,
 						video_index,
-						target_min,
 						target,
 						seekto) < 0)
 				{
@@ -407,7 +407,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 				error = av_read_frame(avcontext, &packet);
 
-				if(!error)
+				if(!error && packet.flags != AV_PKT_FLAG_CORRUPT)
 				{
 					if(packet.size > 0 && packet.stream_index == video_index)
 					{
@@ -416,7 +416,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
 						// non-keyframe first packet to the decoder, as eg the
 						// mpeg2 decoder is known to misidentify non-keyframes as
 						// keyframes, resulting in garbled output.
-
 						if(packet.flags == AV_PKT_FLAG_KEY)
 						{
 							got_keyframe = 1;
@@ -439,7 +438,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
 							int64_t packet_dts = packet.dts;
 
 							if(!ffmpeg_frame) ffmpeg_frame = av_frame_alloc();
-							av_frame_unref(ffmpeg_frame);
 
 							decoder_context->reordered_opaque = packet_pts;
 							int result = avcodec_decode_video2(decoder_context,
@@ -534,7 +532,6 @@ int FileFFMPEG::read_frame(VFrame *frame)
 				if(packet.size > 0 && packet.stream_index == video_index){
 
 					if(!ffmpeg_frame) ffmpeg_frame = av_frame_alloc();
-					av_frame_unref(ffmpeg_frame);
 
 					decoder_context->reordered_opaque = packet.pts;
 					int result =
@@ -570,37 +567,7 @@ int FileFFMPEG::read_frame(VFrame *frame)
 
 		FFMPEG::convert_cmodel((AVPicture *)ffmpeg_frame, decoder_context->pix_fmt,
 				decoder_context->width, decoder_context->height, frame);
-	}/*else{
-		// No frame to transfer, but not due to an error; there really
-		// is no frame at this point.
-		unsigned char *buf=(unsigned char *)calloc(decoder_context->width*2,1);
-		memset(buf+decoder_context->width,128,decoder_context->width);
-
-		cmodel_transfer(frame->get_rows(), // Leave NULL if non existent
-				NULL,
-				frame->get_y(), // Leave NULL if non existent
-				frame->get_u(),
-				frame->get_v(),
-				buf,
-				buf+decoder_context->width,
-				buf+decoder_context->width,
-				0,        // Dimensions to capture from input frame
-				0,
-				decoder_context->width,
-				decoder_context->height,
-				0,       // Dimensions to project on output frame
-				0,
-				frame->get_w(),
-				frame->get_h(),
-				BC_YUV420P,
-				frame->get_color_model(),
-				0, // When transfering BC_RGBA8888 to non-alpha
-				// this is the background color in 0xRRGGBB
-				// hex
-				0,
-				frame->get_w());
-		free(buf);
-	}*/
+	}
 
 	ffmpeg_lock->unlock();
 	return error;
@@ -651,9 +618,8 @@ int FileFFMPEG::read_samples(double *buffer, int64_t len)
 				seekto = stream_start;
 				seek_back = A_SEEK_BACK_LIMIT;
 			}
-			if(multi_seek_file(avcontext,
+			if(seek_streams(avcontext,
 					audio_index,
-					0,
 					target,
 					seekto))
 			{

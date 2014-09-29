@@ -52,7 +52,7 @@ public:
 	int close_file();
 
 	// yet an other seek method that uses low level libav seek function
-	int multi_seek_file(AVFormatContext *s, int index, int min_ts, int target, int seekto);
+	int seek_streams(AVFormatContext *s, int index, int target, int seekto);
 
 	int64_t get_memory_usage();
 	int colormodel_supported(int colormodel);

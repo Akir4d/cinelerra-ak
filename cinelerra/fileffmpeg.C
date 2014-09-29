@@ -21,6 +21,7 @@
  */
 
 #define __STDC_CONSTANT_MACROS 1
+#define __STDC_LIMIT_MACROS 1
 #include "asset.h"
 #include "bcsignals.h"
 #include "clip.h"
@@ -29,7 +30,6 @@
 #include "fileffmpeg.h"
 #include "mutex.h"
 #include <unistd.h>
-#include <stdint.h>
 #include "videodevice.inc"
 
 #include <string.h>

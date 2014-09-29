@@ -29,6 +29,7 @@
 #include "fileffmpeg.h"
 #include "mutex.h"
 #include <unistd.h>
+#include <stdint.h>
 #include "videodevice.inc"
 
 #include <string.h>
